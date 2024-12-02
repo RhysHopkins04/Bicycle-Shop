@@ -1,5 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
+- Move the qr code generation into the database.py for when they are being added to match update_product
 - Allow unhide password temp button for logon, register and change password 
 
 - Add change password ability to the top right for both users and admin users
@@ -42,6 +43,9 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Moved the qr code generation into the database file for update_product instead of gui
+- Creates/Updates/Removes the old file tree and images/qr_codes correctly on product_edit
+- Organise the file tree's for products and icons.
 - Make it so change password has same validation as when registering
 - make it so both paswds have to match to create/change, enter password 2x for creation, or both
 - Adjust the admin dashboard to somewhat relate to the user page 

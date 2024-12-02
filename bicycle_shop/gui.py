@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import ttk, filedialog as filedialog, PhotoImage
 from PIL import ImageTk, Image
 import os
+import shutil
 
 # Functions from other locations in the program: auth, database, qr_code_util
 import qr_code_util
@@ -22,6 +23,7 @@ def start_app():
     current_username = None
     current_first_name = None
     current_last_name = None
+    PRODUCTS_DIR = "./bicycle_shop/Products"
 
     # Redundant but a good check to ensure that the tables and an admin user are created on startup encase they do not exist.
     create_tables()
@@ -54,8 +56,8 @@ def start_app():
     def display_error(message):
             tk.Label(main_frame, text=message, fg="red").pack()
 
-    eye_open_image = PhotoImage(file="./Icons/visible.png")
-    eye_closed_image = PhotoImage(file="./Icons/hidden.png")
+    eye_open_image = PhotoImage(file="./bicycle_shop/Icons/visible.png")
+    eye_closed_image = PhotoImage(file="./bicycle_shop/Icons/hidden.png")
 
     def toggle_password_visibility(entry, button, show):
         """Toggle the visibility of the password."""
@@ -220,11 +222,11 @@ def start_app():
         user_info_frame.pack(side="left", padx=20, pady=10)
 
         # Load the user icon
-        user_icn = ImageTk.PhotoImage(Image.open("./Icons/user_icon_thumbnail.png"))
+        user_icn = PhotoImage(file="./bicycle_shop/Icons/user_icon_thumbnail.png")
         user_info_frame.user_icn = user_icn
 
-        admin_icn = ImageTk.PhotoImage(Image.open("./Icons/admin_icon_thumbnail.png"))
-        user_info_frame.admin_icn = admin_icn
+        admin_icn = PhotoImage(file="./bicycle_shop/Icons/admin_icon_thumbnail.png")
+        user_info_frame.admin_icn = admin_icn 
 
         # Add the icon to the user_info_frame
         if is_admin:
@@ -492,11 +494,11 @@ def start_app():
         user_info_frame.pack(side="left", padx=20, pady=10)
 
         # Load the user icon
-        user_icn = ImageTk.PhotoImage(Image.open("./Icons/user_icon_thumbnail.png"))
+        user_icn = PhotoImage(file="./bicycle_shop/Icons/user_icon_thumbnail.png")
         user_info_frame.user_icn = user_icn
 
-        admin_icn = ImageTk.PhotoImage(Image.open("./Icons/admin_icon_thumbnail.png"))
-        user_info_frame.admin_icn = admin_icn
+        admin_icn = PhotoImage(file="./bicycle_shop/Icons/admin_icon_thumbnail.png")
+        user_info_frame.admin_icn = admin_icn 
 
         # Add the icon to the user_info_frame
         icon_label = tk.Label(user_info_frame, image=admin_icn, bg="#171d22")
@@ -700,20 +702,20 @@ def start_app():
         error_label.pack()
         
         def handle_add_product():
-            # Local Variables to take out from the text boxes and check for errors before adding to the database
+            """Handle adding a new product."""
             name = name_entry.get()
             price = price_entry.get()
             description = description_entry.get()
             category = category_combobox.get()
             image = image_path.get()
             stock = stock_entry.get()
-            listed = listed_var.get()
+            listed = 1 if listed_var.get() == "Yes" else 0
 
             # Error messages for if the fields are empty to avoid null products in the database
             if not name or not price:
                 error_label.config(text="All fields are required.")
                 return
-            
+
             # Error message for entering in characters not integers for the price
             try:
                 price = float(price)
@@ -721,18 +723,31 @@ def start_app():
             except ValueError:
                 error_label.config(text="Price must be a number and stock must be an integer.")
                 return
-            
+
             category_id = get_category_id(category) if category else None
             if category_id is None:
                 error_label.config(text="Invalid category.")
                 return
-            
-            qr_code = f"{name}_{price}.png" # Sets a variable for qr_code to be the name of the product price of the product and .png for file type
-            qr_code_util.generate_qr_code(f"{name}_{price}", qr_code) # Calls the generate qr code function from the qr_code_util.py file and uses the data then file location/name
-            add_product(name, price, qr_code, listed, description, category_id, image, stock) # Calls the database.py with the function add_product with those parameters set in this function adding it to the database
+
+            # Create product directory
+            product_dir = os.path.join(PRODUCTS_DIR, name)
+            os.makedirs(product_dir, exist_ok=True)
+
+            # Move the image to the product directory
+            if image:
+                image_dest = os.path.join(product_dir, os.path.basename(image))
+                shutil.copy(image, image_dest)
+                image = image_dest
+
+            # Generate and move the QR code to the product directory
+            qr_code = f"{name}_{price}.png"
+            qr_code_path = os.path.join(product_dir, os.path.basename(qr_code))
+            qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
+
+            add_product(name, price, qr_code_path, listed, description, category_id, image, stock)
 
             error_label.config(text="Product added successfully!", fg="green")
-
+        
         tk.Button(content_inner_frame, text="Add Product", command=handle_add_product).pack(pady=10) # Button that calls this function to add the products to the database
 
     # TODO: Make it so that you can change if a product is listed or not from the main manage products screen along with inside the edit product screen for easier ux due to less clicks. #
@@ -805,45 +820,38 @@ def start_app():
         canvas.bind_all("<MouseWheel>", on_mouse_wheel)
 
         def display_products(products):
-            
-            clear_frame(scrollable_frame) # Itterates over all of the child widgets in the scrollable_frame and destroys them if they are not the search entry or the title label to avoid destroying the search box and title label
-            
-            # If there are no products available it will display a message saying so in red text otherwise display the products in a grid format (Can't use grid since i am stacking it ontop of a frame to make it dynamic)
+            """Display products in the store listing."""
+            clear_frame(scrollable_frame)
+
             if not products:
                 tk.Label(scrollable_frame, text="No products available.", fg="red", bg="#171d22").pack(pady=10)
             else:
-                # Get the width of the scrollable_frame
                 canvas.update_idletasks()
                 content_width = canvas.winfo_width()
-                product_frame_width = 290  # Set the width of each product frame (adjust as needed)
-                padding = 5  # Set the padding between product frames
-
-                # Calculate the number of columns that can fit in the available width
+                product_frame_width = 290
+                padding = 5
                 num_columns = max(1, content_width // (product_frame_width + padding))
 
-                # Initializes the variables
                 row_frame = None
                 col = 0
                 row_count = 0
 
                 for product in products:
-                    # If the column is 0 it will create a new row frame to stack the products in a grid format
                     if col == 0:
                         row_frame = tk.Frame(scrollable_frame, bg="#171d22")
                         row_frame.pack(fill="x", pady=10)
                         row_count += 1
 
-                    # Creates a frame for the product to be displayed in + creates the labels and content to fill out the product with information from the product tuple
                     product_frame = tk.Frame(row_frame, width=product_frame_width, padx=5, pady=5, bg="#171d22")
                     product_frame.pack(side="left", padx=5, pady=5)
 
                     tk.Label(product_frame, text=f"Name: {product[1]}", bg="#171d22", fg="white").pack()
                     tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", bg="#171d22", fg="white").pack()
-
-                    qr_code_image = tk.PhotoImage(file=product[3]) # Takes the qr code image from the product tuple and sets it to a local variable to be used in the label
+                    
+                    qr_code_image = tk.PhotoImage(file=product[3])
                     tk.Label(product_frame, image=qr_code_image, bg="#171d22").pack()
-                    product_frame.image = qr_code_image  # stores the image inside of product_frame to avoid garbage collection since it was previously clearing
-
+                    product_frame.image = qr_code_image
+                
                     # Creates the functions and locaates the two buttons for editing / deleting products
                     def edit_product(product_id=product[0]):
                         show_edit_product_screen(product_id)
@@ -854,12 +862,11 @@ def start_app():
                         
                     tk.Button(product_frame, text="Edit", command=edit_product).pack(side="left")
                     tk.Button(product_frame, text="Delete", command=delete_product).pack(side="right")
-                    
+
                     col += 1
                     if col >= num_columns:
                         col = 0
-                
-                # Enable or disable scrolling based on the number of rows
+
                 if row_count > 1:
                     canvas.bind_all("<MouseWheel>", on_mouse_wheel)
                     scrollbar.pack(side="right", fill="y")
@@ -914,7 +921,7 @@ def start_app():
             file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
             if file_path:
                 image_path.set(file_path)
-
+        
         select_image_button = tk.Button(content_inner_frame, text="Select Image", command=select_image)
         select_image_button.pack()
 
@@ -928,11 +935,9 @@ def start_app():
         listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3)
         listed_combobox.pack()
 
-        # Creates the empty error label to be used for error messages if the user tries to submit the form with errors
         error_label = tk.Label(content_inner_frame, text="", fg="red", bg="#171d22")
         error_label.pack()
 
-        # Performs validation checks to ensure the product name and price are not empty and the price is a number before updating the product in the database
         def save_edit_product():
             name = name_entry.get()
             price = price_entry.get()
@@ -956,33 +961,15 @@ def start_app():
             if category_id is None:
                 error_label.config(text="Invalid category.")
                 return
-            
-            # Retrieve the old QR code file name 
-            old_qr_code = product[3]
 
-            # Check if the name or price has changed
-            if name != product[1] or price != product[2]:
-                # If validation passes then it generates a new qr code and updates the product in the database with the new product details
-                qr_code = f"{name}_{price}.png"
-                qr_code_util.generate_qr_code(f"{name}_{price}", qr_code)
-
-                # Delete the old QR code file if it still exists
-                if old_qr_code and os.path.exists(old_qr_code):
-                    os.remove(old_qr_code)
-            else:
-                # If name and price have not changed, use the old QR code
-                qr_code = old_qr_code
-
-            update_product(product_id, name, price, qr_code, description, category_id, image, stock)
+            update_product(product_id, name, price, None, description, category_id, image, stock)
             list_product(product_id, listed)
 
             error_label.config(text="Product updated successfully!", fg="green")
             show_manage_products_screen()
-        
-        # Cancels the current edits from being saved by destroying all widgets in the content_inner_frame and showing the mangae users screen INSTEAD of updating any products in the database
+
         def cancel_edit_product():
             clear_frame(content_inner_frame)
-
             show_manage_products_screen()
 
         tk.Button(content_inner_frame, text="Save", command=save_edit_product).pack(pady=10)

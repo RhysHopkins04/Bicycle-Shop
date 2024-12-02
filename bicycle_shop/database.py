@@ -1,7 +1,10 @@
 import sqlite3
 import os
+import shutil
+import qr_code_util
 
-DB_PATH = "bicycle_shop.db"
+DB_PATH = "./bicycle_shop/bicycle_shop.db"
+PRODUCTS_DIR = "./bicycle_shop/Products"
 
 def get_connection():
     """Establish a connection to the SQLite database."""
@@ -99,12 +102,18 @@ def demote_user_from_admin(user_id, current_admin_id):
 
 def add_product(name, price, qr_code, listed, description, category_id, image, stock):
     """Add a new product to the database."""
+    product_dir = os.path.join(PRODUCTS_DIR, name)
+    os.makedirs(product_dir, exist_ok=True)
+    
+    qr_code_path = os.path.join(product_dir, os.path.basename(qr_code))
+    image_path = os.path.join(product_dir, os.path.basename(image)) if image else None
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO Products (name, price, qr_code, listed, description, category_id, image, stock) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (name, price, qr_code, listed, description, category_id, image, stock))
+    """, (name, price, qr_code_path, listed, description, category_id, image_path, stock))
     conn.commit()
     conn.close()
 
@@ -112,10 +121,39 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
     """Update an existing product in the database."""
     conn = get_connection()
     cursor = conn.cursor()
+    
+    cursor.execute("SELECT name, qr_code, image FROM Products WHERE id = ?", (product_id,))
+    old_product = cursor.fetchone()
+    old_name, old_qr_code, old_image = old_product
+
+    old_product_dir = os.path.join(PRODUCTS_DIR, old_name)
+    new_product_dir = os.path.join(PRODUCTS_DIR, name)
+    
+    qr_code_path = os.path.join(new_product_dir, f"{name}_{price}.png")
+    
+    # Delete the old QR code file if it still exists
+    if old_qr_code and os.path.exists(old_qr_code):
+        os.remove(old_qr_code)
+    
+    # Rename the product directory if the name has changed
+    if old_name != name:
+        os.rename(old_product_dir, new_product_dir)
+    
+    # Generate the new QR code
+    qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
+
+    # Handle the image file
+    if image and os.path.exists(image):
+        image_dest = os.path.join(new_product_dir, os.path.basename(image))
+        if old_image and os.path.exists(old_image) and old_image != image_dest:
+            os.remove(old_image)
+        shutil.copy(image, image_dest)
+        image = image_dest
+
     cursor.execute("""
         UPDATE Products SET name = ?, price = ?, qr_code = ?, description = ?, category_id = ?, image = ?, stock = ? 
         WHERE id = ?
-    """, (name, price, qr_code, description, category_id, image, stock, product_id))
+    """, (name, price, qr_code_path, description, category_id, image, stock, product_id))
     conn.commit()
     conn.close()
 
@@ -124,18 +162,16 @@ def delete_product(product_id):
     conn = get_connection()
     cursor = conn.cursor()
     
-    # Get the QR code file name before deleting the product
-    cursor.execute("SELECT qr_code FROM Products WHERE id = ?", (product_id,))
-    qr_code_file = cursor.fetchone()[0]
+    cursor.execute("SELECT name FROM Products WHERE id = ?", (product_id,))
+    product_name = cursor.fetchone()[0]
+    product_dir = os.path.join(PRODUCTS_DIR, product_name)
     
-    # Delete the product from the database
     cursor.execute("DELETE FROM Products WHERE id = ?", (product_id,))
     conn.commit()
     conn.close()
     
-    # Delete the QR code file
-    if qr_code_file and os.path.exists(qr_code_file):
-        os.remove(qr_code_file)
+    if os.path.exists(product_dir):
+        shutil.rmtree(product_dir)
 
 def list_product(product_id, listed):
     """List or delist a product."""
