@@ -10,6 +10,7 @@ import qr_code_util
 from auth import register_user, authenticate_user
 from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, promote_user_to_admin, demote_user_from_admin,add_category, get_categories, get_category_id, get_category_name
 from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness
+from utils import display_error, display_success
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
@@ -52,10 +53,6 @@ def start_app():
         for widget in frame.winfo_children():
             widget.destroy()
 
-    # Function to display an error message for main frames to make the code more modular and easier to maintain
-    def display_error(message):
-            tk.Label(main_frame, text=message, fg="red").pack()
-
     eye_open_image = PhotoImage(file="./bicycle_shop/Icons/visible.png")
     eye_closed_image = PhotoImage(file="./bicycle_shop/Icons/hidden.png")
 
@@ -82,8 +79,12 @@ def start_app():
         username_entry.focus_set() # Starts with the focus on this field for fast information input
 
         tk.Label(main_frame, text="Password").pack()
-        password_entry = tk.Entry(main_frame, show="*")
-        password_entry.pack()
+        password_frame = tk.Frame(main_frame)
+        password_frame.pack(pady=5)
+        password_entry = tk.Entry(password_frame, show="*", width=username_entry.cget("width") - 4)
+        password_entry.pack(side="left", padx=5)
+        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*'))
+        password_button.pack()
 
         # Login function to be called by the login button
         def login(event=None): 
@@ -105,13 +106,17 @@ def start_app():
                 else:
                     switch_to_store_listing() # Switch normal user to the normal store page.
             else:
-               display_error("Invalid credentials!")# Error message for if the user fails authentication
+               display_error(message_label, "Invalid credentials!")
 
         login_button = tk.Button(main_frame, text="Login", command=login)
         login_button.pack(pady=10)
 
         create_account_button = tk.Button(main_frame, text="Create Account", command=show_register_screen) # switch_to_register)
         create_account_button.pack()
+
+        # Binds the enter key to the login function if either the button or the main_frame is in focus
+        message_label = tk.Label(main_frame, text="") # In this case the background is default so there is no need to define the bg as a different colour.
+        message_label.pack()
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
         main_frame.bind('<Return>', login) 
@@ -140,15 +145,19 @@ def start_app():
 
         tk.Label(main_frame, text="Password").pack()
         password_frame = tk.Frame(main_frame)
-        password_frame.pack(fill="x")
-        password_entry = tk.Entry(password_frame, show="*")
-        password_entry.pack(side="top")
+        password_frame.pack(pady=5)
+        password_entry = tk.Entry(password_frame, show="*", width=last_name_entry.cget("width") - 4)
+        password_entry.pack(side="left", padx=5)
         password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*'))
         password_button.pack()
 
         tk.Label(main_frame, text="Confirm Password").pack()
-        confirm_password_entry = tk.Entry(main_frame, show="*")
-        confirm_password_entry.pack()
+        confirm_password_frame = tk.Frame(main_frame)
+        confirm_password_frame.pack(pady=5)
+        confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=password_entry.cget("width"))
+        confirm_password_entry.pack(side="left", padx=5)
+        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*'))
+        confirm_password_button.pack()
 
         tk.Label(main_frame, text="Age").pack()
         age_entry = tk.Entry(main_frame)
@@ -163,11 +172,18 @@ def start_app():
             age = age_entry.get()
             is_valid, validation_message = validate_registration_fields(username, first_name, last_name, password, confirm_password, age)
             if not is_valid:
-                display_error(validation_message)
+                display_error(message_label, validation_message)
                 return
 
             result = register_user(username, first_name, last_name, password, int(age))
-            tk.Label(main_frame, text=result, fg="green" if "successful" in result else "red").pack() # Success message if all requirements are met and user is created
+
+            message_label = tk.Label(main_frame, text="", bg="#171d22")
+            message_label.pack(pady=10)
+
+            if "successful" in result: # Success message if all requirements are met and user is created
+                display_success(message_label, result)
+            else:
+                display_error(message_label, result)
 
         register_button = tk.Button(main_frame, text="Register", command=register)
         register_button.pack(pady=10)
@@ -186,6 +202,10 @@ def start_app():
         back_to_login_button.bind('<Tab>', lambda e: username_entry.focus_set())
 
         back_to_login_button.bind('<Return>', lambda event: show_login_screen()) # If tabbed onto allows the use of the enter key to return to the login screen post registration or if register is accidentally clicked.
+
+        # Binds the enter key to the login function if either the button or the main_frame is in focus
+        message_label = tk.Label(main_frame, text="") # In this case the background is default so there is no need to define the bg as a different colour.
+        message_label.pack()
 
     # Show the Login Screen by default
     show_login_screen()
@@ -419,7 +439,10 @@ def start_app():
 
             # If there are no products available it will display a message saying so in red text otherwise display the products in a grid format
             if not products:
-                tk.Label(scrollable_frame, text="No products available.", fg="red", bg="#171d22").pack(pady=10)
+                message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
+                message_label.pack(pady=10)
+
+                display_error(message_label, "No products available.")
             else:
                 # Get the width of the scrollable_frame
                 canvas.update_idletasks()
@@ -698,8 +721,8 @@ def start_app():
         listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3)
         listed_combobox.pack()
 
-        error_label = tk.Label(content_inner_frame, text="", fg="red", bg="#171d22")
-        error_label.pack()
+        message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
+        message_label.pack(pady=10)
         
         def handle_add_product():
             """Handle adding a new product."""
@@ -713,7 +736,7 @@ def start_app():
 
             # Error messages for if the fields are empty to avoid null products in the database
             if not name or not price:
-                error_label.config(text="All fields are required.")
+                display_error(message_label, "All fields are required.")
                 return
 
             # Error message for entering in characters not integers for the price
@@ -721,12 +744,12 @@ def start_app():
                 price = float(price)
                 stock = int(stock) if stock else None
             except ValueError:
-                error_label.config(text="Price must be a number and stock must be an integer.")
+                display_error(message_label, "Price must be a number and stock must be an integer.")
                 return
 
             category_id = get_category_id(category) if category else None
             if category_id is None:
-                error_label.config(text="Invalid category.")
+                display_error(message_label, "Invalid category.")
                 return
 
             # Create product directory
@@ -746,7 +769,7 @@ def start_app():
 
             add_product(name, price, qr_code_path, listed, description, category_id, image, stock)
 
-            error_label.config(text="Product added successfully!", fg="green")
+            display_success(message_label, "Product added successfully!")
         
         tk.Button(content_inner_frame, text="Add Product", command=handle_add_product).pack(pady=10) # Button that calls this function to add the products to the database
 
@@ -824,7 +847,10 @@ def start_app():
             clear_frame(scrollable_frame)
 
             if not products:
-                tk.Label(scrollable_frame, text="No products available.", fg="red", bg="#171d22").pack(pady=10)
+                message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
+                message_label.pack(pady=10)
+
+                display_error(message_label, "No products available.")
             else:
                 canvas.update_idletasks()
                 content_width = canvas.winfo_width()
@@ -935,8 +961,8 @@ def start_app():
         listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3)
         listed_combobox.pack()
 
-        error_label = tk.Label(content_inner_frame, text="", fg="red", bg="#171d22")
-        error_label.pack()
+        message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
+        message_label.pack(pady=10)
 
         def save_edit_product():
             name = name_entry.get()
@@ -948,24 +974,24 @@ def start_app():
             listed = 1 if listed_var.get() == "Yes" else 0
 
             if not name or not price:
-                error_label.config(text="All fields are required.")
+                display_error(message_label, "All fields are required.")
                 return
             try:
                 price = float(price)
                 stock = int(stock) if stock else None
             except ValueError:
-                error_label.config(text="Price must be a number and stock must be an integer.")
+                display_error(message_label, "Price must be a number and stock must be an integer.")
                 return
             
             category_id = get_category_id(category) if category else None
             if category_id is None:
-                error_label.config(text="Invalid category.")
+                display_error(message_label, "Invalid category.")
                 return
 
             update_product(product_id, name, price, None, description, category_id, image, stock)
             list_product(product_id, listed)
 
-            error_label.config(text="Product updated successfully!", fg="green")
+            display_success(message_label, "Product updated successfully!")
             show_manage_products_screen()
 
         def cancel_edit_product():
@@ -985,17 +1011,17 @@ def start_app():
         category_entry = tk.Entry(content_inner_frame)
         category_entry.pack(pady=5)
 
-        error_label = tk.Label(content_inner_frame, text="", fg="red", bg="#171d22")
-        error_label.pack(pady=5)
+        message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
+        message_label.pack(pady=10)
 
         def handle_add_category():
             name = category_entry.get()
             if not name:
-                error_label.config(text="Category name is required.")
+                display_error(message_label, "Category name is required.")
                 return
 
             add_category(name)
-            error_label.config(text="Category added successfully!", fg="green")
+            display_error(message_label, "Category added successfully!", fg="green")
             category_entry.delete(0, tk.END)
             display_categories()
 
@@ -1008,11 +1034,11 @@ def start_app():
         def handle_edit_category(category_id, old_name):
             new_name = category_entry.get()
             if not new_name:
-                error_label.config(text="Category name is required.")
+                display_error(message_label, "Category name is required.")
                 return
 
             if new_name == old_name:
-                error_label.config(text="No changes made.")
+                display_error(message_label, "No changes made.")
                 return
 
             conn = get_connection()
@@ -1020,7 +1046,7 @@ def start_app():
             cursor.execute("UPDATE Categories SET name = ? WHERE id = ?", (new_name, category_id))
             conn.commit()
             conn.close()
-            error_label.config(text="Category updated successfully!", fg="green")
+            display_success(message_label, "Category updated successfully!")
             category_entry.delete(0, tk.END)
             display_categories()
 
@@ -1030,7 +1056,7 @@ def start_app():
             cursor.execute("DELETE FROM Categories WHERE id = ?", (category_id,))
             conn.commit()
             conn.close()
-            error_label.config(text="Category deleted successfully!", fg="green")
+            display_success(message_label, "Category deleted successfully!")
             display_categories()
 
         def display_categories():
@@ -1063,12 +1089,20 @@ def start_app():
         tk.Label(main_frame, text="Change Password", font=("Arial", 18)).pack(pady=10)
 
         tk.Label(main_frame, text="New Password").pack()
-        new_password_entry = tk.Entry(main_frame, show="*")
-        new_password_entry.pack()
+        new_password_frame = tk.Frame(main_frame)
+        new_password_frame.pack(pady=5)
+        new_password_entry = tk.Entry(new_password_frame, show="*", width=16)
+        new_password_entry.pack(side="left", padx=5)
+        new_password_button = tk.Button(new_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(new_password_entry, new_password_button, '*'))
+        new_password_button.pack()
 
-        tk.Label(main_frame, text="Confirm New Password").pack()
-        confirm_password_entry = tk.Entry(main_frame, show="*")
-        confirm_password_entry.pack()
+        tk.Label(main_frame, text="Confirm Password").pack()
+        confirm_password_frame = tk.Frame(main_frame)
+        confirm_password_frame.pack(pady=5)
+        confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=new_password_entry.cget("width"))
+        confirm_password_entry.pack(side="left", padx=5)
+        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*'))
+        confirm_password_button.pack()
 
         def change_password():
             new_password = new_password_entry.get()
@@ -1076,12 +1110,12 @@ def start_app():
 
             is_valid, validation_message = validate_password_match(new_password, confirm_password)
             if not is_valid:
-                display_error(validation_message)
+                display_error(message_label, validation_message)
                 return
 
             is_valid, validation_message = validate_password(username, new_password)
             if not is_valid:
-                display_error(validation_message)
+                display_error(message_label, validation_message)
                 return
             
             # Update the password in db if the validation passes.
@@ -1100,6 +1134,10 @@ def start_app():
 
         tk.Button(main_frame, text="Change Password", command=change_password).pack(pady=10)
         add_logout_button()
+
+        # Binds the enter key to the login function if either the button or the main_frame is in focus
+        message_label = tk.Label(main_frame, text="", bg="#171d22")
+        message_label.pack()
     
     # TODO: Implement the qr code scanning functionality for the standard user and admin for finding a product quickly for admin box management or quick purchases #
     # Allows the user to scan a qr code and navigate to the product page for the product that the qr code is linked to. 
@@ -1121,7 +1159,10 @@ def start_app():
             tk.Label(main_frame, image=qr_code_image).pack(pady=5)
             main_frame.image = qr_code_image  # Keep a reference to avoid garbage collection
         else:
-            display_error("Product not found!")# If product cannot be found then it will return an error message. Useful for if a user scans an old qr code if they went into store at a later date past saving it.
+            # Binds the enter key to the login function if either the button or the main_frame is in focus
+            message_label = tk.Label(main_frame, text="", bg="#171d22")
+            message_label.pack()
+            display_error(message_label, "Product not found!")# If product cannot be found then it will return an error message. Useful for if a user scans an old qr code if they went into store at a later date past saving it.
 
     window.mainloop() # Actually starts the application and allows the user to interact with the GUI
 

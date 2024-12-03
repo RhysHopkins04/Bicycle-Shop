@@ -1,7 +1,9 @@
 # **TODO:**
 ## **Incomplete:**
-- Move the qr code generation into the database.py for when they are being added to match update_product
-- Allow unhide password temp button for logon, register and change password 
+- Resolve all repeated code use
+- Resolve all issues with Contradictions in my code locations
+    - Move the qr code generation into the database.py for when they are being added to match update_product
+- Refactor the code locations for a few functions/modules
 
 - Add change password ability to the top right for both users and admin users
 - Add the products to be sorted based on category 
@@ -25,6 +27,8 @@
 
 - Update Color scheme of application: 
 
+- Potential random error with the dropdown to do with "winfo_rootx"
+
 ## **Potential:**
 ? Remove age from signup ?
 ? Potentially add email for signup and require unique ?
@@ -43,6 +47,8 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Allow unhide password temp button for logon, register and change password. (Test Change Password when implemented since might be broken, cant test till implemented)
+- Redid the error+Success messages inside utils.py to adhere better to DRY Proceedure, switched all uses of succes/error messages inside of gui.py to use these functions.
 - Moved the qr code generation into the database file for update_product instead of gui
 - Creates/Updates/Removes the old file tree and images/qr_codes correctly on product_edit
 - Organise the file tree's for products and icons.
