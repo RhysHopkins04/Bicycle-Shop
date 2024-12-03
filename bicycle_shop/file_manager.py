@@ -20,7 +20,9 @@ def handle_product_image(image_path, product_dir):
     """Handle product image file operations"""
     if image_path and os.path.exists(image_path):
         image_dest = os.path.join(product_dir, os.path.basename(image_path))
-        shutil.copy(image_path, image_dest)
+        # Only copy if source and destination are different
+        if os.path.abspath(image_path) != os.path.abspath(image_dest):
+            shutil.copy(image_path, image_dest)
         return image_dest
     return None
 
@@ -28,13 +30,16 @@ def handle_qr_code(name, price, product_dir):
     """Handle QR code file operations"""
     qr_code = f"{name}_{price}.png"
     qr_code_path = os.path.join(product_dir, qr_code)
-    qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
+    # Check if QR code already exists first
+    if not os.path.exists(qr_code_path):
+        qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
     return qr_code_path
 
-def cleanup_old_product_files(old_name, old_qr_code, old_image):
+def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None):
     """Clean up old product files when updating/deleting"""
     old_product_dir = os.path.join(PRODUCTS_DIR, old_name)
-    if old_qr_code and os.path.exists(old_qr_code):
+    # Only remove QR code if product name changes - let handle_qr_code manage regeneration
+    if old_qr_code and os.path.exists(old_qr_code) and old_name != new_name:
         os.remove(old_qr_code)
     if old_image and os.path.exists(old_image):
         os.remove(old_image)

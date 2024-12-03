@@ -2,10 +2,10 @@ import tkinter as tk
 from tkinter import ttk, filedialog as filedialog, PhotoImage
 
 # Functions from other locations in the program: auth, database, qr_code_util
-from auth import register_user, authenticate_user, update_user_password
-from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, promote_user_to_admin, demote_user_from_admin, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
-from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields
-from utils import display_error, display_success, toggle_password_visibility, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons
+from auth import register_user, authenticate_user, update_user_password, promote_user_to_admin, demote_user_from_admin
+from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
+from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields, validate_category_name
+from utils import display_error, display_success, toggle_password_visibility, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame
 from file_manager import ICONS_DIR
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
@@ -68,7 +68,7 @@ def start_app():
         password_frame.pack(pady=5)
         password_entry = tk.Entry(password_frame, show="*", width=username_entry.cget("width") - 4)
         password_entry.pack(side="left", padx=5)
-        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image))
+        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
         password_button.pack()
 
         # Login function to be called by the login button
@@ -133,7 +133,7 @@ def start_app():
         password_frame.pack(pady=5)
         password_entry = tk.Entry(password_frame, show="*", width=last_name_entry.cget("width") - 4)
         password_entry.pack(side="left", padx=5)
-        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image))
+        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
         password_button.pack()
 
         tk.Label(main_frame, text="Confirm Password").pack()
@@ -141,7 +141,7 @@ def start_app():
         confirm_password_frame.pack(pady=5)
         confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=password_entry.cget("width"))
         confirm_password_entry.pack(side="left", padx=5)
-        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image))
+        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
         confirm_password_button.pack()
 
         tk.Label(main_frame, text="Age").pack()
@@ -195,15 +195,6 @@ def start_app():
     # Show the Login Screen by default
     show_login_screen()
 
-    # Adds a logout button to the bottom right corner of the screen for tag-on to the end of a function 
-    def add_logout_button():
-        """Add a logout button to the bottom right corner."""
-        global logout_button
-        if logout_button:
-            logout_button.destroy()
-        logout_button = tk.Button(main_frame, text="Logout", command=show_login_screen) # Button leads back to the login screen closing the other windows
-        logout_button.pack(side="bottom", anchor="se", padx=10, pady=10) # Locates it at the bottom side of the screen, anchored to the bottom right (south east) padded in 10 pixels x and y
-
     # If the user account is a non admin (standard account) brings to this page
     def switch_to_store_listing(is_admin=False):
         """Navigate to the store listing."""
@@ -222,27 +213,16 @@ def start_app():
         button_frame = tk.Frame(top_bar, bg="#171d22")
         button_frame.pack(side="right", padx=20, pady=10)
 
-        # Add user information frame
-        user_info_frame = tk.Frame(button_frame, bg="#171d22")
+        user_info_frame, icon_label, name_label, username_label, dropdown_indicator = create_user_info_display(
+            button_frame,
+            current_username,
+            current_first_name,
+            current_last_name,
+            is_admin,
+            user_icn,
+            admin_icn
+        )
         user_info_frame.pack(side="left", padx=20, pady=10)
-
-        # Add the icon to the user_info_frame
-        if is_admin:
-            icon_label = tk.Label(user_info_frame, image=admin_icn, bg="#171d22")
-            icon_label.grid(row=0, column=0, rowspan=2, padx=(0, 5))
-        else:
-            icon_label = tk.Label(user_info_frame, image=user_icn, bg="#171d22")
-            icon_label.grid(row=0, column=0, rowspan=2, padx=(0, 5))
-
-        # Add the first and last name from the global variables set on signin successful for the first line + username from its global variable on signin for the second line with custom size and formatting.
-        name_label = tk.Label(user_info_frame, text=f"{current_first_name} {current_last_name}", font=("Arial", 20), bg="#171d22", fg="white")
-        name_label.grid(row=0, column=1, sticky="w")
-        username_label = tk.Label(user_info_frame, text=f"@{current_username}", font=("Arial", 12), bg="#171d22", fg="darkgrey")
-        username_label.grid(row=1, column=1, sticky="w")
-
-        # Add the dropdown indicator
-        dropdown_indicator = tk.Label(user_info_frame, text="▼", font=("Arial", 12), bg="#171d22", fg="white")
-        dropdown_indicator.grid(row=0, column=2, rowspan=2, padx=(5, 0))
 
        # Create a dropdown frame with a more visible style
         dropdown_frame = tk.Frame(main_frame, bg="#171d22", bd=1, relief="solid", highlightthickness=1, highlightbackground="white")
@@ -279,56 +259,16 @@ def start_app():
         content_inner_frame = tk.Frame(content_frame, bg="#171d22", padx=50, pady=50)
         content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50)  # Fills the remaining space of the window with this frame
 
-        # Create a frame for the search bar
-        search_frame = tk.Frame(top_bar, bg="#171d22")
+        search_frame, search_entry = setup_search_widget(top_bar)
         search_frame.place(relx=0.5, rely=0.5, anchor="center")
-
-        # Create a search entry box with placeholder text
-        search_entry = tk.Entry(search_frame, width=50, fg="dark gray", font=("Arial", 20))
-        search_entry.insert(0, "Search for products")
-        search_entry.pack(pady=10)
-
-        def on_focus_in(event):
-            if search_entry.get() == "Search for products":
-                search_entry.delete(0, tk.END)
-                search_entry.config(fg="black")
-
-        def on_focus_out(event):
-            if search_entry.get() == "":
-                search_entry.insert(0, "Search for products")
-                search_entry.config(fg="dark gray")
-
-        search_entry.bind("<FocusIn>", on_focus_in)
-        search_entry.bind("<FocusOut>", on_focus_out)
 
         # Bind the search entry to the filter function
         search_entry.bind("<KeyRelease>", lambda event: filter_products())
 
         # Create a canvas (which allows scrolling) and a scrollbar
-        canvas = tk.Canvas(content_inner_frame, bg="#171d22")
-        scrollbar = tk.Scrollbar(content_inner_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg="#171d22")
-        
-        # Checks that the canvas' scroll area is encompassing all the content inside when the frame size is changed through the bounding box check
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-        
-        # Configures the canvas to have the scrollable frame inside of it and the scrollbar to the right of the canvas
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
+        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
+        wrapper.pack(fill="both", expand=True)
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # Function to allow the mouse wheel to scroll the canvas
-        def on_mouse_wheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        canvas.bind_all("<MouseWheel>", on_mouse_wheel)
 
         def filter_products():
             search_query = search_entry.get().lower()  # Sets the search query to the text from the search box but in full lowercase to avoid case sensitivity
@@ -341,6 +281,7 @@ def start_app():
             display_products(filtered_products)  # Adjusts the display_products function to display only the filtered products vs the standard "products" which is all products
 
         def display_products(products):
+            unbind_wheel()
             clear_frame(scrollable_frame)
 
             # If there are no products available it will display a message saying so in red text otherwise display the products in a grid format
@@ -388,10 +329,9 @@ def start_app():
                 
                 # Enable or disable scrolling based on the number of rows
                 if row_count > 1:
-                    canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+                    bind_wheel()
                     scrollbar.pack(side="right", fill="y")
                 else:
-                    canvas.unbind_all("<MouseWheel>")
                     scrollbar.pack_forget()
 
         # Call display_products initially to show all products
@@ -418,23 +358,16 @@ def start_app():
         button_frame = tk.Frame(top_bar, bg="#171d22")
         button_frame.pack(side="right", padx=20, pady=10)
 
-        # Add user information frame
-        user_info_frame = tk.Frame(button_frame, bg="#171d22")
+        user_info_frame, icon_label, name_label, username_label, dropdown_indicator = create_user_info_display(
+            button_frame,
+            current_username,
+            current_first_name,
+            current_last_name,
+            True,
+            user_icn,
+            admin_icn
+        )
         user_info_frame.pack(side="left", padx=20, pady=10)
-
-        # Add the icon to the user_info_frame
-        icon_label = tk.Label(user_info_frame, image=admin_icn, bg="#171d22")
-        icon_label.grid(row=0, column=0, rowspan=2, padx=(0, 5))
-
-        # Add the first and last name from the global variables set on signin successful for the first line + username from its global variable on signin for the second line with custom size and formatting.
-        name_label = tk.Label(user_info_frame, text=f"{current_first_name} {current_last_name}", font=("Arial", 20), bg="#171d22", fg="white")
-        name_label.grid(row=0, column=1, sticky="w")
-        username_label = tk.Label(user_info_frame, text=f"@{current_username}", font=("Arial", 12), bg="#171d22", fg="darkgrey")
-        username_label.grid(row=1, column=1, sticky="w")
-
-        # Add the dropdown indicator
-        dropdown_indicator = tk.Label(user_info_frame, text="▼", font=("Arial", 12), bg="#171d22", fg="white")
-        dropdown_indicator.grid(row=0, column=2, rowspan=2, padx=(5, 0))
 
        # Create a dropdown frame with a more visible style
         dropdown_frame = tk.Frame(main_frame, bg="#171d22", bd=1, relief="solid", highlightthickness=1, highlightbackground="white")
@@ -452,11 +385,11 @@ def start_app():
         username_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
         dropdown_indicator.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
         
-        # Remove the main_frame.bind("<Leave>", hide_dropdown) as it might be causing issues
-        # Instead, bind to specific areas
+        # Bind leave events
         user_info_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
         dropdown_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
 
+        # Bind click event
         window.bind("<Button-1>", lambda event: hide_dropdown_on_click(event, user_info_frame, dropdown_frame))
 
         # Create the content frame with the black background for future addition of dynamic wigets
@@ -485,8 +418,7 @@ def start_app():
             ("View Store as User", lambda: switch_to_store_listing(is_admin=True)),
             ("Logout", show_login_screen)
         ]
-
-        buttons = create_nav_buttons(left_nav, button_configs)
+        create_nav_buttons(left_nav, button_configs)
 
     # TODO: 
     def show_add_product_screen():
@@ -546,7 +478,7 @@ def start_app():
             stock = stock_entry.get()
             listed = 1 if listed_var.get() == "Yes" else 0
 
-            is_valid, message = validate_product_fields(name, price, stock, listed, category, image)
+            is_valid, message = validate_product_fields(name, price, stock, listed, category, image, description)
             if not is_valid:
                 display_error(message_label, message)
                 return
@@ -554,11 +486,7 @@ def start_app():
             # Convert values after validation
             price = float(price)
             stock = int(stock) if stock else 0
-            
             category_id = get_category_id(category) if category else None
-            if category_id is None:
-                display_error(message_label, "Invalid category.")
-                return
 
             # Now just pass None for qr_code - it will be generated in database.py
             add_product(name, price, None, listed, description, category_id, image, stock)
@@ -610,33 +538,13 @@ def start_app():
             display_products(filtered_products) # Adjusts the display_products function to display the only the filtered products vs the standard "products" which is all products
 
         # Create a canvas (which allows scrolling) and a scrollbar
-        canvas = tk.Canvas(content_inner_frame, bg="#171d22")
-        scrollbar = tk.Scrollbar(content_inner_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg="#171d22")
-
-        # Checks that the canvas' scroll area is encompasing all the content inside when the frame size is changed through the bounding box check
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        # Configures the canvas to have the scrollable frame inside of it and the scrollbar to the right of the canvas
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
+        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
+        wrapper.pack(fill="both", expand=True)
         canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # Function to allow the mouse wheel to scroll the canvas
-        def on_mouse_wheel(event):
-            canvas.yview_scroll(int(-1*(event.delta/120)), "units") # Calculates the num of units to scroll based on the mouse wheel movement which is divided bt 120 to normalize the scroll speed then checks the scroll direction.
-        
-        canvas.bind_all("<MouseWheel>", on_mouse_wheel)
 
         def display_products(products):
             """Display products in the store listing."""
+            unbind_wheel()
             clear_frame(scrollable_frame)
 
             if not products:
@@ -687,10 +595,9 @@ def start_app():
                         col = 0
 
                 if row_count > 1:
-                    canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+                    bind_wheel()
                     scrollbar.pack(side="right", fill="y")
                 else:
-                    canvas.unbind_all("<MouseWheel>")
                     scrollbar.pack_forget()
 
                 # Debugging:
@@ -728,7 +635,9 @@ def start_app():
 
         tk.Label(content_inner_frame, text="Category", bg="#171d22", fg="white").pack()
         category_combobox = ttk.Combobox(content_inner_frame, values=get_categories(), width=price_entry.cget("width") - 3)
-        category_combobox.set(get_category_name(product[6]))
+        category_name = get_category_name(product[6])
+        if category_name:
+            category_combobox.current(get_categories().index(category_name))
         category_combobox.pack()
 
         tk.Label(content_inner_frame, text="Image", bg="#171d22", fg="white").pack()
@@ -766,7 +675,7 @@ def start_app():
             stock = stock_entry.get()
             listed = 1 if listed_var.get() == "Yes" else 0
 
-            is_valid, message = validate_product_fields(name, price, stock, listed, category, image)
+            is_valid, message = validate_product_fields(name, price, stock, listed, category, image, description)
             if not is_valid:
                 display_error(message_label, message)
                 return
@@ -805,16 +714,40 @@ def start_app():
         message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
         message_label.pack(pady=10)
 
+        def display_categories():
+            clear_frame(category_list_frame)
+
+            categories = get_categories()
+            for category in categories:
+                category_frame = tk.Frame(category_list_frame, bg="#171d22")
+                category_frame.pack(fill="x", pady=5)
+
+                tk.Label(category_frame, text=category, bg="#171d22", fg="white").pack(side="left", padx=10)
+
+                edit_button = tk.Button(category_frame, text="Edit", command=lambda c=category: handle_edit_category(get_category_id(c), c))
+                edit_button.pack(side="right", padx=5)
+
+                delete_button = tk.Button(category_frame, text="Delete", command=lambda c=category: handle_delete_category(get_category_id(c)))
+                delete_button.pack(side="right", padx=5)
+
         def handle_add_category():
             name = category_entry.get()
             if not name:
                 display_error(message_label, "Category name is required.")
                 return
 
-            add_category(name)
-            display_error(message_label, "Category added successfully!", fg="green")
-            category_entry.delete(0, tk.END)
-            display_categories()
+            is_valid, message = validate_category_name(name)
+            if not is_valid:
+                display_error(message_label, message)
+                return
+
+            success, message = add_category(name)
+            if success:
+                display_success(message_label, message)
+                category_entry.delete(0, tk.END)
+                display_categories()
+            else:
+                display_error(message_label, message)
 
         add_button = tk.Button(content_inner_frame, text="Add Category", command=handle_add_category)
         add_button.pack(pady=5)
@@ -848,22 +781,6 @@ def start_app():
             else:
                 display_error(message_label, message)
 
-        def display_categories():
-            clear_frame(category_list_frame)
-
-            categories = get_categories()
-            for category in categories:
-                category_frame = tk.Frame(category_list_frame, bg="#171d22")
-                category_frame.pack(fill="x", pady=5)
-
-                tk.Label(category_frame, text=category, bg="#171d22", fg="white").pack(side="left", padx=10)
-
-                edit_button = tk.Button(category_frame, text="Edit", command=lambda c=category: handle_edit_category(get_category_id(c), c))
-                edit_button.pack(side="right", padx=5)
-
-                delete_button = tk.Button(category_frame, text="Delete", command=lambda c=category: handle_delete_category(get_category_id(c)))
-                delete_button.pack(side="right", padx=5)
-
         # Call display_categories to show the categories initially
         display_categories()
 
@@ -882,7 +799,7 @@ def start_app():
         new_password_frame.pack(pady=5)
         new_password_entry = tk.Entry(new_password_frame, show="*", width=16)
         new_password_entry.pack(side="left", padx=5)
-        new_password_button = tk.Button(new_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(new_password_entry, new_password_button, '*', eye_open_image, eye_closed_image))
+        new_password_button = tk.Button(new_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(new_password_entry, new_password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
         new_password_button.pack()
 
         tk.Label(main_frame, text="Confirm Password").pack()
@@ -890,7 +807,7 @@ def start_app():
         confirm_password_frame.pack(pady=5)
         confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=new_password_entry.cget("width"))
         confirm_password_entry.pack(side="left", padx=5)
-        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image))
+        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
         confirm_password_button.pack()
 
         def change_password():
@@ -915,7 +832,6 @@ def start_app():
                 display_error(message_label, message)
 
         tk.Button(main_frame, text="Change Password", command=change_password).pack(pady=10)
-        add_logout_button()
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
         message_label = tk.Label(main_frame, text="", bg="#171d22")

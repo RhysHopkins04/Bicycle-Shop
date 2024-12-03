@@ -72,36 +72,6 @@ def initialize_admin():
         conn.commit()
     conn.close()
 
-def promote_user_to_admin(user_id):
-    """Promote a user to admin."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE Users SET is_admin = 1 WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-
-def demote_user_from_admin(user_id, current_admin_id):
-    """Demote a user from admin."""
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    # Check if the user to be demoted is the current admin
-    if user_id == current_admin_id:
-        conn.close()
-        return "You cannot demote yourself."
-
-    # Check if there is more than one admin
-    cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 1")
-    admin_count = cursor.fetchone()[0]
-    if admin_count <= 1:
-        conn.close()
-        return "There must be at least one admin."
-
-    cursor.execute("UPDATE Users SET is_admin = 0 WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-    return "User demoted successfully."
-
 # Product Management Functions:
 def add_product(name, price, qr_code, listed, description, category_id, image, stock):
     """Add a new product to the database."""
@@ -123,15 +93,25 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
     conn = get_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT name, qr_code, image FROM Products WHERE id = ?", (product_id,))
+    cursor.execute("SELECT name, price, qr_code, image FROM Products WHERE id = ?", (product_id,))
     old_product = cursor.fetchone()
-    old_name, old_qr_code, old_image = old_product
+    old_name, old_price, old_qr_code, old_image = old_product
 
-    new_product_dir = rename_product_directory(old_name, name)
-    qr_code_path = handle_qr_code(name, price, new_product_dir)
+    # Only rename directory if name changed
+    new_product_dir = rename_product_directory(old_name, name) if old_name != name else os.path.join(PRODUCTS_DIR, name)
+    
+    # Only regenerate QR code if name or price changed
+    if old_name != name or old_price != price:
+        qr_code_path = handle_qr_code(name, price, new_product_dir)
+    else:
+        qr_code_path = old_qr_code
+
+    # Handle image if provided, otherwise keep old image
     image_path = handle_product_image(image, new_product_dir) if image else old_image
 
-    cleanup_old_product_files(old_name, old_qr_code, old_image if image else None)
+    # Only cleanup files if name changed
+    if old_name != name:
+        cleanup_old_product_files(old_name, old_qr_code, old_image if image else None, name)
 
     cursor.execute("""
         UPDATE Products SET name = ?, price = ?, qr_code = ?, description = ?, 
@@ -189,11 +169,18 @@ def get_product_by_id(product_id):
 # Category Management Functions:
 def add_category(name):
     """Add a new category to the database."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO Categories (name) VALUES (?)", (name,))
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO Categories (name) VALUES (?)", (name,))
+        conn.commit()
+        return True, "Category added successfully!"
+    except sqlite3.IntegrityError:
+        return False, "Category name already exists."
+    except sqlite3.Error as e:
+        return False, f"Failed to add category: {str(e)}"
+    finally:
+        conn.close()
 
 def get_categories():
     """Retrieve all categories from the database."""

@@ -142,5 +142,97 @@ def create_nav_buttons(parent, button_configs):
     for button in buttons:
         button.config(width=max_width - 10)
         button.pack(padx=10, pady=5)
+
+### UI Component Creation Functions ###
+def create_user_info_display(parent, username, first_name, last_name, is_admin, user_icon, admin_icon, bg_color="#171d22"):
+    """Create user info display with labels"""
+    user_info_frame = tk.Frame(parent, bg=bg_color)
     
-    return buttons
+    icon_label = tk.Label(
+        user_info_frame, 
+        image=admin_icon if is_admin else user_icon, 
+        bg=bg_color
+    )
+    icon_label.grid(row=0, column=0, rowspan=2, padx=(0, 5))
+    
+    name_label = tk.Label(
+        user_info_frame, 
+        text=f"{first_name} {last_name}", 
+        font=("Arial", 20), 
+        bg=bg_color, 
+        fg="white"
+    )
+    name_label.grid(row=0, column=1, sticky="w")
+    
+    username_label = tk.Label(
+        user_info_frame, 
+        text=f"@{username}", 
+        font=("Arial", 12), 
+        bg=bg_color, 
+        fg="darkgrey"
+    )
+    username_label.grid(row=1, column=1, sticky="w")
+    
+    dropdown_indicator = tk.Label(
+        user_info_frame, 
+        text="▼", 
+        font=("Arial", 12), 
+        bg=bg_color, 
+        fg="white"
+    )
+    dropdown_indicator.grid(row=0, column=2, rowspan=2, padx=(5, 0))
+    
+    return user_info_frame, icon_label, name_label, username_label, dropdown_indicator
+
+### Search Functions ###
+def setup_search_widget(parent, placeholder="Search for products", font_size=20, bg_color="#171d22"):
+    """Create and setup search entry with placeholder"""
+    search_frame = tk.Frame(parent, bg=bg_color)
+    search_entry = tk.Entry(search_frame, width=50, fg="dark gray", font=("Arial", font_size))
+    search_entry.insert(0, placeholder)
+    search_entry.pack(pady=10)
+    
+    def on_focus_in(event):
+        if search_entry.get() == placeholder:
+            search_entry.delete(0, tk.END)
+            search_entry.config(fg="black")
+            
+    def on_focus_out(event):
+        if search_entry.get() == "":
+            search_entry.insert(0, placeholder)
+            search_entry.config(fg="dark gray")
+    
+    search_entry.bind("<FocusIn>", on_focus_in)
+    search_entry.bind("<FocusOut>", on_focus_out)
+    
+    return search_frame, search_entry
+
+### Scrollable Frame Functions ###
+def create_scrollable_frame(parent, bg_color="#171d22"):
+    """Create scrollable frame with canvas"""
+    # Create a wrapper frame to hold both canvas and scrollbar
+    wrapper = tk.Frame(parent, bg=bg_color)
+    
+    canvas = tk.Canvas(wrapper, bg=bg_color)
+    scrollbar = tk.Scrollbar(wrapper, orient="vertical", command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas, bg=bg_color)
+    
+    def on_mouse_wheel(event):
+        if canvas.winfo_exists():
+            canvas.yview_scroll(-1 * (event.delta // 120), "units")
+    
+    def bind_mouse_wheel():
+        canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+    
+    def unbind_mouse_wheel():
+        canvas.unbind_all("<MouseWheel>")
+    
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+    
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel

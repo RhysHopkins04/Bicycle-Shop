@@ -1,5 +1,5 @@
 import re
-from database import get_connection
+from database import get_connection, get_category_id
 
 # Core Validation Functions:
 def validate_empty_fields(*fields):
@@ -80,7 +80,7 @@ def validate_registration_fields(username, first_name, last_name, password, conf
     return True, "Valid"
 
 # Product Validation Functions:
-def validate_product_fields(name, price, stock, listed=False, category=None, image=None):
+def validate_product_fields(name, price, stock, listed=False, category=None, image=None, description=None):
     """Validate product fields."""
     # Check required fields
     if not name or not price:
@@ -98,6 +98,11 @@ def validate_product_fields(name, price, stock, listed=False, category=None, ima
     if listed:
         if not category:
             return False, "Category is required for listed products."
+        if not description:
+            return False, "Description is required for listed products."
+        category_id = get_category_id(category)
+        if category_id is None:
+            return False, "Invalid category."
         if not image:
             return False, "Image is required for listed products."
         try:
@@ -107,4 +112,17 @@ def validate_product_fields(name, price, stock, listed=False, category=None, ima
         except ValueError:
             return False, "Stock must be a valid number for listed products."
     
+    return True, "Valid"
+
+# Category Validation Functions:
+def validate_category_name(name):
+    """Validate category name."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT 1 FROM Categories WHERE name = ?", (name,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    
+    if exists:
+        return False, "Category name already exists."
     return True, "Valid"

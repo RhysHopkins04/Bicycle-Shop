@@ -4,6 +4,8 @@
 - Resolve all repeated code use
 - Refactor the code locations for a few functions/modules
 
+- Additional logout button on admin dashboard
+
 - Add change password ability to the top right for both users and admin users
 - Add the products to be sorted based on category 
 - Create Pictures for products and a separate product page per one when clicked
@@ -13,6 +15,7 @@
 
 - Global Search bar to find functions
 - qr code scanning/ link to global search on main page + find the product page on admin
+- Switch from globals to state management for shopping card integration.
 - Create a Shopping Cart Function
 
 - Add manage users widget
@@ -46,9 +49,20 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Appears that the password visibility appears in the tab list or adds another tab and should be excluded from this, Excluded the password box from focus with "takefocus=False".
+- Manage categories add new category does not automatically refresh the categories page, adjusted order of the display_categorys function to be first.
+- Fixed error where when being saved even without image edit would try and replace the image with the same iamge and give a samefile error.
+- Fixed error where you could set a product to listed without a description
+- Fixed issue where the old qr code was deleted without regeneration when the edit product was saved even without edits to the name/price values.
+- Updated when the scroll wheel binding should be active and dropped to avoid the error "invalid command name" when the canvas is improperly closed.
+- Fixed issue which would cause error when viewing the combo box on edit products if the box was empty.
+- Relocated some of the functions regarding scrollbox's and product layouts into utils.py
+- Removed the old add logout button function from gui.py due to being out of use
+- Relocated the promote and demote admin functions to the auth.py for centralising user management.
 - Removed unused imports across all files.
 - Updated the icons to use the file location paths from file_manager instead of defining each time.
 - Moved the category editing and deletion into the database for database access consistency.
+- Reworked the Product add and edit validationss and centralized them in validation.py
 - Moved the password change operation into auth for consistency
 - Moved all directory and file management operations to file_manager.py
 - Organized constants by moving PRODUCTS_DIR and ICONS_DIR to file_manager.py
