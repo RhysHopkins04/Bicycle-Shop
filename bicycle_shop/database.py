@@ -6,6 +6,7 @@ import qr_code_util
 DB_PATH = "./bicycle_shop/bicycle_shop.db"
 PRODUCTS_DIR = "./bicycle_shop/Products"
 
+# Core Functionality for the DB:
 def get_connection():
     """Establish a connection to the SQLite database."""
     return sqlite3.connect(DB_PATH)
@@ -53,6 +54,7 @@ def create_tables():
     conn.commit()
     conn.close()
 
+# User Managemnt Functions:
 def initialize_admin():
     """Create a default admin user if none exists."""
     conn = get_connection()
@@ -67,7 +69,6 @@ def initialize_admin():
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, ("admin", "Admin", "User", hashed_password, salt, 30, 1, 0))
         conn.commit()
-
     conn.close()
 
 def promote_user_to_admin(user_id):
@@ -100,6 +101,7 @@ def demote_user_from_admin(user_id, current_admin_id):
     conn.close()
     return "User demoted successfully."
 
+# Product Management Functions:
 def add_product(name, price, qr_code, listed, description, category_id, image, stock):
     """Add a new product to the database."""
     product_dir = os.path.join(PRODUCTS_DIR, name)
@@ -203,6 +205,7 @@ def get_product_by_id(product_id):
     conn.close()
     return product
 
+# Category Management Functions:
 def add_category(name):
     """Add a new category to the database."""
     conn = get_connection()

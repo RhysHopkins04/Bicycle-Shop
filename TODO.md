@@ -1,8 +1,8 @@
 # **TODO:**
 ## **Incomplete:**
-- Resolve all repeated code use
 - Resolve all issues with Contradictions in my code locations
     - Move the qr code generation into the database.py for when they are being added to match update_product
+- Resolve all repeated code use
 - Refactor the code locations for a few functions/modules
 
 - Add change password ability to the top right for both users and admin users
@@ -47,6 +47,10 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Rearanged functions in all helper files for readability.
+- Moved the styled button creation for the admin dashboard left_nav to utils.py to increase readabiltiy and reduce repetition
+- Moved the Dropdown functions to the utils.py and updated their bindings to match since used twice in both main store page and the admin dashboard.
+- Moved Password Visiblity function to the utils file, the setting the images has to remain inside of the start_app() function loop post window creation otherwise it errors out.
 - Allow unhide password temp button for logon, register and change password. (Test Change Password when implemented since might be broken, cant test till implemented)
 - Redid the error+Success messages inside utils.py to adhere better to DRY Proceedure, switched all uses of succes/error messages inside of gui.py to use these functions.
 - Moved the qr code generation into the database file for update_product instead of gui

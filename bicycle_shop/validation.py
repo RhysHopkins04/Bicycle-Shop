@@ -2,6 +2,15 @@ import re
 import sqlite3
 from database import get_connection
 
+# Core Validation Functions:
+def validate_empty_fields(*fields):
+    """Validate that none of the fields are empty."""
+    for field in fields:
+        if not field:
+            return False, "All fields are required."
+    return True, "Valid"
+
+# Password Validation Functions:
 def validate_password(username, password):
     """Validate password complexity."""
     if len(password) < 8:
@@ -18,13 +27,13 @@ def validate_password(username, password):
         return False, "Password must contain at least one special character."
     return True, "Valid"
 
-def validate_empty_fields(*fields):
-    """Validate that none of the fields are empty."""
-    for field in fields:
-        if not field:
-            return False, "All fields are required."
+def validate_password_match(password, confirm_password):
+    """Validate that the password and confirm password match."""
+    if password != confirm_password:
+        return False, "Passwords do not match."
     return True, "Valid"
 
+# User Validation Functions:
 def validate_username_uniqueness(username):
     """Validate that the username is unique."""
     conn = get_connection()
@@ -34,12 +43,6 @@ def validate_username_uniqueness(username):
     conn.close()
     if result:
         return False, "Username already exists."
-    return True, "Valid"
-
-def validate_password_match(password, confirm_password):
-    """Validate that the password and confirm password match."""
-    if password != confirm_password:
-        return False, "Passwords do not match."
     return True, "Valid"
 
 def validate_age(age):
@@ -52,6 +55,7 @@ def validate_age(age):
         return False, "User must be 18 years or older to register."
     return True, "Valid"
 
+# Combined Validation Function:
 def validate_registration_fields(username, first_name, last_name, password, confirm_password, age):
     """Validate registration fields."""
     is_valid, message = validate_empty_fields(username, first_name, last_name, password, confirm_password, age)

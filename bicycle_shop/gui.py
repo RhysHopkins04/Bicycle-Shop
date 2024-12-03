@@ -10,12 +10,12 @@ import qr_code_util
 from auth import register_user, authenticate_user
 from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, promote_user_to_admin, demote_user_from_admin,add_category, get_categories, get_category_id, get_category_name
 from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness
-from utils import display_error, display_success
+from utils import display_error, display_success, toggle_password_visibility, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
     """Start the Tkinter GUI application.""" #Docstring's which i will use to help with future code documentation along with the comments.
-
+    
     # Global Variables other than the main_frame 
     global main_frame, logout_button, window, is_fullscreen, current_username, current_first_name, current_last_name, current_admin_id
     logout_button = None
@@ -38,6 +38,10 @@ def start_app():
     main_frame = tk.Frame(window)
     main_frame.pack(fill="both", expand=True)
 
+    # Defining the images to be used for password visibility toggling
+    eye_open_image = PhotoImage(file="./bicycle_shop/Icons/visible.png")
+    eye_closed_image = PhotoImage(file="./bicycle_shop/Icons/hidden.png")
+
     # Checks if  the screen is in fullscreen mode using an event handler shown below
     def toggle_fullscreen(event=None):
         """Toggle fullscreen mode."""
@@ -46,24 +50,6 @@ def start_app():
         window.attributes("-fullscreen", is_fullscreen)
 
     window.bind("<F11>", toggle_fullscreen) # Bind the F11 key to toggle fullscreen
-
-    # Function used to dynamically clear and update the frame that is being called for reuseability in the code.
-    def clear_frame(frame):
-        """Clear all widgets from the given frame."""
-        for widget in frame.winfo_children():
-            widget.destroy()
-
-    eye_open_image = PhotoImage(file="./bicycle_shop/Icons/visible.png")
-    eye_closed_image = PhotoImage(file="./bicycle_shop/Icons/hidden.png")
-
-    def toggle_password_visibility(entry, button, show):
-        """Toggle the visibility of the password."""
-        if entry.cget('show') == '':
-            entry.config(show=show)
-            button.config(image=eye_closed_image)
-        else:
-            entry.config(show='')
-            button.config(image=eye_open_image)
 
     # Creates the Login screen for the application
     def show_login_screen():
@@ -83,7 +69,7 @@ def start_app():
         password_frame.pack(pady=5)
         password_entry = tk.Entry(password_frame, show="*", width=username_entry.cget("width") - 4)
         password_entry.pack(side="left", padx=5)
-        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*'))
+        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image))
         password_button.pack()
 
         # Login function to be called by the login button
@@ -148,7 +134,7 @@ def start_app():
         password_frame.pack(pady=5)
         password_entry = tk.Entry(password_frame, show="*", width=last_name_entry.cget("width") - 4)
         password_entry.pack(side="left", padx=5)
-        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*'))
+        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image))
         password_button.pack()
 
         tk.Label(main_frame, text="Confirm Password").pack()
@@ -156,7 +142,7 @@ def start_app():
         confirm_password_frame.pack(pady=5)
         confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=password_entry.cget("width"))
         confirm_password_entry.pack(side="left", padx=5)
-        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*'))
+        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image))
         confirm_password_button.pack()
 
         tk.Label(main_frame, text="Age").pack()
@@ -272,96 +258,24 @@ def start_app():
 
         # Add buttons to the dropdown frame with consistent styling
         if is_admin:
-            tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, 
-                    bg="#171d22", fg="white", activebackground="#2a2f35", 
-                    activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
-        tk.Button(dropdown_frame, text="Logout", command=show_login_screen,
-                bg="#171d22", fg="white", activebackground="#2a2f35", 
-                activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
-
-        # Prints below were for debugging process to ensure that the dropdown was working as intended after many failures
-        def show_dropdown(event):
-            #print("Showing dropdown")
-            # Position the dropdown frame below the user_info_frame
-            x = user_info_frame.winfo_rootx()
-            y = user_info_frame.winfo_rooty() + user_info_frame.winfo_height() - 10
-            
-            # Ensure the dropdown is properly sized and visible
-            dropdown_frame.lift()  # Bring to front
-            dropdown_frame.update_idletasks()  # Force geometry update
-            dropdown_frame.place(x=x, y=y, width=user_info_frame.winfo_width())
-            
-            #print(f"Placed dropdown at ({x}, {y})")
-            #print(f"Dropdown dimensions: {dropdown_frame.winfo_width()}x{dropdown_frame.winfo_height()}")
-
-        def hide_dropdown(event=None):
-            #print("Hide dropdown called")
-            if event is None:
-                dropdown_frame.place_forget()
-                return
-            
-            # Get the mouse coordinates relative to the screen
-            mouse_x = event.x_root
-            mouse_y = event.y_root
-            #print(f"Mouse position: ({mouse_x}, {mouse_y})")
-            
-            # Check if the mouse is over either the user_info_frame or dropdown_frame
-            over_user_info = (
-                user_info_frame.winfo_rootx() <= mouse_x <= user_info_frame.winfo_rootx() + user_info_frame.winfo_width() and
-                user_info_frame.winfo_rooty() <= mouse_y <= user_info_frame.winfo_rooty() + user_info_frame.winfo_height()
-            )
-            
-            over_dropdown = (
-                dropdown_frame.winfo_rootx() <= mouse_x <= dropdown_frame.winfo_rootx() + dropdown_frame.winfo_width() and
-                dropdown_frame.winfo_rooty() <= mouse_y <= dropdown_frame.winfo_rooty() + dropdown_frame.winfo_height()
-            )
-            
-            #print(f"Over user info: {over_user_info}")
-            #print(f"Over dropdown: {over_dropdown}")
-            
-            if not (over_user_info or over_dropdown):
-                dropdown_frame.place_forget()
-
-        def hide_dropdown_on_click(event):
-            #print("hide_dropdown_on_click called")
-            # Hide the dropdown frame if clicking outside of it
-            mouse_x = event.x_root
-            mouse_y = event.y_root
-            
-            # Check if clicking within user_info_frame or dropdown_frame
-            over_user_info = (
-                user_info_frame.winfo_rootx() <= mouse_x <= user_info_frame.winfo_rootx() + user_info_frame.winfo_width() and
-                user_info_frame.winfo_rooty() <= mouse_y <= user_info_frame.winfo_rooty() + user_info_frame.winfo_height()
-            )
-            
-            over_dropdown = (
-                dropdown_frame.winfo_rootx() <= mouse_x <= dropdown_frame.winfo_rootx() + dropdown_frame.winfo_width() and
-                dropdown_frame.winfo_rooty() <= mouse_y <= dropdown_frame.winfo_rooty() + dropdown_frame.winfo_height()
-            )
-            
-            #print(f"Click coordinates: ({mouse_x}, {mouse_y})")
-            #print(f"Over user info: {over_user_info}")
-            #print(f"Over dropdown: {over_dropdown}")
-            
-            if not (over_user_info or over_dropdown):
-                dropdown_frame.place_forget()
-                #print("Dropdown hidden on click")
+            tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, bg="#171d22", fg="white", activebackground="#2a2f35", activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
+        tk.Button(dropdown_frame, text="Logout", command=show_login_screen,bg="#171d22", fg="white", activebackground="#2a2f35", activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
 
         # Bind events to all relevant widgets
         for widget in user_info_frame.winfo_children():
-            widget.bind("<Enter>", show_dropdown)
-        user_info_frame.bind("<Enter>", show_dropdown)
-        icon_label.bind("<Enter>", show_dropdown)
-        name_label.bind("<Enter>", show_dropdown)
-        username_label.bind("<Enter>", show_dropdown)
-        dropdown_indicator.bind("<Enter>", show_dropdown)
-
+            widget.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        user_info_frame.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        icon_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        name_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        username_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        dropdown_indicator.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        
         # Remove the main_frame.bind("<Leave>", hide_dropdown) as it might be causing issues
         # Instead, bind to specific areas
-        user_info_frame.bind("<Leave>", hide_dropdown)
-        dropdown_frame.bind("<Leave>", hide_dropdown)
+        user_info_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
+        dropdown_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
 
-        window.bind("<Button-1>", hide_dropdown_on_click)
+        window.bind("<Button-1>", lambda event: hide_dropdown_on_click(event, user_info_frame, dropdown_frame))
 
         # Create the content frame with the dark background for future addition of dynamic product listings
         global content_frame
@@ -542,93 +456,23 @@ def start_app():
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
         # Add buttons to the dropdown frame with consistent styling
-        tk.Button(dropdown_frame, text="Logout", command=show_login_screen,
-                bg="#171d22", fg="white", activebackground="#2a2f35", 
-                activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
-
-        # Prints below were for debugging process to ensure that the dropdown was working as intended after many failures
-        def show_dropdown(event):
-            #print("Showing dropdown")
-            # Position the dropdown frame below the user_info_frame
-            x = user_info_frame.winfo_rootx()
-            y = user_info_frame.winfo_rooty() + user_info_frame.winfo_height() - 10
-            
-            # Ensure the dropdown is properly sized and visible
-            dropdown_frame.lift()  # Bring to front
-            dropdown_frame.update_idletasks()  # Force geometry update
-            dropdown_frame.place(x=x, y=y, width=user_info_frame.winfo_width())
-            
-            #print(f"Placed dropdown at ({x}, {y})")
-            #print(f"Dropdown dimensions: {dropdown_frame.winfo_width()}x{dropdown_frame.winfo_height()}")
-
-        def hide_dropdown(event=None):
-            #print("Hide dropdown called")
-            if event is None:
-                dropdown_frame.place_forget()
-                return
-            
-            # Get the mouse coordinates relative to the screen
-            mouse_x = event.x_root
-            mouse_y = event.y_root
-            #print(f"Mouse position: ({mouse_x}, {mouse_y})")
-            
-            # Check if the mouse is over either the user_info_frame or dropdown_frame
-            over_user_info = (
-                user_info_frame.winfo_rootx() <= mouse_x <= user_info_frame.winfo_rootx() + user_info_frame.winfo_width() and
-                user_info_frame.winfo_rooty() <= mouse_y <= user_info_frame.winfo_rooty() + user_info_frame.winfo_height()
-            )
-            
-            over_dropdown = (
-                dropdown_frame.winfo_rootx() <= mouse_x <= dropdown_frame.winfo_rootx() + dropdown_frame.winfo_width() and
-                dropdown_frame.winfo_rooty() <= mouse_y <= dropdown_frame.winfo_rooty() + dropdown_frame.winfo_height()
-            )
-            
-            #print(f"Over user info: {over_user_info}")
-            #print(f"Over dropdown: {over_dropdown}")
-            
-            if not (over_user_info or over_dropdown):
-                dropdown_frame.place_forget()
-
-        def hide_dropdown_on_click(event):
-            #print("hide_dropdown_on_click called")
-            # Hide the dropdown frame if clicking outside of it
-            mouse_x = event.x_root
-            mouse_y = event.y_root
-            
-            # Check if clicking within user_info_frame or dropdown_frame
-            over_user_info = (
-                user_info_frame.winfo_rootx() <= mouse_x <= user_info_frame.winfo_rootx() + user_info_frame.winfo_width() and
-                user_info_frame.winfo_rooty() <= mouse_y <= user_info_frame.winfo_rooty() + user_info_frame.winfo_height()
-            )
-            
-            over_dropdown = (
-                dropdown_frame.winfo_rootx() <= mouse_x <= dropdown_frame.winfo_rootx() + dropdown_frame.winfo_width() and
-                dropdown_frame.winfo_rooty() <= mouse_y <= dropdown_frame.winfo_rooty() + dropdown_frame.winfo_height()
-            )
-            
-            #print(f"Click coordinates: ({mouse_x}, {mouse_y})")
-            #print(f"Over user info: {over_user_info}")
-            #print(f"Over dropdown: {over_dropdown}")
-            
-            if not (over_user_info or over_dropdown):
-                dropdown_frame.place_forget()
-                #print("Dropdown hidden on click")
+        tk.Button(dropdown_frame, text="Logout", command=show_login_screen, bg="#171d22", fg="white", activebackground="#2a2f35", activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
 
         # Bind events to all relevant widgets
         for widget in user_info_frame.winfo_children():
-            widget.bind("<Enter>", show_dropdown)
-        user_info_frame.bind("<Enter>", show_dropdown)
-        icon_label.bind("<Enter>", show_dropdown)
-        name_label.bind("<Enter>", show_dropdown)
-        username_label.bind("<Enter>", show_dropdown)
-        dropdown_indicator.bind("<Enter>", show_dropdown)
-
+            widget.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        user_info_frame.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        icon_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        name_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        username_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        dropdown_indicator.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
+        
         # Remove the main_frame.bind("<Leave>", hide_dropdown) as it might be causing issues
         # Instead, bind to specific areas
-        user_info_frame.bind("<Leave>", hide_dropdown)
-        dropdown_frame.bind("<Leave>", hide_dropdown)
+        user_info_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
+        dropdown_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
 
-        window.bind("<Button-1>", hide_dropdown_on_click)
+        window.bind("<Button-1>", lambda event: hide_dropdown_on_click(event, user_info_frame, dropdown_frame))
 
         # Create the content frame with the black background for future addition of dynamic wigets
         global content_frame
@@ -647,34 +491,17 @@ def start_app():
         # Text lable that just announces the below are for the naivgation of the application styled like a webapp site
         tk.Label(left_nav, text="Navigation", font=("Arial", 16), bg="#171d22", fg="darkgrey").pack(side="top", anchor="nw", padx=10, pady=10)
 
-        # Defines the styles for use on multiple neatly when there is lots of styling in a dictionary
-        button_style = {
-            "font": ("Arial", 20),
-            "bg": "#171d22",
-            "fg": "white",
-            "bd": 2,
-            "highlightbackground": "darkgrey",
-            "highlightcolor": "darkgrey",
-            "highlightthickness": 2,
-            "activebackground": "#171d22",
-            "activeforeground": "white"
-        }
-
-        # Create buttons for the nav with that button style
-        buttons = [
-            tk.Button(left_nav, text="Dashboard", command=switch_to_admin_panel, **button_style), # **button_style is a dictionary unpacking to apply the style to the button
-            tk.Button(left_nav, text="Add Product", command=show_add_product_screen, **button_style),
-            tk.Button(left_nav, text="Manage Products", command=show_manage_products_screen, **button_style),
-            tk.Button(left_nav, text="Manage Categories", command=show_manage_categories_screen, **button_style),
-            tk.Button(left_nav, text="View Store as User", command=lambda: switch_to_store_listing(is_admin=True), **button_style),
-            tk.Button(left_nav, text="Logout", command=show_login_screen, **button_style)
+        # Replace the current button creation code with:
+        button_configs = [
+            ("Dashboard", switch_to_admin_panel),
+            ("Add Product", show_add_product_screen),
+            ("Manage Products", show_manage_products_screen),
+            ("Manage Categories", show_manage_categories_screen),
+            ("View Store as User", lambda: switch_to_store_listing(is_admin=True)),
+            ("Logout", show_login_screen)
         ]
 
-        # Calculates the width of the largest button and sets all buttons to that width with adjustments for a uniform look
-        max_width = max(button.winfo_reqwidth() for button in buttons)
-        for button in buttons:
-            button.config(width=max_width - 10)
-            button.pack(padx = 10, pady=5)
+        buttons = create_nav_buttons(left_nav, button_configs)
 
     # TODO: 
     def show_add_product_screen():
@@ -1093,7 +920,7 @@ def start_app():
         new_password_frame.pack(pady=5)
         new_password_entry = tk.Entry(new_password_frame, show="*", width=16)
         new_password_entry.pack(side="left", padx=5)
-        new_password_button = tk.Button(new_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(new_password_entry, new_password_button, '*'))
+        new_password_button = tk.Button(new_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(new_password_entry, new_password_button, '*', eye_open_image, eye_closed_image))
         new_password_button.pack()
 
         tk.Label(main_frame, text="Confirm Password").pack()
@@ -1101,7 +928,7 @@ def start_app():
         confirm_password_frame.pack(pady=5)
         confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=new_password_entry.cget("width"))
         confirm_password_entry.pack(side="left", padx=5)
-        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*'))
+        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image))
         confirm_password_button.pack()
 
         def change_password():

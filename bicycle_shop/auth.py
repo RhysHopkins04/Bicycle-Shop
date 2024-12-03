@@ -3,6 +3,7 @@ import hashlib
 import os
 from database import get_connection
 
+# Core Auth Functions:
 def hash_password(password):
     """Hash a password with a randomly generated salt."""
     salt = os.urandom(16)
@@ -14,6 +15,8 @@ def verify_password(salt, stored_hash, password):
     hashed_password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
     return hashed_password == stored_hash
 
+
+# User Management Functions:
 def register_user(username, first_name, last_name, password, age):
     """Register a new user."""
     salt, hashed_password = hash_password(password)
