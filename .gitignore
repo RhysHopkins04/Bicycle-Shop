@@ -1,6 +1,7 @@
 # Project specific
-bicycle_shop/bicycle_shop.db
 *.db
+bicycle_shop.db
+bicycle_shop/bicycle_shop.db
 bicycle_shop/Products/**
 
 # Python gitignore template below:

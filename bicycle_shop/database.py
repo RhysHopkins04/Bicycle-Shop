@@ -2,7 +2,7 @@ import sqlite3
 import os
 import shutil
 
-from file_manager import (handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory)
+from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory
 
 DB_PATH = "./bicycle_shop/bicycle_shop.db"
 PRODUCTS_DIR = "./bicycle_shop/Products"
