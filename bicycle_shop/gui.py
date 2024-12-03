@@ -1,16 +1,12 @@
-# Packages in use for the GUI of the application: tkinter, Pillow, os
 import tkinter as tk
 from tkinter import ttk, filedialog as filedialog, PhotoImage
-from PIL import ImageTk, Image
-import os
-import shutil
 
 # Functions from other locations in the program: auth, database, qr_code_util
-import qr_code_util
-from auth import register_user, authenticate_user
-from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, promote_user_to_admin, demote_user_from_admin,add_category, get_categories, get_category_id, get_category_name
-from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness
+from auth import register_user, authenticate_user, update_user_password
+from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, promote_user_to_admin, demote_user_from_admin, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
+from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields
 from utils import display_error, display_success, toggle_password_visibility, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons
+from file_manager import ICONS_DIR
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
@@ -24,7 +20,6 @@ def start_app():
     current_username = None
     current_first_name = None
     current_last_name = None
-    PRODUCTS_DIR = "./bicycle_shop/Products"
 
     # Redundant but a good check to ensure that the tables and an admin user are created on startup encase they do not exist.
     create_tables()
@@ -39,8 +34,12 @@ def start_app():
     main_frame.pack(fill="both", expand=True)
 
     # Defining the images to be used for password visibility toggling
-    eye_open_image = PhotoImage(file="./bicycle_shop/Icons/visible.png")
-    eye_closed_image = PhotoImage(file="./bicycle_shop/Icons/hidden.png")
+    eye_open_image = PhotoImage(file=f"{ICONS_DIR}/visible.png")
+    eye_closed_image = PhotoImage(file=f"{ICONS_DIR}/hidden.png")   
+
+    # Defining the icons to be used in the store page and admin dashboard next to the user:
+    user_icn = PhotoImage(file=f"{ICONS_DIR}/user_icon_thumbnail.png")
+    admin_icn = PhotoImage(file=f"{ICONS_DIR}/admin_icon_thumbnail.png")
 
     # Checks if  the screen is in fullscreen mode using an event handler shown below
     def toggle_fullscreen(event=None):
@@ -226,13 +225,6 @@ def start_app():
         # Add user information frame
         user_info_frame = tk.Frame(button_frame, bg="#171d22")
         user_info_frame.pack(side="left", padx=20, pady=10)
-
-        # Load the user icon
-        user_icn = PhotoImage(file="./bicycle_shop/Icons/user_icon_thumbnail.png")
-        user_info_frame.user_icn = user_icn
-
-        admin_icn = PhotoImage(file="./bicycle_shop/Icons/admin_icon_thumbnail.png")
-        user_info_frame.admin_icn = admin_icn 
 
         # Add the icon to the user_info_frame
         if is_admin:
@@ -430,13 +422,6 @@ def start_app():
         user_info_frame = tk.Frame(button_frame, bg="#171d22")
         user_info_frame.pack(side="left", padx=20, pady=10)
 
-        # Load the user icon
-        user_icn = PhotoImage(file="./bicycle_shop/Icons/user_icon_thumbnail.png")
-        user_info_frame.user_icn = user_icn
-
-        admin_icn = PhotoImage(file="./bicycle_shop/Icons/admin_icon_thumbnail.png")
-        user_info_frame.admin_icn = admin_icn 
-
         # Add the icon to the user_info_frame
         icon_label = tk.Label(user_info_frame, image=admin_icn, bg="#171d22")
         icon_label.grid(row=0, column=0, rowspan=2, padx=(0, 5))
@@ -561,41 +546,22 @@ def start_app():
             stock = stock_entry.get()
             listed = 1 if listed_var.get() == "Yes" else 0
 
-            # Error messages for if the fields are empty to avoid null products in the database
-            if not name or not price:
-                display_error(message_label, "All fields are required.")
+            is_valid, message = validate_product_fields(name, price, stock, listed, category, image)
+            if not is_valid:
+                display_error(message_label, message)
                 return
 
-            # Error message for entering in characters not integers for the price
-            try:
-                price = float(price)
-                stock = int(stock) if stock else None
-            except ValueError:
-                display_error(message_label, "Price must be a number and stock must be an integer.")
-                return
-
+            # Convert values after validation
+            price = float(price)
+            stock = int(stock) if stock else 0
+            
             category_id = get_category_id(category) if category else None
             if category_id is None:
                 display_error(message_label, "Invalid category.")
                 return
 
-            # Create product directory
-            product_dir = os.path.join(PRODUCTS_DIR, name)
-            os.makedirs(product_dir, exist_ok=True)
-
-            # Move the image to the product directory
-            if image:
-                image_dest = os.path.join(product_dir, os.path.basename(image))
-                shutil.copy(image, image_dest)
-                image = image_dest
-
-            # Generate and move the QR code to the product directory
-            qr_code = f"{name}_{price}.png"
-            qr_code_path = os.path.join(product_dir, os.path.basename(qr_code))
-            qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
-
-            add_product(name, price, qr_code_path, listed, description, category_id, image, stock)
-
+            # Now just pass None for qr_code - it will be generated in database.py
+            add_product(name, price, None, listed, description, category_id, image, stock)
             display_success(message_label, "Product added successfully!")
         
         tk.Button(content_inner_frame, text="Add Product", command=handle_add_product).pack(pady=10) # Button that calls this function to add the products to the database
@@ -800,15 +766,14 @@ def start_app():
             stock = stock_entry.get()
             listed = 1 if listed_var.get() == "Yes" else 0
 
-            if not name or not price:
-                display_error(message_label, "All fields are required.")
+            is_valid, message = validate_product_fields(name, price, stock, listed, category, image)
+            if not is_valid:
+                display_error(message_label, message)
                 return
-            try:
-                price = float(price)
-                stock = int(stock) if stock else None
-            except ValueError:
-                display_error(message_label, "Price must be a number and stock must be an integer.")
-                return
+
+            # Convert values after validation
+            price = float(price)
+            stock = int(stock) if stock else 0
             
             category_id = get_category_id(category) if category else None
             if category_id is None:
@@ -817,7 +782,6 @@ def start_app():
 
             update_product(product_id, name, price, None, description, category_id, image, stock)
             list_product(product_id, listed)
-
             display_success(message_label, "Product updated successfully!")
             show_manage_products_screen()
 
@@ -868,23 +832,21 @@ def start_app():
                 display_error(message_label, "No changes made.")
                 return
 
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE Categories SET name = ? WHERE id = ?", (new_name, category_id))
-            conn.commit()
-            conn.close()
-            display_success(message_label, "Category updated successfully!")
-            category_entry.delete(0, tk.END)
-            display_categories()
+            success, message = update_category(category_id, new_name)
+            if success:
+                display_success(message_label, message)
+                category_entry.delete(0, tk.END)
+                display_categories()
+            else:
+                display_error(message_label, message)
 
         def handle_delete_category(category_id):
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM Categories WHERE id = ?", (category_id,))
-            conn.commit()
-            conn.close()
-            display_success(message_label, "Category deleted successfully!")
-            display_categories()
+            success, message = delete_category(category_id)
+            if success:
+                display_success(message_label, message)
+                display_categories()
+            else:
+                display_error(message_label, message)
 
         def display_categories():
             clear_frame(category_list_frame)
@@ -945,19 +907,12 @@ def start_app():
                 display_error(message_label, validation_message)
                 return
             
-            # Update the password in db if the validation passes.
-            conn = get_connection()
-            cursor = conn.cursor()
-            from auth import hash_password
-            salt, hashed_password = hash_password(new_password)
-            cursor.execute("""
-                UPDATE Users SET password = ?, salt = ?, password_changed = 1 
-                WHERE username = ?
-            """, (hashed_password, salt, username))
-            conn.commit()
-            conn.close()
-            tk.Label(main_frame, text="Password updated successfully!", fg="green").pack()
-            switch_to_admin_panel()
+            success, message = update_user_password(username, new_password)
+            if success:
+                display_success(message_label, message)
+                switch_to_admin_panel()
+            else:
+                display_error(message_label, message)
 
         tk.Button(main_frame, text="Change Password", command=change_password).pack(pady=10)
         add_logout_button()
@@ -966,15 +921,6 @@ def start_app():
         message_label = tk.Label(main_frame, text="", bg="#171d22")
         message_label.pack()
     
-    # TODO: Implement the qr code scanning functionality for the standard user and admin for finding a product quickly for admin box management or quick purchases #
-    # Allows the user to scan a qr code and navigate to the product page for the product that the qr code is linked to. 
-    def scan_qr_code():
-        """Scan a QR code using the webcam and navigate to the product page."""
-        data = qr_code_util.scan_qr_code()
-        if data:
-            product_id = int(data)
-            show_product_page(product_id)
-
     def show_product_page(product_id):
         """Display the product page for the given product ID."""
         clear_frame(main_frame)

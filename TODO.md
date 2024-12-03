@@ -1,7 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
 - Resolve all issues with Contradictions in my code locations
-    - Move the qr code generation into the database.py for when they are being added to match update_product
 - Resolve all repeated code use
 - Refactor the code locations for a few functions/modules
 
@@ -47,6 +46,14 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Removed unused imports across all files.
+- Updated the icons to use the file location paths from file_manager instead of defining each time.
+- Moved the category editing and deletion into the database for database access consistency.
+- Moved the password change operation into auth for consistency
+- Moved all directory and file management operations to file_manager.py
+- Organized constants by moving PRODUCTS_DIR and ICONS_DIR to file_manager.py
+- Created new module file_manager.py to centralize file operations
+- Removed QR code generation from gui.py and centralized in database.py/file_manager.py
 - Rearanged functions in all helper files for readability.
 - Moved the styled button creation for the admin dashboard left_nav to utils.py to increase readabiltiy and reduce repetition
 - Moved the Dropdown functions to the utils.py and updated their bindings to match since used twice in both main store page and the admin dashboard.

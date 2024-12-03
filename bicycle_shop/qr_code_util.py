@@ -13,12 +13,13 @@ def scan_qr_code():
     """Scan a QR code using the webcam."""
     cap = cv2.VideoCapture(0)
     detector = cv2.QRCodeDetector()
-
+    
+    scanned_data = None
     while True:
         _, frame = cap.read()
         data, _, _ = detector.detectAndDecode(frame)
         if data:
-            print("QR Code Data:", data)
+            scanned_data = data
             break
         cv2.imshow("QR Code Scanner", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -26,3 +27,4 @@ def scan_qr_code():
 
     cap.release()
     cv2.destroyAllWindows()
+    return scanned_data

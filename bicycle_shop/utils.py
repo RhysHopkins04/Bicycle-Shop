@@ -1,4 +1,5 @@
 import tkinter as tk
+
 # Logging Feature
 def log_event(event):
     """Log an event to a file."""

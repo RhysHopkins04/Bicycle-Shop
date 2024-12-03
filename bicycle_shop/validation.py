@@ -1,5 +1,4 @@
 import re
-import sqlite3
 from database import get_connection
 
 # Core Validation Functions:
@@ -55,7 +54,7 @@ def validate_age(age):
         return False, "User must be 18 years or older to register."
     return True, "Valid"
 
-# Combined Validation Function:
+# Combined User Validation Function:
 def validate_registration_fields(username, first_name, last_name, password, confirm_password, age):
     """Validate registration fields."""
     is_valid, message = validate_empty_fields(username, first_name, last_name, password, confirm_password, age)
@@ -78,4 +77,34 @@ def validate_registration_fields(username, first_name, last_name, password, conf
     if not is_valid:
         return False, message
 
+    return True, "Valid"
+
+# Product Validation Functions:
+def validate_product_fields(name, price, stock, listed=False, category=None, image=None):
+    """Validate product fields."""
+    # Check required fields
+    if not name or not price:
+        return False, "Name and price are required."
+    
+    # Validate price is numeric
+    try:
+        price = float(price)
+        if price <= 0:
+            return False, "Price must be greater than 0."
+    except ValueError:
+        return False, "Price must be a valid number."
+    
+    # If product is to be listed, validate additional fields
+    if listed:
+        if not category:
+            return False, "Category is required for listed products."
+        if not image:
+            return False, "Image is required for listed products."
+        try:
+            stock = int(stock) if stock else 0
+            if stock <= 0:
+                return False, "Listed products must have stock greater than 0."
+        except ValueError:
+            return False, "Stock must be a valid number for listed products."
+    
     return True, "Valid"

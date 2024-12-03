@@ -54,3 +54,24 @@ def authenticate_user(username, password):
     if verify_password(stored_salt, stored_hash, password):
         return True, bool(is_admin), bool(password_changed), first_name, last_name, user_id
     return False, None, None, None, None, None
+
+def update_user_password(username, new_password):
+    """Update user password and mark as changed."""
+    salt, hashed_password = hash_password(new_password)
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE Users 
+            SET password = ?, 
+                salt = ?, 
+                password_changed = 1 
+            WHERE username = ?
+        """, (hashed_password, salt, username))
+        conn.commit()
+        return True, "Password updated successfully!"
+    except sqlite3.Error as e:
+        return False, f"Failed to update password: {str(e)}"
+    finally:
+        conn.close()
