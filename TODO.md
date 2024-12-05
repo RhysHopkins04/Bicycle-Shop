@@ -1,13 +1,11 @@
 # **TODO:**
 ## **Incomplete:**
-- Resolve all issues with Contradictions in my code locations
-- Resolve all repeated code use
-- Refactor the code locations for a few functions/modules
+
 
 - Additional logout button on admin dashboard
 
 - Add change password ability to the top right for both users and admin users
-- Add the products to be sorted based on category 
+- Add the products to be sorted based on category
 - Create Pictures for products and a separate product page per one when clicked
 
 - Make change of listed/not listed available on main manage products screen
@@ -49,6 +47,12 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Refactor the code locations for a few functions/modules
+- Resolve all issues with Contradictions in my code locations
+- All current fixable DRY Violations have been resolved at this point.
+- Migrated the majority of the display_products functions to utils.py to clean up the display products functions repeatability without losing ties to the other parts of the screen.
+- Fixed small issue with message label creation being in the wrong place in register
+- Migrated the password entry box setup to utils.py to be called to create the password entry's for all usage with the visibility button.
 - Appears that the password visibility appears in the tab list or adds another tab and should be excluded from this, Excluded the password box from focus with "takefocus=False".
 - Manage categories add new category does not automatically refresh the categories page, adjusted order of the display_categorys function to be first.
 - Fixed error where when being saved even without image edit would try and replace the image with the same iamge and give a samefile error.

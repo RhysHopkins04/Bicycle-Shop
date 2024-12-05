@@ -30,6 +30,62 @@ def toggle_password_visibility(entry, button, show, eye_open_image, eye_closed_i
         entry.config(show='')
         button.config(image=eye_open_image)
 
+def create_password_field(parent, label_text, entry_width=16, show_label=True, eye_open_image=None, eye_closed_image=None, style="dark"):
+    """
+    Create a password entry field with toggle visibility button
+    
+    Args:
+        parent: Parent widget
+        label_text: Text for label above password field
+        entry_width: Width of entry field 
+        show_label: Whether to show label
+        eye_open_image: Image for password visible
+        eye_closed_image: Image for password hidden
+    
+    Returns:
+        tuple: (entry, frame, button)
+    """
+    # Define styles
+    styles = {
+        "dark": {
+            "bg": "#171d22",
+            "fg": "white",
+            "frame_bg": "#171d22",
+            "entry_bg": "white",
+            "entry_fg": "black"
+        },
+        "light": {
+            "bg": "SystemButtonFace",  # Default tkinter background
+            "fg": "black",
+            "frame_bg": "SystemButtonFace",
+            "entry_bg": "white",
+            "entry_fg": "black"
+        }
+    }
+    
+    current_style = styles.get(style, styles["dark"])
+
+    if show_label:
+        tk.Label(parent, text=label_text, 
+                bg=current_style["bg"], 
+                fg=current_style["fg"]).pack()
+    
+    frame = tk.Frame(parent, bg=current_style["frame_bg"]) 
+    frame.pack(pady=5)
+    
+    entry = tk.Entry(frame, show="*", width=entry_width,
+                    bg=current_style["entry_bg"],
+                    fg=current_style["entry_fg"])
+    entry.pack(side="left", padx=5)
+    
+    button = tk.Button(frame, image=eye_closed_image, 
+                      command=lambda: toggle_password_visibility(entry, button, '*', eye_open_image, eye_closed_image),
+                      takefocus=False,
+                      bg=current_style["frame_bg"])
+    button.pack()
+    
+    return entry, frame, button
+
 # Function used to dynamically clear and update the frame that is being called for reuseability in the code.
 def clear_frame(frame):
     """Clear all widgets from the given frame."""
@@ -37,7 +93,6 @@ def clear_frame(frame):
         widget.destroy()
 
 # Dropdown menu UI Functions:
-
 def show_dropdown(event, user_info_frame, dropdown_frame):
     # Prints below were for debugging process to ensure that the dropdown was working as intended after many failures
     #print("Showing dropdown")
@@ -184,7 +239,7 @@ def create_user_info_display(parent, username, first_name, last_name, is_admin, 
     
     return user_info_frame, icon_label, name_label, username_label, dropdown_indicator
 
-### Search Functions ###
+# UI Search Functions
 def setup_search_widget(parent, placeholder="Search for products", font_size=20, bg_color="#171d22"):
     """Create and setup search entry with placeholder"""
     search_frame = tk.Frame(parent, bg=bg_color)
@@ -207,7 +262,7 @@ def setup_search_widget(parent, placeholder="Search for products", font_size=20,
     
     return search_frame, search_entry
 
-### Scrollable Frame Functions ###
+# UI Scrollable Frame Functions
 def create_scrollable_frame(parent, bg_color="#171d22"):
     """Create scrollable frame with canvas"""
     # Create a wrapper frame to hold both canvas and scrollbar
@@ -236,3 +291,42 @@ def create_scrollable_frame(parent, bg_color="#171d22"):
     canvas.configure(yscrollcommand=scrollbar.set)
     
     return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel
+
+# UI Product Display Functions:
+def setup_product_grid(scrollable_frame, canvas, products, product_width=290, padding=5):
+    """Sets up the basic grid layout for products"""
+    if not products:
+        message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
+        message_label.pack(pady=10)
+        display_error(message_label, "No products available.")
+        return None
+        
+    canvas.update_idletasks()
+    content_width = canvas.winfo_width()
+    num_columns = max(1, content_width // (product_width + padding))
+    return num_columns
+
+def create_basic_product_frame(row_frame, product, product_width):
+    """Creates standard product frame with common elements"""
+    product_frame = tk.Frame(row_frame, width=product_width, padx=5, pady=5, bg="#171d22")
+    product_frame.pack(side="left", padx=5, pady=5)
+
+    tk.Label(product_frame, text=f"Name: {product[1]}", bg="#171d22", fg="white").pack()
+    tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", bg="#171d22", fg="white").pack()
+
+    qr_code_image = tk.PhotoImage(file=product[3])
+    tk.Label(product_frame, image=qr_code_image, bg="#171d22").pack()
+    product_frame.image = qr_code_image
+    
+    return product_frame
+
+def create_product_management_frame(row_frame, product, product_width, edit_callback, delete_callback):
+    """Creates product frame with management buttons"""
+    product_frame = create_basic_product_frame(row_frame, product, product_width)
+    
+    tk.Button(product_frame, text="Edit", 
+              command=lambda p=product[0]: edit_callback(p)).pack(side="left")
+    tk.Button(product_frame, text="Delete", 
+              command=lambda p=product[0]: delete_callback(p)).pack(side="right")
+    
+    return product_frame

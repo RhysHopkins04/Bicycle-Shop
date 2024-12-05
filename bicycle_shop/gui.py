@@ -5,7 +5,7 @@ from tkinter import ttk, filedialog as filedialog, PhotoImage
 from auth import register_user, authenticate_user, update_user_password, promote_user_to_admin, demote_user_from_admin
 from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
 from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields, validate_category_name
-from utils import display_error, display_success, toggle_password_visibility, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame
+from utils import display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame
 from file_manager import ICONS_DIR
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
@@ -33,6 +33,7 @@ def start_app():
     main_frame = tk.Frame(window)
     main_frame.pack(fill="both", expand=True)
 
+    # TODO: Move the file handling for images into file_manager fully, and allow then the pathing to be set inside of a config file which can also handle first time setup.
     # Defining the images to be used for password visibility toggling
     eye_open_image = PhotoImage(file=f"{ICONS_DIR}/visible.png")
     eye_closed_image = PhotoImage(file=f"{ICONS_DIR}/hidden.png")   
@@ -63,13 +64,7 @@ def start_app():
         username_entry.pack()
         username_entry.focus_set() # Starts with the focus on this field for fast information input
 
-        tk.Label(main_frame, text="Password").pack()
-        password_frame = tk.Frame(main_frame)
-        password_frame.pack(pady=5)
-        password_entry = tk.Entry(password_frame, show="*", width=username_entry.cget("width") - 4)
-        password_entry.pack(side="left", padx=5)
-        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
-        password_button.pack()
+        password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="light")
 
         # Login function to be called by the login button
         def login(event=None): 
@@ -110,7 +105,7 @@ def start_app():
     # Shows the register screen for if you need to create a new users on the start of the application
     def show_register_screen():
         """Display the register screen."""
-        window.geometry("400x400") # Register screen by standard size
+        window.geometry("400x450") # Register screen by standard size
         clear_frame(main_frame)
 
         tk.Label(main_frame, text="Register", font=("Arial", 18)).pack(pady=10)
@@ -128,25 +123,17 @@ def start_app():
         last_name_entry = tk.Entry(main_frame)
         last_name_entry.pack()
 
-        tk.Label(main_frame, text="Password").pack()
-        password_frame = tk.Frame(main_frame)
-        password_frame.pack(pady=5)
-        password_entry = tk.Entry(password_frame, show="*", width=last_name_entry.cget("width") - 4)
-        password_entry.pack(side="left", padx=5)
-        password_button = tk.Button(password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(password_entry, password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
-        password_button.pack()
+        password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="light")
 
-        tk.Label(main_frame, text="Confirm Password").pack()
-        confirm_password_frame = tk.Frame(main_frame)
-        confirm_password_frame.pack(pady=5)
-        confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=password_entry.cget("width"))
-        confirm_password_entry.pack(side="left", padx=5)
-        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
-        confirm_password_button.pack()
+        confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="light")
 
         tk.Label(main_frame, text="Age").pack()
         age_entry = tk.Entry(main_frame)
         age_entry.pack()
+
+        # Binds the enter key to the login function if either the button or the main_frame is in focus
+        message_label = tk.Label(main_frame, text="") # In this case the background is default so there is no need to define the bg as a different colour.
+        message_label.pack()
 
         def register(event=None):
             username = username_entry.get()
@@ -161,9 +148,6 @@ def start_app():
                 return
 
             result = register_user(username, first_name, last_name, password, int(age))
-
-            message_label = tk.Label(main_frame, text="", bg="#171d22")
-            message_label.pack(pady=10)
 
             if "successful" in result: # Success message if all requirements are met and user is created
                 display_success(message_label, result)
@@ -187,10 +171,6 @@ def start_app():
         back_to_login_button.bind('<Tab>', lambda e: username_entry.focus_set())
 
         back_to_login_button.bind('<Return>', lambda event: show_login_screen()) # If tabbed onto allows the use of the enter key to return to the login screen post registration or if register is accidentally clicked.
-
-        # Binds the enter key to the login function if either the button or the main_frame is in focus
-        message_label = tk.Label(main_frame, text="") # In this case the background is default so there is no need to define the bg as a different colour.
-        message_label.pack()
 
     # Show the Login Screen by default
     show_login_screen()
@@ -288,51 +268,39 @@ def start_app():
             if not products:
                 message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
                 message_label.pack(pady=10)
-
                 display_error(message_label, "No products available.")
+                return
+
+            # Use utility function to setup grid
+            num_columns = setup_product_grid(scrollable_frame, canvas, products)
+            if not num_columns:
+                return
+
+            # Initializes the variables
+            row_frame = None
+            col = 0
+            row_count = 0
+
+            for product in products:
+                # If the column is 0 it will create a new row frame to stack the products in a grid format
+                if col == 0:
+                    row_frame = tk.Frame(scrollable_frame, bg="#171d22")
+                    row_frame.pack(fill="x", pady=10)
+                    row_count += 1
+
+                # Creates a frame for the product to be displayed in + creates the labels and content to fill out the product with information from the product tuple
+                product_frame = create_basic_product_frame(row_frame, product, 290)
+            
+                col += 1
+                if col >= num_columns:
+                    col = 0
+            
+            # Enable or disable scrolling based on the number of rows
+            if row_count > 1:
+                bind_wheel()
+                scrollbar.pack(side="right", fill="y")
             else:
-                # Get the width of the scrollable_frame
-                canvas.update_idletasks()
-                content_width = canvas.winfo_width()
-                product_frame_width = 290  # Set the width of each product frame (adjust as needed)
-                padding = 5  # Set the padding between product frames
-
-                # Calculate the number of columns that can fit in the available width
-                num_columns = max(1, content_width // (product_frame_width + padding))
-
-                # Initializes the variables
-                row_frame = None
-                col = 0
-                row_count = 0
-
-                for product in products:
-                    # If the column is 0 it will create a new row frame to stack the products in a grid format
-                    if col == 0:
-                        row_frame = tk.Frame(scrollable_frame, bg="#171d22")
-                        row_frame.pack(fill="x", pady=10)
-                        row_count += 1
-
-                    # Creates a frame for the product to be displayed in + creates the labels and content to fill out the product with information from the product tuple
-                    product_frame = tk.Frame(row_frame, width=product_frame_width, padx=5, pady=5, bg="#171d22")
-                    product_frame.pack(side="left", padx=5, pady=5)
-
-                    tk.Label(product_frame, text=f"Name: {product[1]}", bg="#171d22", fg="white").pack()
-                    tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", bg="#171d22", fg="white").pack()
-
-                    qr_code_image = tk.PhotoImage(file=product[3])  # Takes the qr code image from the product tuple and sets it to a local variable to be used in the label
-                    tk.Label(product_frame, image=qr_code_image, bg="#171d22").pack()
-                    product_frame.image = qr_code_image  # stores the image inside of product_frame to avoid garbage collection since it was previously clearing
-
-                    col += 1
-                    if col >= num_columns:
-                        col = 0
-                
-                # Enable or disable scrolling based on the number of rows
-                if row_count > 1:
-                    bind_wheel()
-                    scrollbar.pack(side="right", fill="y")
-                else:
-                    scrollbar.pack_forget()
+                scrollbar.pack_forget()
 
         # Call display_products initially to show all products
         display_products(get_products(listed_only=True))
@@ -550,56 +518,39 @@ def start_app():
             if not products:
                 message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
                 message_label.pack(pady=10)
-
                 display_error(message_label, "No products available.")
+                return
+
+            num_columns = setup_product_grid(scrollable_frame, canvas, products)
+            if not num_columns:
+                return
+
+            row_frame = None
+            col = 0
+            row_count = 0
+
+            for product in products:
+                if col == 0:
+                    row_frame = tk.Frame(scrollable_frame, bg="#171d22")
+                    row_frame.pack(fill="x", pady=10)
+                    row_count += 1
+
+                def handle_delete_product(product_id):
+                    """Handle product deletion and refresh display."""
+                    db_delete_product(product_id)
+                    display_products(get_products(listed_only=False))
+
+                product_frame = create_product_management_frame(row_frame, product, 290, lambda p=product[0]: show_edit_product_screen(p), lambda p=product[0]: handle_delete_product(p))
+
+                col += 1
+                if col >= num_columns:
+                    col = 0
+
+            if row_count > 1:
+                bind_wheel()
+                scrollbar.pack(side="right", fill="y")
             else:
-                canvas.update_idletasks()
-                content_width = canvas.winfo_width()
-                product_frame_width = 290
-                padding = 5
-                num_columns = max(1, content_width // (product_frame_width + padding))
-
-                row_frame = None
-                col = 0
-                row_count = 0
-
-                for product in products:
-                    if col == 0:
-                        row_frame = tk.Frame(scrollable_frame, bg="#171d22")
-                        row_frame.pack(fill="x", pady=10)
-                        row_count += 1
-
-                    product_frame = tk.Frame(row_frame, width=product_frame_width, padx=5, pady=5, bg="#171d22")
-                    product_frame.pack(side="left", padx=5, pady=5)
-
-                    tk.Label(product_frame, text=f"Name: {product[1]}", bg="#171d22", fg="white").pack()
-                    tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", bg="#171d22", fg="white").pack()
-                    
-                    qr_code_image = tk.PhotoImage(file=product[3])
-                    tk.Label(product_frame, image=qr_code_image, bg="#171d22").pack()
-                    product_frame.image = qr_code_image
-                
-                    # Creates the functions and locaates the two buttons for editing / deleting products
-                    def edit_product(product_id=product[0]):
-                        show_edit_product_screen(product_id)
-
-                    def delete_product(product_id=product[0]):
-                        db_delete_product(product_id)
-                        show_manage_products_screen()
-                        
-                    tk.Button(product_frame, text="Edit", command=edit_product).pack(side="left")
-                    tk.Button(product_frame, text="Delete", command=delete_product).pack(side="right")
-
-                    col += 1
-                    if col >= num_columns:
-                        col = 0
-
-                if row_count > 1:
-                    bind_wheel()
-                    scrollbar.pack(side="right", fill="y")
-                else:
-                    scrollbar.pack_forget()
-
+                scrollbar.pack_forget()
                 # Debugging:
                 # print(f"Content width: {content_width}, Canvas Width: {canvas.winfo_width()}, Number of columns: {num_columns}, Product frame width: {product_frame_width}, Padding: {padding}")
 
@@ -794,21 +745,9 @@ def start_app():
 
         tk.Label(main_frame, text="Change Password", font=("Arial", 18)).pack(pady=10)
 
-        tk.Label(main_frame, text="New Password").pack()
-        new_password_frame = tk.Frame(main_frame)
-        new_password_frame.pack(pady=5)
-        new_password_entry = tk.Entry(new_password_frame, show="*", width=16)
-        new_password_entry.pack(side="left", padx=5)
-        new_password_button = tk.Button(new_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(new_password_entry, new_password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
-        new_password_button.pack()
+        new_password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="dark")
 
-        tk.Label(main_frame, text="Confirm Password").pack()
-        confirm_password_frame = tk.Frame(main_frame)
-        confirm_password_frame.pack(pady=5)
-        confirm_password_entry = tk.Entry(confirm_password_frame, show="*", width=new_password_entry.cget("width"))
-        confirm_password_entry.pack(side="left", padx=5)
-        confirm_password_button = tk.Button(confirm_password_frame, image=eye_closed_image, command=lambda: toggle_password_visibility(confirm_password_entry, confirm_password_button, '*', eye_open_image, eye_closed_image), takefocus=False)
-        confirm_password_button.pack()
+        confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="dark")
 
         def change_password():
             new_password = new_password_entry.get()

@@ -1,6 +1,7 @@
 # Project specific
 *.db
 bicycle_shop.db
+/bicycle_shop.db
 bicycle_shop/bicycle_shop.db
 bicycle_shop/Products/**
 
