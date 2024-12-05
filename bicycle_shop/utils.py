@@ -1,5 +1,7 @@
 import tkinter as tk
 
+from file_manager import get_theme
+
 # Logging Feature
 def log_event(event):
     """Log an event to a file."""
@@ -85,6 +87,54 @@ def create_password_field(parent, label_text, entry_width=16, show_label=True, e
     button.pack()
     
     return entry, frame, button
+
+# Create the gui.py stylings:
+def get_style_config():
+    """Get application-wide style configuration."""
+    theme = get_theme()
+    return {
+        'top_bar': {
+            'bg': theme['primary'],
+            'fg': theme['text']
+        },
+        'content_frame': {
+            'bg': theme['background']
+        },
+        'inner_frame': {
+            'bg': theme['primary']
+        },
+        'nav_bar': {
+            'bg': theme['primary'],
+            'fg': theme['text']
+        },
+        'button': {
+            'bg': theme['primary'],
+            'fg': theme['text'],
+            'active_bg': theme['secondary'],
+            'active_fg': theme['text']
+        },
+        'entry': {
+            'bg': theme['color_login_register_secondary'],
+            'fg': theme['color_text_login_register']
+        },
+        'login_register_bg': {
+            'bg': theme['color_login_register'],
+            'fg': theme['color_text_login_register']
+        },
+        'login_register_label': {
+            'bg': theme['color_login_register'],
+            'fg': theme['color_text_login_register']
+        },
+        'login_register_entry': {
+            'bg': theme['color_login_register_secondary'],
+            'fg': theme['color_text_login_register']
+        },
+        'login_register_button': {
+            'bg': theme['color_login_register'],
+            'fg': theme['color_text_login_register'],
+            'active_fg': theme['color_text_login_register']
+        },
+    }
 
 # Function used to dynamically clear and update the frame that is being called for reuseability in the code.
 def clear_frame(frame):

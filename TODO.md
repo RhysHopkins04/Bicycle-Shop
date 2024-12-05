@@ -1,7 +1,12 @@
 # **TODO:**
 ## **Incomplete:**
+- Implimented the ability to adjsut values based on the config.ini
+- Create a two step initialization setup to allow a user to edit the config.ini after it has been generated.
 
+- Make login screen locate itself at the center of the activated screen.
+- Potentially make it so that the dashboard/store page set itself to be fullscreen windowed?
 
+- Issue with dropdown box not changing location when the window is moved.
 - Additional logout button on admin dashboard
 
 - Add change password ability to the top right for both users and admin users
@@ -30,6 +35,7 @@
 - Potential random error with the dropdown to do with "winfo_rootx"
 
 ## **Potential:**
+? add max pswd length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
 ? Remove age from signup ?
 ? Potentially add email for signup and require unique ?
 ? Ask about use of CTK (custom tkinter) ?
@@ -47,6 +53,7 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+
 - Refactor the code locations for a few functions/modules
 - Resolve all issues with Contradictions in my code locations
 - All current fixable DRY Violations have been resolved at this point.

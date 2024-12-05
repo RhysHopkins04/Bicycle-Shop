@@ -5,8 +5,8 @@ from tkinter import ttk, filedialog as filedialog, PhotoImage
 from auth import register_user, authenticate_user, update_user_password, promote_user_to_admin, demote_user_from_admin
 from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
 from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields, validate_category_name
-from utils import display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame
-from file_manager import ICONS_DIR
+from utils import display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame, get_style_config
+from file_manager import get_application_settings, get_theme, get_icon_paths, ICONS_DIR  # Keep for backward compatibility
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
@@ -25,22 +25,24 @@ def start_app():
     create_tables()
     initialize_admin()
 
+    # Get configuration settings
+    app_settings = get_application_settings()
+    theme = get_theme()
+    icon_paths = get_icon_paths()
+
     # Initializes the window and sets it so its title shows as "Bicycle Shop Management"
     window = tk.Tk()
-    window.title("Bicycle Shop Management")
+    window.title(app_settings['window_title'])
 
     # Creates the initial Main frame for the application used for holding the main widgets/functionality.
     main_frame = tk.Frame(window)
     main_frame.pack(fill="both", expand=True)
 
-    # TODO: Move the file handling for images into file_manager fully, and allow then the pathing to be set inside of a config file which can also handle first time setup.
-    # Defining the images to be used for password visibility toggling
-    eye_open_image = PhotoImage(file=f"{ICONS_DIR}/visible.png")
-    eye_closed_image = PhotoImage(file=f"{ICONS_DIR}/hidden.png")   
-
-    # Defining the icons to be used in the store page and admin dashboard next to the user:
-    user_icn = PhotoImage(file=f"{ICONS_DIR}/user_icon_thumbnail.png")
-    admin_icn = PhotoImage(file=f"{ICONS_DIR}/admin_icon_thumbnail.png")
+    # Load icons using configured paths
+    eye_open_image = PhotoImage(file=icon_paths['password_show'])
+    eye_closed_image = PhotoImage(file=icon_paths['password_hide'])
+    user_icn = PhotoImage(file=icon_paths['user_icon'])
+    admin_icn = PhotoImage(file=icon_paths['admin_icon'])
 
     # Checks if  the screen is in fullscreen mode using an event handler shown below
     def toggle_fullscreen(event=None):
@@ -388,7 +390,6 @@ def start_app():
         ]
         create_nav_buttons(left_nav, button_configs)
 
-    # TODO: 
     def show_add_product_screen():
         """Display the add product screen."""
         clear_frame(content_inner_frame)
