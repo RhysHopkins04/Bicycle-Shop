@@ -57,12 +57,16 @@ def start_app():
     def show_login_screen():
         """Display the login screen."""
         window.geometry("400x300") # Login screen by standard size
+
+        styles = get_style_config()['login_register_screen']
+
+        main_frame.configure(bg=styles['background']) # Sets the color of the main frame in this function to pull from the config.
         clear_frame(main_frame)
 
-        tk.Label(main_frame, text="Login", font=("Arial", 18)).pack(pady=10)
+        tk.Label(main_frame, text="Login", **styles['title']).pack(pady=10)
 
-        tk.Label(main_frame, text="Username").pack()
-        username_entry = tk.Entry(main_frame)
+        tk.Label(main_frame, text="Username", **styles['labels']).pack()
+        username_entry = tk.Entry(main_frame, **styles['entries'])
         username_entry.pack()
         username_entry.focus_set() # Starts with the focus on this field for fast information input
 
@@ -90,14 +94,14 @@ def start_app():
             else:
                display_error(message_label, "Invalid credentials!")
 
-        login_button = tk.Button(main_frame, text="Login", command=login)
+        login_button = tk.Button(main_frame, text="Login", command=login, **styles['buttons'])
         login_button.pack(pady=10)
 
-        create_account_button = tk.Button(main_frame, text="Create Account", command=show_register_screen) # switch_to_register)
+        create_account_button = tk.Button(main_frame, text="Create Account", command=show_register_screen, **styles['buttons']) # switch_to_register)
         create_account_button.pack()
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
-        message_label = tk.Label(main_frame, text="") # In this case the background is default so there is no need to define the bg as a different colour.
+        message_label = tk.Label(main_frame, text="", **styles['message']) # In this case the background is default so there is no need to define the bg as a different colour.
         message_label.pack()
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
@@ -108,33 +112,37 @@ def start_app():
     def show_register_screen():
         """Display the register screen."""
         window.geometry("400x450") # Register screen by standard size
+
+        styles = get_style_config()['login_register_screen']
+
+        main_frame.configure(bg=styles['background'])
         clear_frame(main_frame)
 
-        tk.Label(main_frame, text="Register", font=("Arial", 18)).pack(pady=10)
+        tk.Label(main_frame, text="Register", **styles['title']).pack(pady=10)
 
-        tk.Label(main_frame, text="Username").pack()
-        username_entry = tk.Entry(main_frame)
+        tk.Label(main_frame, text="Username", **styles['labels']).pack()
+        username_entry = tk.Entry(main_frame, **styles['entries'])
         username_entry.pack()
         username_entry.focus_set() # Sets the focus on application start to the username field
 
-        tk.Label(main_frame, text="First Name").pack()
-        first_name_entry = tk.Entry(main_frame)
+        tk.Label(main_frame, text="First Name", **styles['labels']).pack()
+        first_name_entry = tk.Entry(main_frame, **styles['entries'])
         first_name_entry.pack()
 
-        tk.Label(main_frame, text="Last Name").pack()
-        last_name_entry = tk.Entry(main_frame)
+        tk.Label(main_frame, text="Last Name", **styles['labels']).pack()
+        last_name_entry = tk.Entry(main_frame, **styles['entries'])
         last_name_entry.pack()
 
         password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="light")
 
         confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="light")
 
-        tk.Label(main_frame, text="Age").pack()
-        age_entry = tk.Entry(main_frame)
+        tk.Label(main_frame, text="Age", **styles['labels']).pack()
+        age_entry = tk.Entry(main_frame, **styles['entries'])
         age_entry.pack()
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
-        message_label = tk.Label(main_frame, text="") # In this case the background is default so there is no need to define the bg as a different colour.
+        message_label = tk.Label(main_frame, text="", **styles['message']) # In this case the background is default so there is no need to define the bg as a different colour.
         message_label.pack()
 
         def register(event=None):
@@ -156,10 +164,10 @@ def start_app():
             else:
                 display_error(message_label, result)
 
-        register_button = tk.Button(main_frame, text="Register", command=register)
+        register_button = tk.Button(main_frame, text="Register", command=register, **styles['buttons'])
         register_button.pack(pady=10)
 
-        back_to_login_button = tk.Button(main_frame, text="Back to Login", command=show_login_screen)
+        back_to_login_button = tk.Button(main_frame, text="Back to Login", command=show_login_screen, **styles['buttons'])
         back_to_login_button.pack()
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
@@ -184,15 +192,17 @@ def start_app():
         window.geometry("1920x1080+0+0") # Default window size for the admin dashboard which should open at the coordinates 0,0 (top left of the screen)
         clear_frame(main_frame)
 
+        styles = get_style_config()['store_listing']
+
         # Create the top bar
-        top_bar = tk.Frame(main_frame, height=100, bg="#171d22")
+        top_bar = tk.Frame(main_frame, height=100, bg=styles['top_bar']['bg'])
         top_bar.pack(side="top", fill="x")
         top_bar.pack_propagate(False)  # When set to "True" Prevent the frame from shrinking to fit its contents
 
-        tk.Label(top_bar, text="Store Listing", font=("Swis721 Blk BT", 40), bg="#171d22", fg="white").pack(side="left", padx=20, pady=10)
+        tk.Label(top_bar, text="Store Listing", **styles['top_bar']['title']).pack(side="left", padx=20, pady=10)
 
         # Create a frame for the buttons on the right side of the header
-        button_frame = tk.Frame(top_bar, bg="#171d22")
+        button_frame = tk.Frame(top_bar, bg=styles['top_bar']['bg'])
         button_frame.pack(side="right", padx=20, pady=10)
 
         user_info_frame, icon_label, name_label, username_label, dropdown_indicator = create_user_info_display(
@@ -207,13 +217,13 @@ def start_app():
         user_info_frame.pack(side="left", padx=20, pady=10)
 
        # Create a dropdown frame with a more visible style
-        dropdown_frame = tk.Frame(main_frame, bg="#171d22", bd=1, relief="solid", highlightthickness=1, highlightbackground="white")
+        dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
         # Add buttons to the dropdown frame with consistent styling
         if is_admin:
-            tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, bg="#171d22", fg="white", activebackground="#2a2f35", activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
-        tk.Button(dropdown_frame, text="Logout", command=show_login_screen,bg="#171d22", fg="white", activebackground="#2a2f35", activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
+            tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
+        tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
         # Bind events to all relevant widgets
         for widget in user_info_frame.winfo_children():
@@ -233,12 +243,12 @@ def start_app():
 
         # Create the content frame with the dark background for future addition of dynamic product listings
         global content_frame
-        content_frame = tk.Frame(main_frame, bg="#000000")
+        content_frame = tk.Frame(main_frame, bg=styles['content']['frame_bg'])
         content_frame.pack(side="right", fill="both", expand=True)  # Fills the remaining space of the window with this frame
 
          # Creates an inner content frame for the dynamic widgets to be added to so there is a contrast border between the header, nav bar and the widgets
         global content_inner_frame
-        content_inner_frame = tk.Frame(content_frame, bg="#171d22", padx=50, pady=50)
+        content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=50)
         content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50)  # Fills the remaining space of the window with this frame
 
         search_frame, search_entry = setup_search_widget(top_bar)
@@ -268,7 +278,7 @@ def start_app():
 
             # If there are no products available it will display a message saying so in red text otherwise display the products in a grid format
             if not products:
-                message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
+                message_label = tk.Label(scrollable_frame, text="", bg=styles['message']['bg'])
                 message_label.pack(pady=10)
                 display_error(message_label, "No products available.")
                 return
@@ -286,7 +296,7 @@ def start_app():
             for product in products:
                 # If the column is 0 it will create a new row frame to stack the products in a grid format
                 if col == 0:
-                    row_frame = tk.Frame(scrollable_frame, bg="#171d22")
+                    row_frame = tk.Frame(scrollable_frame, bg=styles['frame']['bg'])
                     row_frame.pack(fill="x", pady=10)
                     row_count += 1
 
@@ -307,6 +317,26 @@ def start_app():
         # Call display_products initially to show all products
         display_products(get_products(listed_only=True))
 
+    # TODO: Still need to impliment the show product screen to allow a user to view a specific product with more detail.
+    def show_product_page(product_id):
+        """Display the product page for the given product ID."""
+        clear_frame(main_frame)
+
+        styles = get_style_config()['product_page']
+
+        product = get_product_by_id(product_id)
+        if product:
+            tk.Label(main_frame, text=f"Name: {product[1]}", **styles['title']).pack(pady=10)
+            tk.Label(main_frame, text=f"Price: £{product[2]:.2f}", **styles['labels']).pack(pady=5)
+            qr_code_image = tk.PhotoImage(file=product[3])
+            tk.Label(main_frame, image=qr_code_image, **styles['image_frame']).pack(pady=5)
+            main_frame.image = qr_code_image  # Keep a reference to avoid garbage collection
+        else:
+            # Binds the enter key to the login function if either the button or the main_frame is in focus
+            message_label = tk.Label(main_frame, text="", **styles['message'])
+            message_label.pack()
+            display_error(message_label, "Product not found!")# If product cannot be found then it will return an error message. Useful for if a user scans an old qr code if they went into store at a later date past saving it.
+
     # TODO: Add the rest of the functionality required + extras and fill out the "Dashboard" screen itself for commonly used parts of the program to speed up tasks #
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
     def switch_to_admin_panel():
@@ -314,18 +344,20 @@ def start_app():
         window.geometry("1920x1080+0+0") # Default window size for the admin dashboard which should open at the coordinates 0,0 (top left of the screen)
         clear_frame(main_frame)
 
+        styles = get_style_config()['admin_panel']
+
         # Create the top bar
-        top_bar = tk.Frame(main_frame, height=100, bg="#171d22")
+        top_bar = tk.Frame(main_frame, height=100, bg=styles['top_bar']['bg'])
         top_bar.pack(side="top", fill="x")
         top_bar.pack_propagate(False)  # When set to "True" Prevent the frame from shrinking to fit its contents
 
         # Create the left navigation bar
-        left_nav = tk.Frame(main_frame, width=400, bg="#171d22")
+        left_nav = tk.Frame(main_frame, width=400, bg=styles['left_nav']['bg'])
         left_nav.pack(side="left", fill="y")
         left_nav.pack_propagate(False)  # When set to "True" Prevent the frame from shrinking to fit its contents
 
         # Create a frame for the buttons on the right side of the header
-        button_frame = tk.Frame(top_bar, bg="#171d22")
+        button_frame = tk.Frame(top_bar, bg=styles['top_bar']['bg'])
         button_frame.pack(side="right", padx=20, pady=10)
 
         user_info_frame, icon_label, name_label, username_label, dropdown_indicator = create_user_info_display(
@@ -340,11 +372,11 @@ def start_app():
         user_info_frame.pack(side="left", padx=20, pady=10)
 
        # Create a dropdown frame with a more visible style
-        dropdown_frame = tk.Frame(main_frame, bg="#171d22", bd=1, relief="solid", highlightthickness=1, highlightbackground="white")
+        dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
         # Add buttons to the dropdown frame with consistent styling
-        tk.Button(dropdown_frame, text="Logout", command=show_login_screen, bg="#171d22", fg="white", activebackground="#2a2f35", activeforeground="white", width=20).pack(fill="x", padx=10, pady=5)
+        tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
         # Bind events to all relevant widgets
         for widget in user_info_frame.winfo_children():
@@ -364,20 +396,19 @@ def start_app():
 
         # Create the content frame with the black background for future addition of dynamic wigets
         global content_frame
-        content_frame = tk.Frame(main_frame, bg="#000000")
+        content_frame = tk.Frame(main_frame, bg=styles['content']['frame_bg'])
         content_frame.pack(side="right", fill="both", expand=True) # Fills the remaining space of the window with this frame
 
         # Creates an inner content frame for the dynamic widgets to be added to so there is a contrast border between the header, nav bar and the widgets
         global content_inner_frame
-        content_inner_frame = tk.Frame(content_frame, bg="#171d22", padx=50, pady=50)
+        content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=50)
         content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50) # Fills the remaining space of the window with this frame
 
-        # TODO: May need to be changed to a default font for distribution. #
-        # Adds the Dashboard Main title on the header with a custom font. 
-        tk.Label(top_bar, text="Dashboard", font=("Swis721 Blk BT", 40), bg="#171d22", fg="white").pack(side="left", padx=20, pady=30)
-
+        # Adds the Dashboard Main title on the header with a custom font.
+        tk.Label(top_bar, text="Dashboard", **styles['top_bar']['title']).pack(side="left", padx=20, pady=30)
+        
         # Text lable that just announces the below are for the naivgation of the application styled like a webapp site
-        tk.Label(left_nav, text="Navigation", font=("Arial", 16), bg="#171d22", fg="darkgrey").pack(side="top", anchor="nw", padx=10, pady=10)
+        tk.Label(left_nav, text="Navigation", **styles['left_nav']['title']).pack(side="top", anchor="nw", padx=10, pady=10)
 
         # Replace the current button creation code with:
         button_configs = [
@@ -394,27 +425,38 @@ def start_app():
         """Display the add product screen."""
         clear_frame(content_inner_frame)
 
-        tk.Label(content_inner_frame, text="Add Product", font=("Arial", 24, "bold"), bg="#171d22", fg="white").pack(pady=10)
+        styles = get_style_config()['add_product']
 
-        tk.Label(content_inner_frame, text="Name", bg="#171d22", fg="white").pack()
-        name_entry = tk.Entry(content_inner_frame)
+        combo_style = ttk.Style()
+        combo_style.configure('Add.TCombobox',
+            background=styles['combobox']['bg'],
+            fieldbackground=styles['combobox']['fieldbackground'],
+            foreground=styles['combobox']['fg'],
+            selectbackground=styles['combobox']['selectbackground'],
+            selectforeground=styles['combobox']['selectforeground']
+        )
+
+        tk.Label(content_inner_frame, text="Add Product", **styles['title']).pack(pady=10)
+
+        tk.Label(content_inner_frame, text="Name", **styles['labels']).pack()
+        name_entry = tk.Entry(content_inner_frame, **styles['entries'])
         name_entry.pack()
 
-        tk.Label(content_inner_frame, text="Price", bg="#171d22", fg="white").pack()
-        price_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Price", **styles['labels']).pack()
+        price_entry = tk.Entry(content_inner_frame, **styles['entries'])
         price_entry.pack()
 
-        tk.Label(content_inner_frame, text="Description", bg="#171d22", fg="white").pack()
-        description_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Description", **styles['labels']).pack()
+        description_entry = tk.Entry(content_inner_frame, **styles['entries'])
         description_entry.pack()
 
-        tk.Label(content_inner_frame, text="Category", bg="#171d22", fg="white").pack()
-        category_combobox = ttk.Combobox(content_inner_frame, values=get_categories(), width=price_entry.cget("width") - 3)
+        tk.Label(content_inner_frame, text="Category", **styles['labels']).pack()
+        category_combobox = ttk.Combobox(content_inner_frame, values=get_categories(), width=price_entry.cget("width") - 3, style='Add.TCombobox')
         category_combobox.pack()
 
-        tk.Label(content_inner_frame, text="Image", bg="#171d22", fg="white").pack()
+        tk.Label(content_inner_frame, text="Image", **styles['labels']).pack()
         image_path = tk.StringVar()
-        image_entry = tk.Entry(content_inner_frame, textvariable=image_path, state='readonly')
+        image_entry = tk.Entry(content_inner_frame, textvariable=image_path, state='readonly', **styles['entries'])
         image_entry.pack()
 
         def select_image():
@@ -422,19 +464,19 @@ def start_app():
             if file_path:
                 image_path.set(file_path)
         
-        select_image_button = tk.Button(content_inner_frame, text="Select Image", command=select_image)
+        select_image_button = tk.Button(content_inner_frame, text="Select Image", command=select_image, **styles['buttons'])
         select_image_button.pack()
 
-        tk.Label(content_inner_frame, text="Stock", bg="#171d22", fg="white").pack()
-        stock_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Stock", **styles['labels']).pack()
+        stock_entry = tk.Entry(content_inner_frame, **styles['entries'])
         stock_entry.pack()
 
-        tk.Label(content_inner_frame, text="Listed", bg="#171d22", fg="white").pack()
+        tk.Label(content_inner_frame, text="Listed", **styles['labels']).pack()
         listed_var = tk.StringVar(value="No")
-        listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3)
+        listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3, style='Add.TCombobox')
         listed_combobox.pack()
 
-        message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
+        message_label = tk.Label(content_inner_frame, text="", **styles['message'])
         message_label.pack(pady=10)
         
         def handle_add_product():
@@ -461,34 +503,36 @@ def start_app():
             add_product(name, price, None, listed, description, category_id, image, stock)
             display_success(message_label, "Product added successfully!")
         
-        tk.Button(content_inner_frame, text="Add Product", command=handle_add_product).pack(pady=10) # Button that calls this function to add the products to the database
+        tk.Button(content_inner_frame, text="Add Product", command=handle_add_product, **styles['buttons']).pack(pady=10) # Button that calls this function to add the products to the database
 
     # TODO: Make it so that you can change if a product is listed or not from the main manage products screen along with inside the edit product screen for easier ux due to less clicks. #
     def show_manage_products_screen():
         """Display the manage products screen."""
         clear_frame(content_inner_frame)
 
-        title_label = tk.Label(content_inner_frame, text="Manage Products", font=("Arial", 24, "bold"), bg="#171d22", fg="white")
+        styles = get_style_config()['manage_products']
+
+        title_label = tk.Label(content_inner_frame, text="Manage Products", **styles['title'])
         title_label.pack(pady=10)
 
         # Creates an entry box to function as a search box for the products and aligns it so it doesnt overlap the content label
-        search_entry = tk.Frame(content_inner_frame, bg="#171d22")
+        search_entry = tk.Frame(content_inner_frame, bg=styles['frame']['bg'])
         search_entry.pack(fill="x", pady=10)
 
         # Create a search entry box with placeholder text
-        search_entry = tk.Entry(search_entry, width=50, fg="dark gray")
+        search_entry = tk.Entry(search_entry, width=50, fg=styles['search']['entry']['placeholder_fg'])
         search_entry.insert(0, "Search for products")
         search_entry.pack(pady=10)
 
         def on_focus_in(event):
             if search_entry.get() == "Search for products":
                 search_entry.delete(0, tk.END)
-                search_entry.config(fg="black")
+                search_entry.config(fg=styles['search']['entry']['fg'])
 
         def on_focus_out(event):
             if search_entry.get() == "":
                 search_entry.insert(0, "Search for products")
-                search_entry.config(fg="dark gray")
+                search_entry.config(fg=styles['search']['entry']['placeholder_fg'])
 
         search_entry.bind("<FocusIn>", on_focus_in)
         search_entry.bind("<FocusOut>", on_focus_out)
@@ -517,7 +561,7 @@ def start_app():
             clear_frame(scrollable_frame)
 
             if not products:
-                message_label = tk.Label(scrollable_frame, text="", bg="#171d22")
+                message_label = tk.Label(scrollable_frame, text="", **styles['message'])
                 message_label.pack(pady=10)
                 display_error(message_label, "No products available.")
                 return
@@ -532,7 +576,7 @@ def start_app():
 
             for product in products:
                 if col == 0:
-                    row_frame = tk.Frame(scrollable_frame, bg="#171d22")
+                    row_frame = tk.Frame(scrollable_frame, bg=styles['frame']['bg'])
                     row_frame.pack(fill="x", pady=10)
                     row_count += 1
 
@@ -565,36 +609,47 @@ def start_app():
     def show_edit_product_screen(product_id):
         """Display the edit product screen."""
         clear_frame(content_inner_frame)
+
+        styles = get_style_config()['edit_product']
+
+        combo_style = ttk.Style()
+        combo_style.configure('Edit.TCombobox',
+            background=styles['combobox']['bg'],
+            fieldbackground=styles['combobox']['fieldbackground'],
+            foreground=styles['combobox']['fg'],
+            selectbackground=styles['combobox']['selectbackground'],
+            selectforeground=styles['combobox']['selectforeground']
+        )
         
-        tk.Label(content_inner_frame, text="Edit Product", font=("Arial", 18), bg="#171d22", fg="white").pack(pady=10)
+        tk.Label(content_inner_frame, text="Edit Product", **styles['title']).pack(pady=10)
         product = get_product_by_id(product_id)
 
         # Creates the entry boxes for the name and price of the product and sets the default values to the current values of the product from the database
-        tk.Label(content_inner_frame, text="Name", bg="#171d22", fg="white").pack()
-        name_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Name", **styles['labels']).pack()
+        name_entry = tk.Entry(content_inner_frame, **styles['entries'])
         name_entry.insert(0, product[1])
         name_entry.pack()
 
-        tk.Label(content_inner_frame, text="Price", bg="#171d22", fg="white").pack()
-        price_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Price", **styles['labels']).pack()
+        price_entry = tk.Entry(content_inner_frame, **styles['entries'])
         price_entry.insert(0, product[2])
         price_entry.pack()
 
-        tk.Label(content_inner_frame, text="Description", bg="#171d22", fg="white").pack()
-        description_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Description", **styles['labels']).pack()
+        description_entry = tk.Entry(content_inner_frame, **styles['entries'])
         description_entry.insert(0, product[5])
         description_entry.pack()
 
-        tk.Label(content_inner_frame, text="Category", bg="#171d22", fg="white").pack()
-        category_combobox = ttk.Combobox(content_inner_frame, values=get_categories(), width=price_entry.cget("width") - 3)
+        tk.Label(content_inner_frame, text="Category", **styles['labels']).pack()
+        category_combobox = ttk.Combobox(content_inner_frame, values=get_categories(), width=price_entry.cget("width") - 3, style='Edit.TCombobox')
         category_name = get_category_name(product[6])
         if category_name:
             category_combobox.current(get_categories().index(category_name))
         category_combobox.pack()
 
-        tk.Label(content_inner_frame, text="Image", bg="#171d22", fg="white").pack()
+        tk.Label(content_inner_frame, text="Image", **styles['labels']).pack()
         image_path = tk.StringVar(value=product[7])
-        image_entry = tk.Entry(content_inner_frame, textvariable=image_path, state='readonly')
+        image_entry = tk.Entry(content_inner_frame, textvariable=image_path, state='readonly', **styles['entries'])
         image_entry.pack()
 
         def select_image():
@@ -602,20 +657,20 @@ def start_app():
             if file_path:
                 image_path.set(file_path)
         
-        select_image_button = tk.Button(content_inner_frame, text="Select Image", command=select_image)
+        select_image_button = tk.Button(content_inner_frame, text="Select Image", command=select_image, **styles['buttons'])
         select_image_button.pack()
 
-        tk.Label(content_inner_frame, text="Stock", bg="#171d22", fg="white").pack()
-        stock_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Stock", **styles['labels']).pack()
+        stock_entry = tk.Entry(content_inner_frame, **styles['entries'])
         stock_entry.insert(0, product[8])
         stock_entry.pack()
 
-        tk.Label(content_inner_frame, text="Listed", bg="#171d22", fg="white").pack()
+        tk.Label(content_inner_frame, text="Listed", **styles['labels']).pack()
         listed_var = tk.StringVar(value="Yes" if product[4] else "No")
-        listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3)
+        listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3, style='Edit.TCombobox')
         listed_combobox.pack()
 
-        message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
+        message_label = tk.Label(content_inner_frame, text="", **styles['message'])
         message_label.pack(pady=10)
 
         def save_edit_product():
@@ -650,20 +705,22 @@ def start_app():
             clear_frame(content_inner_frame)
             show_manage_products_screen()
 
-        tk.Button(content_inner_frame, text="Save", command=save_edit_product).pack(pady=10)
-        tk.Button(content_inner_frame, text="Cancel", command=cancel_edit_product).pack(pady=10)
+        tk.Button(content_inner_frame, text="Save", command=save_edit_product, **styles['buttons']).pack(pady=10)
+        tk.Button(content_inner_frame, text="Cancel", command=cancel_edit_product, **styles['buttons']).pack(pady=10)
 
     def show_manage_categories_screen():
         """Display the manage categories screen."""
         clear_frame(content_inner_frame)
 
-        tk.Label(content_inner_frame, text="Manage Categories", font=("Arial", 24, "bold"), bg="#171d22", fg="white").pack(pady=10)
+        styles = get_style_config()['manage_categories']
 
-        tk.Label(content_inner_frame, text="Category Name", bg="#171d22", fg="white").pack(pady=5)
-        category_entry = tk.Entry(content_inner_frame)
+        tk.Label(content_inner_frame, text="Manage Categories", **styles['title']).pack(pady=10)
+
+        tk.Label(content_inner_frame, text="Category Name", **styles['labels']).pack(pady=5)
+        category_entry = tk.Entry(content_inner_frame, **styles['entries'])
         category_entry.pack(pady=5)
 
-        message_label = tk.Label(content_inner_frame, text="", bg="#171d22")
+        message_label = tk.Label(content_inner_frame, text="", **styles['message'])
         message_label.pack(pady=10)
 
         def display_categories():
@@ -671,15 +728,15 @@ def start_app():
 
             categories = get_categories()
             for category in categories:
-                category_frame = tk.Frame(category_list_frame, bg="#171d22")
+                category_frame = tk.Frame(category_list_frame, **styles['category_frame'])
                 category_frame.pack(fill="x", pady=5)
 
-                tk.Label(category_frame, text=category, bg="#171d22", fg="white").pack(side="left", padx=10)
+                tk.Label(category_frame, text=category, **styles['labels']).pack(side="left", padx=10)
 
-                edit_button = tk.Button(category_frame, text="Edit", command=lambda c=category: handle_edit_category(get_category_id(c), c))
+                edit_button = tk.Button(category_frame, text="Edit", command=lambda c=category: handle_edit_category(get_category_id(c), c), **styles['buttons'])
                 edit_button.pack(side="right", padx=5)
 
-                delete_button = tk.Button(category_frame, text="Delete", command=lambda c=category: handle_delete_category(get_category_id(c)))
+                delete_button = tk.Button(category_frame, text="Delete", command=lambda c=category: handle_delete_category(get_category_id(c)), **styles['buttons'])
                 delete_button.pack(side="right", padx=5)
 
         def handle_add_category():
@@ -701,10 +758,10 @@ def start_app():
             else:
                 display_error(message_label, message)
 
-        add_button = tk.Button(content_inner_frame, text="Add Category", command=handle_add_category)
+        add_button = tk.Button(content_inner_frame, text="Add Category", command=handle_add_category, **styles['buttons'])
         add_button.pack(pady=5)
 
-        category_list_frame = tk.Frame(content_inner_frame, bg="#171d22")
+        category_list_frame = tk.Frame(content_inner_frame, **styles['frame'])
         category_list_frame.pack(fill="both", expand=True,)
 
         def handle_edit_category(category_id, old_name):
@@ -736,15 +793,15 @@ def start_app():
         # Call display_categories to show the categories initially
         display_categories()
 
-    # TODO: Have the Manage Users screen use the same change password option for other user management OR allow users to perform this action themselves. (unsure how to implement since we are not gathering contact information for the users in the prototype) #
-    # TODO: Make it so that the password is subject to the same requirements as the register screen has #
     # Change password screen that is called for when an admin account is logged into for the first time. 
     def switch_to_change_password(username):
         """Prompt admin to change their password."""
         window.geometry("400x300")
         clear_frame(main_frame)
 
-        tk.Label(main_frame, text="Change Password", font=("Arial", 18)).pack(pady=10)
+        styles = get_style_config()['change_password']
+
+        tk.Label(main_frame, text="Change Password", **styles['title']).pack(pady=10)
 
         new_password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="dark")
 
@@ -771,28 +828,12 @@ def start_app():
             else:
                 display_error(message_label, message)
 
-        tk.Button(main_frame, text="Change Password", command=change_password).pack(pady=10)
+        tk.Button(main_frame, text="Change Password", command=change_password, **styles['buttons']).pack(pady=10)
 
         # Binds the enter key to the login function if either the button or the main_frame is in focus
-        message_label = tk.Label(main_frame, text="", bg="#171d22")
+        message_label = tk.Label(main_frame, text="", **styles['message'])
         message_label.pack()
     
-    def show_product_page(product_id):
-        """Display the product page for the given product ID."""
-        clear_frame(main_frame)
-        product = get_product_by_id(product_id)
-        if product:
-            tk.Label(main_frame, text=f"Name: {product[1]}", font=("Arial", 18)).pack(pady=10)
-            tk.Label(main_frame, text=f"Price: £{product[2]:.2f}").pack(pady=5)
-            qr_code_image = tk.PhotoImage(file=product[3])
-            tk.Label(main_frame, image=qr_code_image).pack(pady=5)
-            main_frame.image = qr_code_image  # Keep a reference to avoid garbage collection
-        else:
-            # Binds the enter key to the login function if either the button or the main_frame is in focus
-            message_label = tk.Label(main_frame, text="", bg="#171d22")
-            message_label.pack()
-            display_error(message_label, "Product not found!")# If product cannot be found then it will return an error message. Useful for if a user scans an old qr code if they went into store at a later date past saving it.
-
     window.mainloop() # Actually starts the application and allows the user to interact with the GUI
 
 # TODO: Explain functionality reason behind this on ONE of the files (pref main.py) #

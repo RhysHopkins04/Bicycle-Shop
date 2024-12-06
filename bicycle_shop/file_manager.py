@@ -104,14 +104,14 @@ def get_application_settings():
 def get_theme():
     """Get theme color settings."""
     return {
-        'bg_primary': config['Theme']['color_primary'],                 # #171d22 - Main dark color for nav/headers
-        'bg_secondary': config['Theme']['color_secondary'],             # #2a2f35 - Secondary dark color for content
-        'bg_surface': config['Theme']['color_background'],              # black - Main background color
-        'text_primary': config['Theme']['color_text'],                  # white - Main text color
-        'text_secondary': config['Theme']['color_text_secondary'],      # darkgrey - Secondary text color
-        'input_container': config['Theme']['color_login_register'],     # SystemButtonFace - Input container color
-        'input_bg': config['Theme']['color_login_register_secondary'],  # white - Input background color
-        'input_text': config['Theme']['color_text_login_register']      # SystemButtonText - Input text color
+        'dark_primary': config['Theme']['color_primary'],         # #171d22 - Main dark color for nav/headers
+        'dark_secondary': config['Theme']['color_secondary'],     # #2a2f35 - Secondary dark color for content
+        'dark_surface': config['Theme']['color_background'],      # black - Main background color
+        'light_text': config['Theme']['color_text'],              # white - Main text color
+        'med_text': config['Theme']['color_text_secondary'],      # darkgrey - Secondary text color
+        'med_primary': config['Theme']['color_login_register'],   # SystemButtonFace - Input container color
+        'light_primary': config['Theme']['color_login_register_secondary'], # white - Input background color
+        'dark_text': config['Theme']['color_text_login_register'] # SystemButtonText - Input text color
     }
 
 def get_default_admin():

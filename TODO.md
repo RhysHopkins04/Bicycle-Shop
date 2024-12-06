@@ -1,6 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
-- Implimented the ability to adjsut values based on the config.ini
+- Implimented the ability for config.ini in the admin first setup etc.
 - Create a two step initialization setup to allow a user to edit the config.ini after it has been generated.
 
 - Make login screen locate itself at the center of the activated screen.
@@ -54,6 +54,7 @@
 
 ## **Done:**
 
+- Implimented the ability to adjust the colors dynamically across the entire gui though config.ini
 - Refactor the code locations for a few functions/modules
 - Resolve all issues with Contradictions in my code locations
 - All current fixable DRY Violations have been resolved at this point.
