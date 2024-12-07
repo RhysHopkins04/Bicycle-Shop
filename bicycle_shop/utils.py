@@ -197,6 +197,10 @@ def get_style_config():
                     'bg': theme['dark_primary'],
                 }
             },
+            'category_labels': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
             'message': {
                 'bg': theme['dark_primary'],
             },
@@ -313,6 +317,10 @@ def get_style_config():
                 'fg': theme['dark_text'],
                 'activebackground': theme['med_primary'],
                 'activeforeground': theme['dark_text']
+            },
+            'category_labels': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
             },
             'message': {
                 'bg': theme['dark_primary']
@@ -600,17 +608,46 @@ def setup_search_widget(parent, placeholder="Search for products", font_size=20)
 def create_scrollable_frame(parent):
     """Create scrollable frame with canvas"""
     theme = get_theme()
-    bg_color=theme['dark_primary']
-    # Create a wrapper frame to hold both canvas and scrollbar
-    wrapper = tk.Frame(parent, bg=bg_color)
+    bg_color = theme['dark_primary']
     
-    canvas = tk.Canvas(wrapper, bg=bg_color)
-    scrollbar = tk.Scrollbar(wrapper, orient="vertical", command=canvas.yview)
+    # Create a wrapper frame with padding to preserve borders
+    wrapper = tk.Frame(parent, bg=bg_color, padx=2, pady=2)
+    
+    # Add a border frame to contain canvas and scrollbar
+    border_frame = tk.Frame(
+        wrapper, 
+        bg=bg_color, 
+        bd=1, 
+        relief="solid", 
+        highlightthickness=1, 
+        highlightbackground=theme['light_text']
+    )
+    border_frame.pack(fill="both", expand=True)
+    
+    # Create canvas with adjusted padding
+    canvas = tk.Canvas(
+        border_frame, 
+        bg=bg_color,
+        highlightthickness=0
+    )
+    
+    # Configure scrollbar
+    scrollbar = tk.Scrollbar(border_frame, orient="vertical", command=canvas.yview)
+    
+    # Create the scrollable frame with padding
     scrollable_frame = tk.Frame(canvas, bg=bg_color)
     
     def on_mouse_wheel(event):
         if canvas.winfo_exists():
-            canvas.yview_scroll(-1 * (event.delta // 120), "units")
+            # Get the scrollable region height and canvas height
+            bbox = canvas.bbox("all")
+            if bbox:
+                scroll_height = bbox[3] - bbox[1]
+                visible_height = canvas.winfo_height()
+                
+                # Only allow scrolling if content is taller than visible area
+                if scroll_height > visible_height:
+                    canvas.yview_scroll(-1 * (event.delta // 120), "units")
     
     def bind_mouse_wheel():
         canvas.bind_all("<MouseWheel>", on_mouse_wheel)
@@ -618,13 +655,37 @@ def create_scrollable_frame(parent):
     def unbind_mouse_wheel():
         canvas.unbind_all("<MouseWheel>")
     
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    # Configure canvas scrolling
+    def on_frame_configure(event):
+        bbox = canvas.bbox("all")
+        if bbox:
+            scroll_height = bbox[3] - bbox[1]
+            visible_height = canvas.winfo_height()
+            
+            # Update scroll region
+            canvas.configure(scrollregion=bbox)
+            
+            # Show/hide scrollbar based on content height
+            if scroll_height > visible_height:
+                scrollbar.pack(side="right", fill="y", pady=2)
+            else:
+                scrollbar.pack_forget()
+    
+    scrollable_frame.bind("<Configure>", on_frame_configure)
+    
+    # Create window for scrollable frame
+    canvas.create_window(
+        (0, 0),
+        window=scrollable_frame,
+        anchor="nw",
+        tags="frame"
     )
     
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    # Configure canvas to work with scrollbar
     canvas.configure(yscrollcommand=scrollbar.set)
+    
+    # Pack canvas with padding
+    canvas.pack(side="left", fill="both", expand=True, padx=2, pady=2)
     
     return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel
 
@@ -650,8 +711,8 @@ def create_basic_product_frame(row_frame, product, product_width):
     bg_color=theme['dark_primary']
     fg_color=theme['light_primary']
 
-    product_frame = tk.Frame(row_frame, width=product_width, padx=5, pady=5, bg=bg_color)
-    product_frame.pack(side="left", padx=5, pady=5)
+    product_frame = tk.Frame(row_frame, width=product_width, padx=1, pady=1, bg=bg_color)
+    product_frame.pack(side="left", padx=1, pady=1)
 
     tk.Label(product_frame, text=f"Name: {product[1]}", bg=bg_color, fg=fg_color).pack()
     tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", bg=bg_color, fg=fg_color).pack()

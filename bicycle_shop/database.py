@@ -245,13 +245,21 @@ def update_category(category_id, new_name):
         conn.close()
 
 def delete_category(category_id):
-    """Delete category from database"""
+    """Delete category from database and unlist associated products."""
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # First update all products in this category
+        cursor.execute("""
+            UPDATE Products 
+            SET listed = 0, category_id = NULL 
+            WHERE category_id = ?
+        """, (category_id,))
+        
+        # Then delete the category
         cursor.execute("DELETE FROM Categories WHERE id = ?", (category_id,))
         conn.commit()
-        return True, "Category deleted successfully!"
+        return True, "Category deleted successfully and associated products unlisted!"
     except sqlite3.Error as e:
         return False, f"Failed to delete category: {str(e)}"
     finally:

@@ -1,7 +1,7 @@
 # **TODO:**
 ## **Incomplete:**
 
-- Add the products to be sorted based on category
+
 - Create Pictures for products and a separate product page per one when clicked
 
 - Make change of listed/not listed available on main manage products screen
@@ -49,6 +49,11 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Added feature where if the category is deleted, then it will remove the products that were in it from that category and unlist them to avoid issues.
+- Resolved issue where you could scroll even when the products fit in the canvas.
+- Resolved issue where the border of the canvas was getting overriden when scrolling in it.
+- Added the products sorting under categories in the manage producs listing, along with an unlisted category that will hold all that are not listed.
+- Added the products to be sorted based on category on the store listing, by adding a category separator and only displaying products under that category under it.
 - Potential random error with the dropdown to do with "winfo_rootx" Was resolved back when i fixed the error with unbinding the dropdown updates.
 - Updated the manage products to also use the updated search bar.
 - Updated the admin dashboard so it also uses the updated user display.

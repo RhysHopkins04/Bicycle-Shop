@@ -366,41 +366,68 @@ def start_app():
             display_products(filtered_products)  # Adjusts the display_products function to display only the filtered products vs the standard "products" which is all products
 
         def display_products(products):
+            """Display products grouped by category in store listing."""
             unbind_wheel()
             clear_frame(scrollable_frame)
 
-            # If there are no products available it will display a message saying so in red text otherwise display the products in a grid format
             if not products:
-                message_label = tk.Label(scrollable_frame, text="", bg=styles['message']['bg'])
+                message_label = tk.Label(scrollable_frame, text="", **styles['message'])
                 message_label.pack(pady=10)
                 display_error(message_label, "No products available.")
                 return
 
-            # Use utility function to setup grid
+            # Get number of columns for grid layout
             num_columns = setup_product_grid(scrollable_frame, canvas, products)
             if not num_columns:
                 return
 
-            # Initializes the variables
-            row_frame = None
-            col = 0
+            # Group products by category
+            categorized_products = {}
+            
+            for product in products:
+                category_name = get_category_name(product[6])
+                if category_name not in categorized_products:
+                    categorized_products[category_name] = []
+                categorized_products[category_name].append(product)
+
             row_count = 0
 
-            for product in products:
-                # If the column is 0 it will create a new row frame to stack the products in a grid format
-                if col == 0:
-                    row_frame = tk.Frame(scrollable_frame, bg=styles['frame']['bg'])
-                    row_frame.pack(fill="x", pady=10)
-                    row_count += 1
+            # Display categorized products
+            for category_name, category_products in categorized_products.items():
+                # Create category header
+                category_frame = tk.Frame(scrollable_frame, **styles['frame'])
+                category_frame.pack(fill="x", pady=(20, 10))
+                
+                category_label = tk.Label(
+                    category_frame, 
+                    text=category_name,
+                    font=("Arial", 14, "bold"),
+                    bg=styles['frame']['bg'],
+                    fg=styles['category_labels']['fg']
+                )
+                category_label.pack(side="left", padx=10)
+                
+                # Add separator line
+                separator = ttk.Separator(category_frame, orient="horizontal")
+                separator.pack(side="left", fill="x", expand=True, padx=10)
 
-                # Creates a frame for the product to be displayed in + creates the labels and content to fill out the product with information from the product tuple
-                product_frame = create_basic_product_frame(row_frame, product, 290)
-            
-                col += 1
-                if col >= num_columns:
-                    col = 0
-            
-            # Enable or disable scrolling based on the number of rows
+                # Display products in this category
+                col = 0
+                row_frame = None
+                
+                for product in category_products:
+                    if col == 0:
+                        row_frame = tk.Frame(scrollable_frame, **styles['frame'])
+                        row_frame.pack(fill="x", pady=10)
+                        row_count += 1
+
+                    product_frame = create_basic_product_frame(row_frame, product, 290)
+
+                    col += 1
+                    if col >= num_columns:
+                        col = 0
+
+            # Enable scrolling if needed
             if row_count > 1:
                 bind_wheel()
                 scrollbar.pack(side="right", fill="y")
@@ -684,8 +711,13 @@ def start_app():
         canvas.bind('<Button-1>', remove_focus)   # Add canvas binding
         scrollable_frame.bind('<Button-1>', remove_focus)  # Add scrollable frame binding
 
+        def handle_delete_product(product_id):
+            """Handle product deletion and refresh display."""
+            db_delete_product(product_id)
+            display_products(get_products(listed_only=False))
+
         def display_products(products):
-            """Display products in the store listing."""
+            """Display products grouped by category in manage products view."""
             unbind_wheel()
             clear_frame(scrollable_frame)
 
@@ -695,31 +727,109 @@ def start_app():
                 display_error(message_label, "No products available.")
                 return
 
+            # Get number of columns for grid layout
             num_columns = setup_product_grid(scrollable_frame, canvas, products)
             if not num_columns:
                 return
 
-            row_frame = None
-            col = 0
+            # Group products by category
+            categorized_products = {}
+            uncategorized_products = []
+            
+            for product in products:
+                if product[6]:  # If product has a category_id
+                    category_name = get_category_name(product[6])
+                    if category_name not in categorized_products:
+                        categorized_products[category_name] = []
+                    categorized_products[category_name].append(product)
+                else:
+                    uncategorized_products.append(product)
+
             row_count = 0
 
-            for product in products:
-                if col == 0:
-                    row_frame = tk.Frame(scrollable_frame, bg=styles['frame']['bg'])
-                    row_frame.pack(fill="x", pady=10)
-                    row_count += 1
+            # First display uncategorized products under "Unlisted" section
+            if uncategorized_products:
+                # Create unlisted category header
+                category_frame = tk.Frame(scrollable_frame, **styles['frame'])
+                category_frame.pack(fill="x", pady=(20, 10))
+                
+                category_label = tk.Label(
+                    category_frame, 
+                    text="Unlisted",
+                    font=("Arial", 14, "bold"),
+                    bg=styles['frame']['bg'],
+                    fg=styles['category_labels']['fg']
+                )
+                category_label.pack(side="left", padx=10)
+                
+                # Add separator line
+                separator = ttk.Separator(category_frame, orient="horizontal")
+                separator.pack(side="left", fill="x", expand=True, padx=10)
 
-                def handle_delete_product(product_id):
-                    """Handle product deletion and refresh display."""
-                    db_delete_product(product_id)
-                    display_products(get_products(listed_only=False))
+                # Display uncategorized products
+                col = 0
+                row_frame = None
+                
+                for product in uncategorized_products:
+                    if col == 0:
+                        row_frame = tk.Frame(scrollable_frame, **styles['frame'])
+                        row_frame.pack(fill="x", pady=10)
+                        row_count += 1
 
-                product_frame = create_product_management_frame(row_frame, product, 290, lambda p=product[0]: show_edit_product_screen(p), lambda p=product[0]: handle_delete_product(p))
+                    product_frame = create_product_management_frame(
+                        row_frame, 
+                        product, 
+                        290,
+                        lambda p=product[0]: show_edit_product_screen(p),
+                        lambda p=product[0]: handle_delete_product(p)
+                    )
 
-                col += 1
-                if col >= num_columns:
-                    col = 0
+                    col += 1
+                    if col >= num_columns:
+                        col = 0
 
+            # Then display categorized products
+            for category_name, category_products in categorized_products.items():
+                # Create category header
+                category_frame = tk.Frame(scrollable_frame, **styles['frame'])
+                category_frame.pack(fill="x", pady=(20, 10))
+                
+                category_label = tk.Label(
+                    category_frame, 
+                    text=category_name,
+                    font=("Arial", 14, "bold"),
+                    bg=styles['frame']['bg'],
+                    fg=styles['category_labels']['fg']
+                )
+                category_label.pack(side="left", padx=10)
+                
+                # Add separator line
+                separator = ttk.Separator(category_frame, orient="horizontal")
+                separator.pack(side="left", fill="x", expand=True, padx=10)
+
+                # Display products in this category
+                col = 0
+                row_frame = None
+                
+                for product in category_products:
+                    if col == 0:
+                        row_frame = tk.Frame(scrollable_frame, **styles['frame'])
+                        row_frame.pack(fill="x", pady=10)
+                        row_count += 1
+
+                    product_frame = create_product_management_frame(
+                        row_frame, 
+                        product, 
+                        290,
+                        lambda p=product[0]: show_edit_product_screen(p),
+                        lambda p=product[0]: handle_delete_product(p)
+                    )
+
+                    col += 1
+                    if col >= num_columns:
+                        col = 0
+
+            # Enable scrolling if needed
             if row_count > 1:
                 bind_wheel()
                 scrollbar.pack(side="right", fill="y")
