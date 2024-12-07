@@ -2,32 +2,51 @@ import tkinter as tk
 from tkinter import ttk, filedialog as filedialog, PhotoImage
 
 # Functions from other locations in the program: auth, database, qr_code_util
-from auth import register_user, authenticate_user, update_user_password, promote_user_to_admin, demote_user_from_admin
-from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
-from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields, validate_category_name
-from utils import display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame, get_style_config
-from file_manager import get_application_settings, get_icon_paths
+from auth import (register_user, authenticate_user, update_user_password, promote_user_to_admin, 
+                  demote_user_from_admin
+                  )
+from database import (create_tables, initialize_admin, get_products, get_product_by_id, get_connection, 
+                      list_product, add_product, update_product, delete_product as db_delete_product, 
+                      add_category, get_categories, get_category_id, get_category_name, delete_category, 
+                      update_category
+                      )
+from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
+                        validate_registration_fields, validate_username_uniqueness, validate_product_fields, 
+                        validate_category_name
+                        )
+from utils import (display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, 
+                   create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, 
+                   create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame, 
+                   get_style_config, center_window, create_fullscreen_handler
+                   )
+from file_manager import (get_application_settings, get_icon_paths)
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
     """Start the Tkinter GUI application.""" #Docstring's which i will use to help with future code documentation along with the comments.
     
+    # Get configuration settings
+    app_settings = get_application_settings()
+    icon_paths = get_icon_paths()
+
     # Global Variables other than the main_frame 
-    global main_frame, logout_button, window, is_fullscreen, current_username, current_first_name, current_last_name, current_admin_id
+    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id
     logout_button = None
-    is_fullscreen = False
     current_admin_id = None
     current_username = None
     current_first_name = None
     current_last_name = None
 
+    # Add window state tracking
+    global window_state
+    window_state = {
+        'is_fullscreen': False,
+        'is_maximized': app_settings['use_maximized']
+    }
+
     # Redundant but a good check to ensure that the tables and an admin user are created on startup encase they do not exist.
     create_tables()
     initialize_admin()
-
-    # Get configuration settings
-    app_settings = get_application_settings()
-    icon_paths = get_icon_paths()
 
     # Initializes the window and sets it so its title shows as "Bicycle Shop Management"
     window = tk.Tk()
@@ -43,19 +62,22 @@ def start_app():
     user_icn = PhotoImage(file=icon_paths['user_icon'])
     admin_icn = PhotoImage(file=icon_paths['admin_icon'])
 
-    # Checks if  the screen is in fullscreen mode using an event handler shown below
-    def toggle_fullscreen(event=None):
-        """Toggle fullscreen mode."""
-        global is_fullscreen
-        is_fullscreen = not is_fullscreen
-        window.attributes("-fullscreen", is_fullscreen)
-
-    window.bind("<F11>", toggle_fullscreen) # Bind the F11 key to toggle fullscreen
+    # Checks if the screen is in fullscreen mode using an event handler shown below anmd handle the state change
+    create_fullscreen_handler(window, window_state)
 
     # Creates the Login screen for the application
     def show_login_screen():
         """Display the login screen."""
-        window.geometry("400x300") # Login screen by standard size
+        window.minsize(400, 300)  # Set minimum size, dont set the max size to the same as min since it causes errors.
+
+        window.attributes("-fullscreen", False)
+        window.state('normal')
+        window.geometry("400x300") # Login screen size setting
+        center_window(window, 400, 300) # Centers the center of the show_login_screen at the center of the screen
+
+        # Unbind existing events from the dropdown frame to avoid trying to configure a non existent frame
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         styles = get_style_config()['login_register_screen']
 
@@ -110,7 +132,16 @@ def start_app():
     # Shows the register screen for if you need to create a new users on the start of the application
     def show_register_screen():
         """Display the register screen."""
-        window.geometry("400x450") # Register screen by standard size
+        window.minsize(400, 450)  # Set minimum size, dont set the max size to the same as min since it causes errors.
+
+        window.attributes("-fullscreen", False)
+        window.state('normal')
+        window.geometry("400x450")
+        center_window(window, 400, 450) # Register screen by standard size
+
+        # Unbind existing events from the dropdown frame to avoid trying to configure a non existent frame
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         styles = get_style_config()['login_register_screen']
 
@@ -187,9 +218,22 @@ def start_app():
     # If the user account is a non admin (standard account) brings to this page
     def switch_to_store_listing(is_admin=False):
         """Navigate to the store listing."""
-        window.attributes("-fullscreen", False) # When "True" means post login page the application will automatically fullscreen.
-        window.geometry("1920x1080+0+0") # Default window size for the admin dashboard which should open at the coordinates 0,0 (top left of the screen)
+        window.minsize(1280, 720)  # Minimum size for store listing
+        
+        # Handle maximized state if not fullscreen, ensures that it wont bring you out of fullscreen if you pressed it again.
+        if not window_state['is_fullscreen']:
+            if window_state['is_maximized']:
+                window.state('zoomed')
+            else:
+                window.state('normal')
+                window.geometry("1920x1080")
+                center_window(window, 1920, 1080)
+        
         clear_frame(main_frame)
+
+        # Unbind existing events from the dropdown frame to avoid trying to configure a non existent frame
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         styles = get_style_config()['store_listing']
 
@@ -198,9 +242,10 @@ def start_app():
         top_bar.pack(side="top", fill="x")
         top_bar.pack_propagate(False)  # When set to "True" Prevent the frame from shrinking to fit its contents
 
+        # After creating the top bar elements
         tk.Label(top_bar, text="Store Listing", **styles['top_bar']['title']).pack(side="left", padx=20, pady=10)
 
-        # Create a frame for the buttons on the right side of the header
+        # Create a frame for the buttons on the right side of the header first
         button_frame = tk.Frame(top_bar, bg=styles['top_bar']['bg'])
         button_frame.pack(side="right", padx=20, pady=10)
 
@@ -215,7 +260,27 @@ def start_app():
         )
         user_info_frame.pack(side="left", padx=20, pady=10)
 
-       # Create a dropdown frame with a more visible style
+        # Create container frame for search that will properly expand/contract
+        search_container = tk.Frame(top_bar, bg=styles['top_bar']['bg'])
+        search_container.pack(side="left", fill="x", expand=True, padx=(20, 0))  # Add left padding
+
+        # Create search widget with dynamic width
+        search_frame, search_entry = setup_search_widget(search_container)
+        search_frame.pack(expand=True)  # Allow frame to expand
+
+        # Configure search entry to expand within its frame
+        search_entry.pack(fill="x", expand=True, padx=100)  # Add padding to entry itself
+
+        def remove_focus(event):
+            """Remove focus from search entry when clicking anywhere else"""
+            # Check if click was not on search entry and not on dropdown
+            if (event.widget != search_entry and 
+                event.widget not in dropdown_frame.winfo_children() and
+                event.widget != dropdown_frame):
+                window.focus_set()
+                return "break"  # Prevent event from propagating
+
+        # Create a dropdown frame with a more visible style
         dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
@@ -224,20 +289,43 @@ def start_app():
             tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
-        # Bind events to all relevant widgets
+        # Add update dropdown position handler
+        def update_dropdown_position(event=None):
+            """Update dropdown position relative to user info frame"""
+            if dropdown_frame.winfo_ismapped():
+                # Get window-relative coordinates for proper positioning
+                x = user_info_frame.winfo_rootx() - window.winfo_rootx()
+                y = (user_info_frame.winfo_rooty() + user_info_frame.winfo_height() + 20) - window.winfo_rooty()
+                
+                # Update position relative to main window
+                dropdown_frame.place(
+                    x=x,
+                    y=y,
+                    width=user_info_frame.winfo_width()
+                )
+                # Ensure dropdown stays on top
+                dropdown_frame.lift()
+
+        def show_dropdown_handler(event):
+            """Show dropdown and update its position"""
+            show_dropdown(event, user_info_frame, dropdown_frame)
+            window.after(1, update_dropdown_position)
+
+        # Bind events for dropdown behavior
+        window.bind("<Configure>", update_dropdown_position)  # Update position on window changes
         for widget in user_info_frame.winfo_children():
-            widget.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        user_info_frame.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        icon_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        name_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        username_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        dropdown_indicator.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        
-        # Remove the main_frame.bind("<Leave>", hide_dropdown) as it might be causing issues
-        # Instead, bind to specific areas
+            widget.bind("<Enter>", show_dropdown_handler)
+        user_info_frame.bind("<Enter>", show_dropdown_handler)
+        icon_label.bind("<Enter>", show_dropdown_handler)
+        name_label.bind("<Enter>", show_dropdown_handler)
+        username_label.bind("<Enter>", show_dropdown_handler)
+        dropdown_indicator.bind("<Enter>", show_dropdown_handler)
+
+        # Bind hide events to specific areas
         user_info_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
         dropdown_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
 
+        # Hide dropdown when clicking outside
         window.bind("<Button-1>", lambda event: hide_dropdown_on_click(event, user_info_frame, dropdown_frame))
 
         # Create the content frame with the dark background for future addition of dynamic product listings
@@ -250,9 +338,6 @@ def start_app():
         content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=50)
         content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50)  # Fills the remaining space of the window with this frame
 
-        search_frame, search_entry = setup_search_widget(top_bar)
-        search_frame.place(relx=0.5, rely=0.5, anchor="center")
-
         # Bind the search entry to the filter function
         search_entry.bind("<KeyRelease>", lambda event: filter_products())
 
@@ -260,6 +345,15 @@ def start_app():
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
         wrapper.pack(fill="both", expand=True)
         canvas.pack(side="left", fill="both", expand=True)
+
+        # Bind to all frames to catch clicks
+        main_frame.bind('<Button-1>', remove_focus)
+        top_bar.bind('<Button-1>', remove_focus)
+        content_frame.bind('<Button-1>', remove_focus)
+        content_inner_frame.bind('<Button-1>', remove_focus)
+        wrapper.bind('<Button-1>', remove_focus)  # Add wrapper binding
+        canvas.bind('<Button-1>', remove_focus)   # Add canvas binding
+        scrollable_frame.bind('<Button-1>', remove_focus)  # Add scrollable frame binding
 
         def filter_products():
             search_query = search_entry.get().lower()  # Sets the search query to the text from the search box but in full lowercase to avoid case sensitivity
@@ -340,7 +434,17 @@ def start_app():
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
     def switch_to_admin_panel():
         """Navigate to the admin panel."""
-        window.geometry("1920x1080+0+0") # Default window size for the admin dashboard which should open at the coordinates 0,0 (top left of the screen)
+        window.minsize(1280, 720)  # Minimum size for store listing
+        
+        # Handle maximized state if not fullscreen, ensures that it wont bring you out of fullscreen if you pressed it again.
+        if not window_state['is_fullscreen']:
+            if window_state['is_maximized']:
+                window.state('zoomed')
+            else:
+                window.state('normal')
+                window.geometry("1920x1080")
+                center_window(window, 1920, 1080)
+                
         clear_frame(main_frame)
 
         styles = get_style_config()['admin_panel']
@@ -349,6 +453,9 @@ def start_app():
         top_bar = tk.Frame(main_frame, height=100, bg=styles['top_bar']['bg'])
         top_bar.pack(side="top", fill="x")
         top_bar.pack_propagate(False)  # When set to "True" Prevent the frame from shrinking to fit its contents
+
+        # Adds the Dashboard Main title on the header with a custom font.
+        tk.Label(top_bar, text="Dashboard", **styles['top_bar']['title']).pack(side="left", padx=20, pady=30)
 
         # Create the left navigation bar
         left_nav = tk.Frame(main_frame, width=400, bg=styles['left_nav']['bg'])
@@ -370,27 +477,50 @@ def start_app():
         )
         user_info_frame.pack(side="left", padx=20, pady=10)
 
-       # Create a dropdown frame with a more visible style
+        # Create a dropdown frame with a more visible style
         dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
         # Add buttons to the dropdown frame with consistent styling
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
-        # Bind events to all relevant widgets
+                # Add update dropdown position handler
+        def update_dropdown_position(event=None):
+            """Update dropdown position relative to user info frame"""
+            if dropdown_frame.winfo_ismapped():
+                # Get window-relative coordinates for proper positioning
+                x = user_info_frame.winfo_rootx() - window.winfo_rootx()
+                y = (user_info_frame.winfo_rooty() + user_info_frame.winfo_height() + 20) - window.winfo_rooty()
+                
+                # Update position relative to main window
+                dropdown_frame.place(
+                    x=x,
+                    y=y,
+                    width=user_info_frame.winfo_width()
+                )
+                # Ensure dropdown stays on top
+                dropdown_frame.lift()
+
+        def show_dropdown_handler(event):
+            """Show dropdown and update its position"""
+            show_dropdown(event, user_info_frame, dropdown_frame)
+            window.after(1, update_dropdown_position)
+
+        # Bind events for dropdown behavior
+        window.bind("<Configure>", update_dropdown_position)  # Update position on window changes
         for widget in user_info_frame.winfo_children():
-            widget.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        user_info_frame.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        icon_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        name_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        username_label.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        dropdown_indicator.bind("<Enter>", lambda event: show_dropdown(event, user_info_frame, dropdown_frame))
-        
-        # Bind leave events
+            widget.bind("<Enter>", show_dropdown_handler)
+        user_info_frame.bind("<Enter>", show_dropdown_handler)
+        icon_label.bind("<Enter>", show_dropdown_handler)
+        name_label.bind("<Enter>", show_dropdown_handler)
+        username_label.bind("<Enter>", show_dropdown_handler)
+        dropdown_indicator.bind("<Enter>", show_dropdown_handler)
+
+        # Bind hide events to specific areas
         user_info_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
         dropdown_frame.bind("<Leave>", lambda event: hide_dropdown(event, user_info_frame, dropdown_frame))
 
-        # Bind click event
+        # Hide dropdown when clicking outside
         window.bind("<Button-1>", lambda event: hide_dropdown_on_click(event, user_info_frame, dropdown_frame))
 
         # Create the content frame with the black background for future addition of dynamic wigets
@@ -402,9 +532,6 @@ def start_app():
         global content_inner_frame
         content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=50)
         content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50) # Fills the remaining space of the window with this frame
-
-        # Adds the Dashboard Main title on the header with a custom font.
-        tk.Label(top_bar, text="Dashboard", **styles['top_bar']['title']).pack(side="left", padx=20, pady=30)
         
         # Text lable that just announces the below are for the naivgation of the application styled like a webapp site
         tk.Label(left_nav, text="Navigation", **styles['left_nav']['title']).pack(side="top", anchor="nw", padx=10, pady=10)
@@ -415,8 +542,7 @@ def start_app():
             ("Add Product", show_add_product_screen),
             ("Manage Products", show_manage_products_screen),
             ("Manage Categories", show_manage_categories_screen),
-            ("View Store as User", lambda: switch_to_store_listing(is_admin=True)),
-            ("Logout", show_login_screen)
+            ("View Store as User", lambda: switch_to_store_listing(is_admin=True))
         ]
         create_nav_buttons(left_nav, button_configs)
 
@@ -514,30 +640,26 @@ def start_app():
         title_label = tk.Label(content_inner_frame, text="Manage Products", **styles['title'])
         title_label.pack(pady=10)
 
-        # Creates an entry box to function as a search box for the products and aligns it so it doesnt overlap the content label
-        search_entry = tk.Frame(content_inner_frame, bg=styles['frame']['bg'])
-        search_entry.pack(fill="x", pady=10)
+        # Create container frame for search that will properly expand/contract
+        search_container = tk.Frame(content_inner_frame, bg=styles['frame']['bg'])
+        search_container.pack(fill="x", pady=10)
 
-        # Create a search entry box with placeholder text
-        search_entry = tk.Entry(search_entry, width=50, fg=styles['search']['entry']['placeholder_fg'])
-        search_entry.insert(0, "Search for products")
-        search_entry.pack(pady=10)
+        # Create search widget with dynamic width
+        search_frame, search_entry = setup_search_widget(search_container)
+        search_frame.pack(expand=True)  # Allow frame to expand
 
-        def on_focus_in(event):
-            if search_entry.get() == "Search for products":
-                search_entry.delete(0, tk.END)
-                search_entry.config(fg=styles['search']['entry']['fg'])
+        # Configure search entry to expand within its frame
+        search_entry.pack(fill="x", expand=True, padx=100)  # Add padding to entry itself
 
-        def on_focus_out(event):
-            if search_entry.get() == "":
-                search_entry.insert(0, "Search for products")
-                search_entry.config(fg=styles['search']['entry']['placeholder_fg'])
-
-        search_entry.bind("<FocusIn>", on_focus_in)
-        search_entry.bind("<FocusOut>", on_focus_out)
-
-        # Uses the filter products function for every key release (while typing for products) so it dynamically updates the products shown. (Avoids the need for a search button along with box to make it look tidy and function better)
+        # Bind the search entry to the filter function
         search_entry.bind("<KeyRelease>", lambda event: filter_products())
+
+        def remove_focus(event):
+            """Remove focus from search entry when clicking anywhere else"""
+            # Check if click was not on search entry and not on dropdown
+            if (event.widget != search_entry):
+                window.focus_set()
+                return "break"  # Prevent event from propagating
 
         def filter_products():
             search_query = search_entry.get().lower() # Sets the search query to the text from the search box but in full lowercase to avoid case sensitivity
@@ -553,6 +675,14 @@ def start_app():
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
         wrapper.pack(fill="both", expand=True)
         canvas.pack(side="left", fill="both", expand=True)
+
+        # Bind to all frames to catch clicks
+        main_frame.bind('<Button-1>', remove_focus)
+        content_frame.bind('<Button-1>', remove_focus)
+        content_inner_frame.bind('<Button-1>', remove_focus)
+        wrapper.bind('<Button-1>', remove_focus)  # Add wrapper binding
+        canvas.bind('<Button-1>', remove_focus)   # Add canvas binding
+        scrollable_frame.bind('<Button-1>', remove_focus)  # Add scrollable frame binding
 
         def display_products(products):
             """Display products in the store listing."""

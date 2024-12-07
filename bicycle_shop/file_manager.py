@@ -17,7 +17,11 @@ CONFIG_COMMENTS = """
 """
 
 SECTION_COMMENTS = {
-    'Application': "# Window and page title settings",
+    'Application': [
+        '# Window and page title settings',
+        '# start_maximized: True to start in maximized window mode',
+        '# start_fullscreen: True to start in full screen mode'
+    ],
     'Theme': "# Color scheme settings for the application interface",
     'DefaultAdmin': [
         "# Default administrator account settings (only used on first setup)",
@@ -32,7 +36,9 @@ DEFAULT_CONFIG = {
     'Application': {
         'window_title': 'Bicycle Shop Management',
         'store_title': 'Store Listing',
-        'admin_title': 'Dashboard'
+        'admin_title': 'Dashboard',
+        'start_max_windowed': 'True',
+        'start_fullscreen': 'False'
     },
     'Theme': {
         'color_primary': '#171d22',
@@ -174,7 +180,10 @@ def get_application_settings():
     return {
         'window_title': config['Application']['window_title'],
         'store_title': config['Application']['store_title'],
-        'admin_title': config['Application']['admin_title']
+        'admin_title': config['Application']['admin_title'],
+        'use_maximized': config['Application'].getboolean('start_max_windowed', fallback=True),
+        'use_fullscreen': config['Application'].getboolean('start_fullscreen', fallback=False),
+        'window_state': 'zoomed' if config['Application'].getboolean('use_maximized', fallback=True) else 'normal'
     }
 
 def get_theme():
@@ -183,14 +192,14 @@ def get_theme():
         create_initial_config()
     config.read(CONFIG_PATH)
     return {
-        'dark_primary': config['Theme']['color_primary'],         # #171d22 - Main dark color for nav/headers
-        'dark_secondary': config['Theme']['color_secondary'],     # #2a2f35 - Secondary dark color for content
-        'dark_surface': config['Theme']['color_background'],      # black - Main background color
-        'light_text': config['Theme']['color_text'],              # white - Main text color
-        'med_text': config['Theme']['color_text_secondary'],      # darkgrey - Secondary text color
-        'med_primary': config['Theme']['color_login_register'],   # SystemButtonFace - Input container color
+        'dark_primary': config['Theme']['color_primary'],                   # #171d22 - Main dark color for nav/headers
+        'dark_secondary': config['Theme']['color_secondary'],               # #2a2f35 - Secondary dark color for content
+        'dark_surface': config['Theme']['color_background'],                # black - Main background color
+        'light_text': config['Theme']['color_text'],                        # white - Main text color
+        'med_text': config['Theme']['color_text_secondary'],                # darkgrey - Secondary text color
+        'med_primary': config['Theme']['color_login_register'],             # SystemButtonFace - Input container color
         'light_primary': config['Theme']['color_login_register_secondary'], # white - Input background color
-        'dark_text': config['Theme']['color_text_login_register'] # SystemButtonText - Input text color
+        'dark_text': config['Theme']['color_text_login_register']           # SystemButtonText - Input text color
     }
 
 def get_default_admin():

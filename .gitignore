@@ -2,11 +2,13 @@
 *.db
 bicycle_shop.db
 /bicycle_shop.db
+bicycle_shop\bicycle_shop.db
 bicycle_shop/bicycle_shop.db
 Icons/
 Products/
 *.ini
 bicycle_shop/.initialized
+
 
 # Python gitignore template below:
 

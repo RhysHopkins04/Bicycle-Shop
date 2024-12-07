@@ -8,6 +8,41 @@ def log_event(event):
     with open("app.log", "a") as f:
         f.write(f"{event}\n")
 
+# Window Utility Functions:
+def center_window(window, width, height):
+    """Center a window on the screen.
+    
+    Args:
+        window: Tkinter window instance
+        width: Window width
+        height: Window height
+    """
+    # Get screen dimensions
+    screen_width = window.winfo_screenwidth()
+    screen_height = window.winfo_screenheight()
+    
+    # Calculate position coordinates for true center
+    x = (screen_width - width) // 2
+    y = (screen_height - height) // 2
+    
+    # Set geometry - format is "widthxheight+x+y"
+    window.geometry(f"{width}x{height}+{x}+{y}")
+    
+    # Ensure window is fully updated
+    window.update_idletasks()
+
+def create_fullscreen_handler(window, window_state):
+    """Create and bind fullscreen toggle functionality."""
+    def toggle_fullscreen(event=None):
+        """Toggle fullscreen mode."""
+        window_state['is_fullscreen'] = not window_state['is_fullscreen']
+        window.attributes("-fullscreen", window_state['is_fullscreen'])
+        return "break"
+    
+    # Bind F11 key to toggle function
+    window.bind("<F11>", toggle_fullscreen)
+    return toggle_fullscreen
+
 # Display Message Functions:
 # Message now has an auto clear after 3s
 def display_message(label, message, color, clear_delay=5000, success_callback=None):
@@ -538,9 +573,9 @@ def create_user_info_display(parent, username, first_name, last_name, is_admin, 
 
 # UI Search Functions
 def setup_search_widget(parent, placeholder="Search for products", font_size=20):
+    """Create and setup search entry with placeholder"""
     theme = get_theme()
     bg_color=theme['dark_primary']
-    """Create and setup search entry with placeholder"""
     search_frame = tk.Frame(parent, bg=bg_color)
     search_entry = tk.Entry(search_frame, width=50, fg=theme['med_text'], font=("Arial", font_size))
     search_entry.insert(0, placeholder)

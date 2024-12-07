@@ -1,14 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
 
-
-- Make login screen locate itself at the center of the activated screen.
-- Potentially make it so that the dashboard/store page set itself to be fullscreen windowed?
-
-- Issue with dropdown box not changing location when the window is moved.
-- Additional logout button on admin dashboard
-
-- Add change password ability to the top right for both users and admin users
 - Add the products to be sorted based on category
 - Create Pictures for products and a separate product page per one when clicked
 
@@ -17,27 +9,32 @@
 
 - Global Search bar to find functions
 - qr code scanning/ link to global search on main page + find the product page on admin
-- Switch from globals to state management for shopping card integration.
+- Switch from globals to state management for shopping card integration if needed
 - Create a Shopping Cart Function
 
 - Add manage users widget
 - Allow the user to manage themselves using the top right
-- Utilize the change password function for first admin logon for change password in manage users
+- Add change password ability to the top right for both users and admin users
+- Utilize the change password function for first admin logon for change password in manage users & within the management user widget (management of others as an admin)
 - Must have 1 persistant admin account.
 
 - Create QR Code Discount Maker
 - Create User Logs page for Admins
-- Create Dashboard page with likely to be common use parts.
-
-- Update Color scheme of application: 
+- Create Dashboard page with likely to be common use parts
 
 - Potential random error with the dropdown to do with "winfo_rootx"
 
 ## **Potential:**
+? Could do with updating the color scheme default ?
 ? add max pswd length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
 ? Remove age from signup ?
 ? Potentially add email for signup and require unique ?
 ? Ask about use of CTK (custom tkinter) ?
+
+## **Known Issues, unsure how to fix:**
+Sometimes a slight ghosting can be seen of the dropdown box when the screen has been moved since it updates in 1ms.
+
+The manage products search bar wont unfocus if you click on the top_bar or the left_nav since they are outside of the manage products and cannot be included in the removal of focus.
 
 # **Completion:**
 ## **Partial:**
@@ -52,6 +49,18 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
+- Updated the manage products to also use the updated search bar.
+- Updated the admin dashboard so it also uses the updated user display.
+- Fixed issue with the login not resizing after having resized the prior screens. (set minsize for the login and register screens so that cannot be carried back. DONT set both min and max size to the same value since it causes errors).
+- Fixed an issue with the dropdown box bindings not being lost and erroring out the console. ( need to unbind on EVERY Screen).
+- Fixed issue with the search bar not losing focus after clicking out
+- Adjusted the search bar to be dynamic between the two other title and user info sections.
+- Added minimum sizes for the screens to avoid them being overshrank or too small when coming out of fullscreen windowed,
+- Adjusted the dropdown box to robustly update its location and stay connected to the userinfo section no matter movements or fullscreening.
+- Robustly fixed the window mode when moving between different pages, (now remembers which mode you were in either f11 or fullscreen max or normal), forces the login/register page to be small and centered still.
+- Added a function in utils that can be used to center a window properly on the center of a screen.
+- Removed the additional logout button on admin dashboard
+- Update Color scheme of application (can now be done on the fly through the config.ini, could do with updating this in the default though)
 - Added auto clearing and clear on button press of error messages across all of gui.py.
 - Allowed the enter key to be used when focused on the change password button on the change_password screen.
 - Adjusted the change_password screen to base its theme based on where it is shown from (maintains the correct light style on first setup and will be dark when used by a user inside the program other pages which are all light)
