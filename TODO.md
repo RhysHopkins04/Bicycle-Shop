@@ -1,6 +1,5 @@
 # **TODO:**
 ## **Incomplete:**
-- start_fullscreen does not seem to function as expected, starts in normal window mode.
 
 - Add the products to be sorted based on category
 - Create Pictures for products and a separate product page per one when clicked
@@ -22,8 +21,6 @@
 - Create QR Code Discount Maker
 - Create User Logs page for Admins
 - Create Dashboard page with likely to be common use parts
-
-- Potential random error with the dropdown to do with "winfo_rootx"
 
 ## **Potential:**
 ? Could do with updating the color scheme default ?
@@ -49,7 +46,10 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
     - gui.py up to date as of 27/11/24
     - docstrings throughout should be up to date always across all files
 
+- start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
+
 ## **Done:**
+- Potential random error with the dropdown to do with "winfo_rootx" Was resolved back when i fixed the error with unbinding the dropdown updates.
 - Updated the manage products to also use the updated search bar.
 - Updated the admin dashboard so it also uses the updated user display.
 - Fixed issue with the login not resizing after having resized the prior screens. (set minsize for the login and register screens so that cannot be carried back. DONT set both min and max size to the same value since it causes errors).
