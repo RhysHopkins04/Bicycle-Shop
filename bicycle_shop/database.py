@@ -2,9 +2,9 @@ import sqlite3
 import os
 import shutil
 
-from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths
+from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths, get_absolute_path
 
-DB_PATH = "./bicycle_shop.db"
+DB_PATH = get_absolute_path('./bicycle_shop.db')
 
 # Core Functionality for the DB:
 def get_connection():
