@@ -9,17 +9,28 @@ def log_event(event):
         f.write(f"{event}\n")
 
 # Display Message Functions:
-def display_message(label, message, color):
-    """Display a message with the specified color."""
+# Message now has an auto clear after 3s
+def display_message(label, message, color, clear_delay=5000, success_callback=None):
+    """Display a message with the specified color and auto-clear."""
+    # Clear any existing message first
+    label.config(text="")
+    
+    # Show new message
     label.config(text=message, fg=color)
+    
+    # Handle auto-clear and callbacks
+    if success_callback and color == "green":
+        label.after(1500, success_callback)
+    elif clear_delay > 0:
+        label.after(clear_delay, lambda: label.config(text=""))
 
-def display_error(label, message):
-    """Display an error message."""
-    display_message(label, message, "red")
+def display_error(label, message, clear_delay=5000):
+    """Display an error message that auto-clears."""
+    display_message(label, message, "red", clear_delay)
 
-def display_success(label, message):
-    """Display a success message."""
-    display_message(label, message, "green")
+def display_success(label, message, clear_delay=1000, success_callback=None):
+    """Display a success message that auto-clears."""
+    display_message(label, message, "green", clear_delay, success_callback)
 
 # UI Utility Functions:
 # Password visibility toggle
@@ -334,19 +345,37 @@ def get_style_config():
             }
         },
         'change_password': {
-            'title': {
-                'font': ("Arial", 24, "bold"),
-                'bg': theme['dark_primary'],
-                'fg': theme['light_text']
+            'light': {
+                'title': {
+                    'font': ("Arial", 18),
+                    'bg': theme['med_primary'],
+                    'fg': theme['dark_text']
+                },
+                'buttons': {
+                    'bg': theme['med_primary'],
+                    'fg': theme['dark_text'],
+                    'activebackground': theme['med_primary'],
+                    'activeforeground': theme['dark_text']
+                },
+                'message': {
+                    'bg': theme['med_primary']
+                }
             },
-            'buttons': {
-                'bg': theme['med_primary'],
-                'fg': theme['dark_text'],
-                'activebackground': theme['med_primary'],
-                'activeforeground': theme['dark_text']
-            },
-            'message': {
-                'bg': theme['dark_primary']
+            'dark': {
+                'title': {
+                    'font': ("Arial", 18),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
+                },
+                'buttons': {
+                    'bg': theme['med_primary'],
+                    'fg': theme['dark_text'],
+                    'activebackground': theme['med_primary'],
+                    'activeforeground': theme['dark_text']
+                },
+                'message': {
+                    'bg': theme['dark_primary']
+                }
             }
         }
     }

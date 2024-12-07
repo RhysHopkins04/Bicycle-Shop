@@ -6,7 +6,7 @@ from auth import register_user, authenticate_user, update_user_password, promote
 from database import create_tables, initialize_admin, get_products, get_product_by_id, get_connection, list_product, add_product, update_product, delete_product as db_delete_product, add_category, get_categories, get_category_id, get_category_name, delete_category, update_category
 from validation import validate_password, validate_empty_fields, validate_password_match, validate_age, validate_registration_fields, validate_username_uniqueness, validate_product_fields, validate_category_name
 from utils import display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame, get_style_config
-from file_manager import get_application_settings, get_theme, get_icon_paths, ICONS_DIR  # Keep for backward compatibility
+from file_manager import get_application_settings, get_icon_paths
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
@@ -27,7 +27,6 @@ def start_app():
 
     # Get configuration settings
     app_settings = get_application_settings()
-    theme = get_theme()
     icon_paths = get_icon_paths()
 
     # Initializes the window and sets it so its title shows as "Bicycle Shop Management"
@@ -86,7 +85,7 @@ def start_app():
                 if is_admin:
                     current_admin_id = user_id # Sets the global variable for later use
                     if not password_changed: # If the user is an admin but its the first login it forces the change password
-                        switch_to_change_password(username)
+                        switch_to_change_password(username, from_login=True)
                     else:
                         switch_to_admin_panel() # Switch the user straight to the admin dashboard
                 else:
@@ -794,18 +793,23 @@ def start_app():
         display_categories()
 
     # Change password screen that is called for when an admin account is logged into for the first time. 
-    def switch_to_change_password(username):
+    def switch_to_change_password(username, from_login=False):
         """Prompt admin to change their password."""
         window.geometry("400x300")
         clear_frame(main_frame)
 
-        styles = get_style_config()['change_password']
+        # Select theme based on context
+        theme_type = 'light' if from_login else 'dark'
+        styles = get_style_config()['change_password'][theme_type]
+
+        # Configure main frame background
+        main_frame.configure(bg=styles['title']['bg'])
 
         tk.Label(main_frame, text="Change Password", **styles['title']).pack(pady=10)
 
-        new_password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="dark")
+        new_password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style=theme_type)
 
-        confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style="dark")
+        confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style=theme_type)
 
         def change_password():
             new_password = new_password_entry.get()
@@ -828,12 +832,18 @@ def start_app():
             else:
                 display_error(message_label, message)
 
-        tk.Button(main_frame, text="Change Password", command=change_password, **styles['buttons']).pack(pady=10)
-
         # Binds the enter key to the login function if either the button or the main_frame is in focus
         message_label = tk.Label(main_frame, text="", **styles['message'])
         message_label.pack()
-    
+
+        change_button = tk.Button(main_frame, text="Change Password", command=change_password, **styles['buttons'])
+        change_button.pack(pady=10)
+        
+        # Bind enter key to both frame and button
+        main_frame.bind('<Return>', lambda event: change_password())
+        change_button.bind('<Return>', lambda event: change_password())
+
+
     window.mainloop() # Actually starts the application and allows the user to interact with the GUI
 
 # TODO: Explain functionality reason behind this on ONE of the files (pref main.py) #

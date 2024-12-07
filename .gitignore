@@ -3,8 +3,10 @@
 bicycle_shop.db
 /bicycle_shop.db
 bicycle_shop/bicycle_shop.db
-bicycle_shop/Products/**
+Icons/
+Products/
 *.ini
+bicycle_shop/.initialized
 
 # Python gitignore template below:
 

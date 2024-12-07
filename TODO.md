@@ -1,7 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
-- Implimented the ability for config.ini in the admin first setup etc.
-- Create a two step initialization setup to allow a user to edit the config.ini after it has been generated.
+
 
 - Make login screen locate itself at the center of the activated screen.
 - Potentially make it so that the dashboard/store page set itself to be fullscreen windowed?
@@ -53,8 +52,15 @@
     - docstrings throughout should be up to date always across all files
 
 ## **Done:**
-
-- Implimented the ability to adjust the colors dynamically across the entire gui though config.ini
+- Added auto clearing and clear on button press of error messages across all of gui.py.
+- Allowed the enter key to be used when focused on the change password button on the change_password screen.
+- Adjusted the change_password screen to base its theme based on where it is shown from (maintains the correct light style on first setup and will be dark when used by a user inside the program other pages which are all light)
+- Ensured that the first time setup works properly and the files are all being generated right
+- Moved the default icons to a separate directory to ensure that they will be there and moved into a correct folder called just icons on first startup.
+- Fixed some directories  for first generation
+- Create a two step initialization setup to allow a user to edit the config.ini after it has been generated.
+- Implemented  the ability for config.ini in the admin first setup etc.
+- Implemented  the ability to adjust the colors dynamically across the entire gui though config.ini
 - Refactor the code locations for a few functions/modules
 - Resolve all issues with Contradictions in my code locations
 - All current fixable DRY Violations have been resolved at this point.

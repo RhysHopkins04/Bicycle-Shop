@@ -2,10 +2,9 @@ import sqlite3
 import os
 import shutil
 
-from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory
+from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths
 
-DB_PATH = "./bicycle_shop/bicycle_shop.db"
-PRODUCTS_DIR = "./bicycle_shop/Products"
+DB_PATH = "./bicycle_shop.db"
 
 # Core Functionality for the DB:
 def get_connection():
@@ -58,17 +57,38 @@ def create_tables():
 # User Managemnt Functions:
 def initialize_admin():
     """Create a default admin user if none exists."""
+    from file_manager import is_first_run
+
+    # Only create admin if initialization is complete (second layer of checks to ensure it doesnt generate without config.ini being reviewed)
+    if is_first_run():
+        return
+
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM Users WHERE is_admin = 1")
     if not cursor.fetchone():  # No admin user exists
         from auth import hash_password
-        salt, hashed_password = hash_password("admin123")
+        from file_manager import get_default_admin
+
+        # Get default admin settings from config.ini
+        admin_settings = get_default_admin()
+
+        salt, hashed_password = hash_password(admin_settings['password'])
+
         cursor.execute("""
             INSERT INTO Users (username, first_name, last_name, password, salt, age, is_admin, password_changed) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, ("admin", "Admin", "User", hashed_password, salt, 30, 1, 0))
+        """, (
+            admin_settings['username'],
+            admin_settings['first_name'], 
+            admin_settings['last_name'],
+            hashed_password,
+            salt,
+            admin_settings['age'],
+            1,  # is_admin
+            0   # password_changed (force password change on first login)))
+        ))
         conn.commit()
     conn.close()
 
@@ -97,19 +117,20 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
     old_product = cursor.fetchone()
     old_name, old_price, old_qr_code, old_image = old_product
 
-    # Only rename directory if name changed
-    new_product_dir = rename_product_directory(old_name, name) if old_name != name else os.path.join(PRODUCTS_DIR, name)
+    # Get paths from file_manager
+    paths = get_paths()
     
-    # Only regenerate QR code if name or price changed
+    # Use paths['products_dir'] instead of PRODUCTS_DIR
+    new_product_dir = rename_product_directory(old_name, name) if old_name != name else os.path.join(paths['products_dir'], name)
+    
+    # Rest of the function remains the same
     if old_name != name or old_price != price:
         qr_code_path = handle_qr_code(name, price, new_product_dir)
     else:
         qr_code_path = old_qr_code
 
-    # Handle image if provided, otherwise keep old image
     image_path = handle_product_image(image, new_product_dir) if image else old_image
 
-    # Only cleanup files if name changed
     if old_name != name:
         cleanup_old_product_files(old_name, old_qr_code, old_image if image else None, name)
 
@@ -127,7 +148,8 @@ def delete_product(product_id):
     
     cursor.execute("SELECT name FROM Products WHERE id = ?", (product_id,))
     product_name = cursor.fetchone()[0]
-    product_dir = os.path.join(PRODUCTS_DIR, product_name)
+    paths = get_paths()
+    product_dir = os.path.join(paths['products_dir'], product_name)
     
     cursor.execute("DELETE FROM Products WHERE id = ?", (product_id,))
     conn.commit()
