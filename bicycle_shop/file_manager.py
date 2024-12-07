@@ -20,7 +20,6 @@ SECTION_COMMENTS = {
     'Application': [
         '# Window and page title settings',
         '# start_maximized: True to start in maximized window mode',
-        '# start_fullscreen: True to start in full screen mode'
     ],
     'Theme': "# Color scheme settings for the application interface",
     'DefaultAdmin': [
@@ -38,7 +37,6 @@ DEFAULT_CONFIG = {
         'store_title': 'Store Listing',
         'admin_title': 'Dashboard',
         'start_max_windowed': 'True',
-        'start_fullscreen': 'False'
     },
     'Theme': {
         'color_primary': '#171d22',
@@ -182,7 +180,6 @@ def get_application_settings():
         'store_title': config['Application']['store_title'],
         'admin_title': config['Application']['admin_title'],
         'use_maximized': config['Application'].getboolean('start_max_windowed', fallback=True),
-        'use_fullscreen': config['Application'].getboolean('start_fullscreen', fallback=False),
         'window_state': 'zoomed' if config['Application'].getboolean('use_maximized', fallback=True) else 'normal'
     }
 

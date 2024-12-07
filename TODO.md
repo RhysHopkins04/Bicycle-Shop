@@ -1,5 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
+- start_fullscreen does not seem to function as expected, starts in normal window mode.
 
 - Add the products to be sorted based on category
 - Create Pictures for products and a separate product page per one when clicked
