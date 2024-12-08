@@ -479,6 +479,34 @@ def start_app():
             left_frame = tk.Frame(details_frame, **styles['frame'])
             left_frame.pack(side="left", fill="both", expand=True, padx=(5, 5))
             
+            # Right side setup with fixed width
+            right_frame = tk.Frame(details_frame, width=300, **styles['frame'])  # Set fixed width
+            right_frame.pack(side="right", fill="y", padx=(10, 0))
+            right_frame.pack_propagate(False)  # Maintain width
+
+            # Create inner frame for right side content
+            inner_right_frame = tk.Frame(right_frame, **styles['frame'])
+            inner_right_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+            # Price at top
+            price_label = tk.Label(inner_right_frame, text=f"Price: £{product[2]:.2f}", **styles['price'])
+            price_label.pack(pady=5)
+
+            # Description box below price
+            desc_frame = tk.Frame(inner_right_frame, **styles['frame'])
+            desc_frame.pack(fill="x", pady=5)
+            tk.Label(desc_frame, text="Description:", **styles['labels']).pack(anchor="n")
+            description_label = tk.Label(desc_frame, text=product[5], wraplength=280, **styles['description'])
+            description_label.pack(pady=5)
+
+            # Add to Cart button
+            cart_button = tk.Button(inner_right_frame, text="Add to Cart", **styles['buttons'])
+            cart_button.pack(pady=(50, 0))
+
+            # Stock display
+            stock_label = tk.Label(inner_right_frame, text=f"Stock: {product[8]}", **styles['labels'])
+            stock_label.pack(pady=(0, 5))
+
             # Add debounce variables
             resize_timer = None
             wraplength_timer = None
@@ -511,6 +539,11 @@ def start_app():
                 min_img_width = max(int(window_width * 0.3), 600)
                 min_img_height = max(int(window_height * 0.3), 400)
                 
+                # Scale QR code relative to window size
+                qr_max_size = min(int(window_width * 0.15), 300)  # 15% of width up to 300px
+                qr_min_size = 150  # Minimum 150px
+
+                # Resize product image
                 resized_image = resize_product_image(
                     product[7],
                     max_width=max_img_width,
@@ -518,6 +551,8 @@ def start_app():
                     min_width=min_img_width,
                     min_height=min_img_height
                 )
+                
+                # Update product image
                 if resized_image:
                     if hasattr(left_frame, 'image_label'):
                         left_frame.image_label.configure(image=resized_image)
@@ -527,44 +562,21 @@ def start_app():
                         left_frame.image_label.image = resized_image
                         left_frame.image_label.pack(pady=(0, 5))
 
+                # Resize and update QR code
+                if product[3]:
+                    qr_size = min(max(qr_min_size, int(window_width * 0.15)), qr_max_size)
+                    resized_qr = resize_qr_code(product[3], size=(qr_size, qr_size))
+                    if resized_qr:
+                        if hasattr(inner_right_frame, 'qr_label'):
+                            inner_right_frame.qr_label.configure(image=resized_qr)
+                            inner_right_frame.qr_label.image = resized_qr
+                        else:
+                            inner_right_frame.qr_label = tk.Label(inner_right_frame, image=resized_qr, **styles['image_frame'])
+                            inner_right_frame.qr_label.image = resized_qr
+                            inner_right_frame.qr_label.pack(pady=10)
+
             # Initial image loading
             resize_content()
-
-            # Right side setup with fixed width
-            right_frame = tk.Frame(details_frame, width=300, **styles['frame'])  # Set fixed width
-            right_frame.pack(side="right", fill="y", padx=5)
-            right_frame.pack_propagate(False)  # Maintain width
-
-            # Create inner frame for right side content
-            inner_right_frame = tk.Frame(right_frame, **styles['frame'])
-            inner_right_frame.pack(fill="both", expand=True, padx=10, pady=5)
-
-            # Price at top
-            price_label = tk.Label(inner_right_frame, text=f"Price: £{product[2]:.2f}", **styles['price'])
-            price_label.pack(pady=5)
-
-            # Description box below price
-            desc_frame = tk.Frame(inner_right_frame, **styles['frame'])
-            desc_frame.pack(fill="x", pady=5)
-            tk.Label(desc_frame, text="Description:", **styles['labels']).pack(anchor="n")
-            description_label = tk.Label(desc_frame, text=product[5], wraplength=280, **styles['description'])
-            description_label.pack(pady=5)
-
-            # Add to Cart button
-            cart_button = tk.Button(inner_right_frame, text="Add to Cart", **styles['buttons'])
-            cart_button.pack(pady=(50, 0))
-
-            # Stock display
-            stock_label = tk.Label(inner_right_frame, text=f"Stock: {product[8]}", **styles['labels'])
-            stock_label.pack(pady=(0, 5))
-
-            # QR Code at bottom
-            if product[3]:
-                qr_photo = resize_qr_code(product[3], size=(150, 150))
-                if qr_photo:
-                    qr_label = tk.Label(inner_right_frame, image=qr_photo, **styles['image_frame'])
-                    qr_label.image = qr_photo
-                    qr_label.pack(pady=10)
 
             def update_wraplength(event=None):
                 # Update description wraplength based on frame width

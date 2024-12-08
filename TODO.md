@@ -20,6 +20,7 @@
 - Create Dashboard page with likely to be common use parts
 
 ## **Potential:**
+? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
 ? Could do with updating the color scheme default ?
 ? add max pswd length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
 ? Remove age from signup ?
@@ -51,6 +52,7 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Allowed the qr code to also scale from minx 150px to max 300px depending on space.
 - Adjusted padding inside of the manage_products screen and the store_listing to ensure a more uniform look
 - Adjusted padding on the content_inner_frame across the store listing and admin dashboard.
 - Added the unbinding of configure and button 1 to remaining functions that were missing them.
