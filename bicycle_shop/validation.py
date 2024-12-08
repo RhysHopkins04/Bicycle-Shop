@@ -82,9 +82,9 @@ def validate_registration_fields(username, first_name, last_name, password, conf
 # Product Validation Functions:
 def validate_product_fields(name, price, stock, listed=False, category=None, image=None, description=None):
     """Validate product fields."""
-    # Check required fields
-    if not name or not price:
-        return False, "Name and price are required."
+    # Basic validation for all products (listed or unlisted)
+    if not name:
+        return False, "Product name is required."
     
     # Validate price is numeric
     try:
@@ -94,17 +94,25 @@ def validate_product_fields(name, price, stock, listed=False, category=None, ima
     except ValueError:
         return False, "Price must be a valid number."
     
-    # If product is to be listed, validate additional fields
+    # Skip all other validations if product is unlisted
+    if not listed:
+        return True, "Valid"
+        
+    # Additional validations only for listed products
     if listed:
         if not category:
             return False, "Category is required for listed products."
+        
         if not description:
             return False, "Description is required for listed products."
+            
+        if not image:
+            return False, "Image is required for listed products."
+        
         category_id = get_category_id(category)
         if category_id is None:
             return False, "Invalid category."
-        if not image:
-            return False, "Image is required for listed products."
+        
         try:
             stock = int(stock) if stock else 0
             if stock <= 0:
@@ -113,7 +121,6 @@ def validate_product_fields(name, price, stock, listed=False, category=None, ima
             return False, "Stock must be a valid number for listed products."
     
     return True, "Valid"
-
 # Category Validation Functions:
 def validate_category_name(name):
     """Validate category name."""

@@ -293,21 +293,46 @@ def handle_qr_code(name, price, product_dir):
     """Handle QR code file operations"""
     qr_code = f"{name}_{price}.png"
     qr_code_path = os.path.join(product_dir, qr_code)
-    if not os.path.exists(qr_code_path):
-        qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
+    qr_code_util.generate_qr_code(f"{name}_{price}", qr_code_path)
     return qr_code_path
 
-def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None):
+def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None, keep_files=False, clean_qr_only=False):
     """Clean up old product files when updating/deleting"""
     paths = get_paths()
     old_product_dir = os.path.join(paths['products_dir'], old_name)
-    if old_qr_code and os.path.exists(old_qr_code) and old_name != new_name:
-        os.remove(old_qr_code)
-    if old_image and os.path.exists(old_image):
-        os.remove(old_image)
-    if os.path.exists(old_product_dir):
-        if not os.listdir(old_product_dir):
+    
+    if keep_files:
+        return
+
+    # If name was changed, adjust the old QR code path to the new directory
+    if new_name and old_name != new_name:
+        new_product_dir = os.path.join(paths['products_dir'], new_name)
+        old_qr_code = os.path.join(new_product_dir, os.path.basename(old_qr_code))
+    
+    # Clean up old QR code if it exists
+    if old_qr_code:
+        try:
+            if os.path.exists(old_qr_code):
+                os.remove(old_qr_code)
+            original_path = os.path.join(old_product_dir, os.path.basename(old_qr_code))
+            if os.path.exists(original_path):
+                os.remove(original_path)
+        except OSError as e:
+            print(f"Error removing old QR code: {e}")
+            
+    # Only clean up image if not in QR-only cleanup mode
+    if not clean_qr_only and old_image and os.path.exists(old_image):
+        try:
+            os.remove(old_image)
+        except OSError as e:
+            print(f"Error removing old image: {e}")
+            
+    # Only remove directory if not in QR-only mode and directory is empty
+    if not clean_qr_only and old_name != new_name and os.path.exists(old_product_dir) and not os.listdir(old_product_dir):
+        try:
             os.rmdir(old_product_dir)
+        except OSError as e:
+            print(f"Error removing empty directory: {e}")
 
 def rename_product_directory(old_name, new_name):
     """Rename product directory when product name changes"""

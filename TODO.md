@@ -52,6 +52,8 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Fixed issues with cleanup of files not being activated when needed and activated when unneeded (added a new keep_files variable to parse that will be activated if the listing variable is the only one that changed!)
+- Fixed error with redundant validation function inside save_edit_product causing errors when editing without a category
 - Fixed issue with weird qr code generation complexity and size, not standardized with verion 1 and error correction.
 - Adjusted the button's on both manage products and store listing.
 - Allowed the qr code to also scale from minx 150px to max 300px depending on space.

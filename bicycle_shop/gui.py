@@ -1079,13 +1079,10 @@ def start_app():
             # Convert values after validation
             price = float(price)
             stock = int(stock) if stock else 0
-            
             category_id = get_category_id(category) if category else None
-            if category_id is None:
-                display_error(message_label, "Invalid category.")
-                return
 
-            update_product(product_id, name, price, None, description, category_id, image, stock)
+            keep_files = not listed  # True if unlisting (listed=0)
+            update_product(product_id, name, price, None, description, category_id, image, stock, keep_files)
             list_product(product_id, listed)
             display_success(message_label, "Product updated successfully!")
             show_manage_products_screen()
