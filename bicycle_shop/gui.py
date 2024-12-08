@@ -16,8 +16,9 @@ from validation import (validate_password, validate_empty_fields, validate_passw
                         )
 from utils import (display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, 
                    create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, 
-                   create_password_field, setup_product_grid, create_basic_product_frame, create_product_management_frame, 
-                   get_style_config, center_window, create_fullscreen_handler
+                   create_password_field, setup_product_grid, create_product_listing_frame, create_product_management_frame, 
+                   get_style_config, center_window, create_fullscreen_handler, resize_product_image, resize_qr_code
+
                    )
 from file_manager import (get_application_settings, get_icon_paths)
 
@@ -335,15 +336,15 @@ def start_app():
 
          # Creates an inner content frame for the dynamic widgets to be added to so there is a contrast border between the header, nav bar and the widgets
         global content_inner_frame
-        content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=50)
-        content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50)  # Fills the remaining space of the window with this frame
+        content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=10)
+        content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)  # Fills the remaining space of the window with this frame
 
         # Bind the search entry to the filter function
         search_entry.bind("<KeyRelease>", lambda event: filter_products())
 
         # Create a canvas (which allows scrolling) and a scrollbar
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
-        wrapper.pack(fill="both", expand=True)
+        wrapper.pack(fill="both", expand=True, pady=(30, 0)) # added 30 px padding to the top of the wrapper to accomodate for the 30 removed from the content inner frame.
         canvas.pack(side="left", fill="both", expand=True)
 
         # Bind to all frames to catch clicks
@@ -418,10 +419,10 @@ def start_app():
                 for product in category_products:
                     if col == 0:
                         row_frame = tk.Frame(scrollable_frame, **styles['frame'])
-                        row_frame.pack(fill="x", pady=10)
+                        row_frame.pack(fill="x", pady=10, padx=20)
                         row_count += 1
 
-                    product_frame = create_basic_product_frame(row_frame, product, 290)
+                    product_frame = create_product_listing_frame(row_frame, product, 290, show_product_page)
 
                     col += 1
                     if col >= num_columns:
@@ -437,25 +438,150 @@ def start_app():
         # Call display_products initially to show all products
         display_products(get_products(listed_only=True))
 
-    # TODO: Still need to impliment the show product screen to allow a user to view a specific product with more detail.
     def show_product_page(product_id):
         """Display the product page for the given product ID."""
-        clear_frame(main_frame)
-
+        clear_frame(content_inner_frame)
         styles = get_style_config()['product_page']
+
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         product = get_product_by_id(product_id)
         if product:
-            tk.Label(main_frame, text=f"Name: {product[1]}", **styles['title']).pack(pady=10)
-            tk.Label(main_frame, text=f"Price: £{product[2]:.2f}", **styles['labels']).pack(pady=5)
-            qr_code_image = tk.PhotoImage(file=product[3])
-            tk.Label(main_frame, image=qr_code_image, **styles['image_frame']).pack(pady=5)
-            main_frame.image = qr_code_image  # Keep a reference to avoid garbage collection
+            # Create title container frame to hold both title and back button
+            title_container = tk.Frame(content_inner_frame, **styles['frame'])
+            title_container.pack(fill="x", pady=(0, 8))
+
+            # Back button on the left
+            back_button = tk.Button(title_container, text="← Back", command=lambda: switch_to_store_listing(is_admin=True), **styles['buttons'])
+            back_button.pack(side="left", padx=10)
+
+            # Title in center
+            tk.Label(title_container, text=product[1], **styles['title']).pack(side="left", expand=True)
+
+            # Create outer container with reduced padding
+            container_frame = tk.Frame(content_inner_frame, **styles['frame'])
+            container_frame.pack(fill="both", expand=True)
+
+            # Create scrollable frame setup
+            wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(container_frame)
+            wrapper.pack(fill="both", expand=True)
+
+            # Create main content frame that will be centered
+            content_frame = tk.Frame(scrollable_frame, **styles['frame'])
+            content_frame.pack(fill="both", expand=True, padx=40, pady=28)
+
+            # Details container frame
+            details_frame = tk.Frame(content_frame, **styles['frame'])
+            details_frame.pack(fill="both", expand=True, pady=10)
+
+            # Left side - Product image and description with reduced right padding
+            left_frame = tk.Frame(details_frame, **styles['frame'])
+            left_frame.pack(side="left", fill="both", expand=True, padx=(5, 5))
+            
+            # Add debounce variables
+            resize_timer = None
+            wraplength_timer = None
+
+            def debounced_resize(event=None):
+                """Debounced version of resize_content"""
+                nonlocal resize_timer
+                if resize_timer is not None:
+                    window.after_cancel(resize_timer)
+                resize_timer = window.after(150, lambda: resize_content(event))
+
+            def debounced_wraplength(event=None):
+                """Debounced version of update_wraplength"""
+                nonlocal wraplength_timer
+                if wraplength_timer is not None:
+                    window.after_cancel(wraplength_timer)
+                wraplength_timer = window.after(150, lambda: update_wraplength(event))
+
+            def resize_content(event=None):
+                if not product[7]:
+                    return
+                    
+                # Calculate responsive dimensions based on window size
+                window_width = window.winfo_width()
+                window_height = window.winfo_height()
+                
+                # Scale image relative to window size
+                max_img_width = min(int(window_width * 0.5), 2000)
+                max_img_height = min(int(window_height * 0.6), 1600)
+                min_img_width = max(int(window_width * 0.3), 600)
+                min_img_height = max(int(window_height * 0.3), 400)
+                
+                resized_image = resize_product_image(
+                    product[7],
+                    max_width=max_img_width,
+                    max_height=max_img_height,
+                    min_width=min_img_width,
+                    min_height=min_img_height
+                )
+                if resized_image:
+                    if hasattr(left_frame, 'image_label'):
+                        left_frame.image_label.configure(image=resized_image)
+                        left_frame.image_label.image = resized_image
+                    else:
+                        left_frame.image_label = tk.Label(left_frame, image=resized_image, **styles['image_frame'])
+                        left_frame.image_label.image = resized_image
+                        left_frame.image_label.pack(pady=(0, 5))
+
+            # Initial image loading
+            resize_content()
+
+            # Right side setup with fixed width
+            right_frame = tk.Frame(details_frame, width=300, **styles['frame'])  # Set fixed width
+            right_frame.pack(side="right", fill="y", padx=5)
+            right_frame.pack_propagate(False)  # Maintain width
+
+            # Create inner frame for right side content
+            inner_right_frame = tk.Frame(right_frame, **styles['frame'])
+            inner_right_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+            # Price at top
+            price_label = tk.Label(inner_right_frame, text=f"Price: £{product[2]:.2f}", **styles['price'])
+            price_label.pack(pady=5)
+
+            # Description box below price
+            desc_frame = tk.Frame(inner_right_frame, **styles['frame'])
+            desc_frame.pack(fill="x", pady=5)
+            tk.Label(desc_frame, text="Description:", **styles['labels']).pack(anchor="n")
+            description_label = tk.Label(desc_frame, text=product[5], wraplength=280, **styles['description'])
+            description_label.pack(pady=5)
+
+            # Add to Cart button
+            cart_button = tk.Button(inner_right_frame, text="Add to Cart", **styles['buttons'])
+            cart_button.pack(pady=(50, 0))
+
+            # Stock display
+            stock_label = tk.Label(inner_right_frame, text=f"Stock: {product[8]}", **styles['labels'])
+            stock_label.pack(pady=(0, 5))
+
+            # QR Code at bottom
+            if product[3]:
+                qr_photo = resize_qr_code(product[3], size=(150, 150))
+                if qr_photo:
+                    qr_label = tk.Label(inner_right_frame, image=qr_photo, **styles['image_frame'])
+                    qr_label.image = qr_photo
+                    qr_label.pack(pady=10)
+
+            def update_wraplength(event=None):
+                # Update description wraplength based on frame width
+                new_width = right_frame.winfo_width() - 40
+                description_label.configure(wraplength=new_width)
+
+            # Bind resize events with debouncing
+            window.bind("<Configure>", debounced_resize)
+            desc_frame.bind('<Configure>', debounced_wraplength)
+            
+            # Enable mouse wheel scrolling
+            bind_wheel()
+
         else:
-            # Binds the enter key to the login function if either the button or the main_frame is in focus
-            message_label = tk.Label(main_frame, text="", **styles['message'])
+            message_label = tk.Label(content_inner_frame, text="", **styles['message'])
             message_label.pack()
-            display_error(message_label, "Product not found!")# If product cannot be found then it will return an error message. Useful for if a user scans an old qr code if they went into store at a later date past saving it.
+            display_error(message_label, "Product not found!")
 
     # TODO: Add the rest of the functionality required + extras and fill out the "Dashboard" screen itself for commonly used parts of the program to speed up tasks #
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
@@ -475,6 +601,9 @@ def start_app():
         clear_frame(main_frame)
 
         styles = get_style_config()['admin_panel']
+
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         # Create the top bar
         top_bar = tk.Frame(main_frame, height=100, bg=styles['top_bar']['bg'])
@@ -557,8 +686,8 @@ def start_app():
 
         # Creates an inner content frame for the dynamic widgets to be added to so there is a contrast border between the header, nav bar and the widgets
         global content_inner_frame
-        content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=50)
-        content_inner_frame.pack(fill="both", expand=True, padx=50, pady=50) # Fills the remaining space of the window with this frame
+        content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=10)
+        content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)  # Fills the remaining space of the window with this frame
         
         # Text lable that just announces the below are for the naivgation of the application styled like a webapp site
         tk.Label(left_nav, text="Navigation", **styles['left_nav']['title']).pack(side="top", anchor="nw", padx=10, pady=10)
@@ -578,6 +707,9 @@ def start_app():
         clear_frame(content_inner_frame)
 
         styles = get_style_config()['add_product']
+
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         combo_style = ttk.Style()
         combo_style.configure('Add.TCombobox',
@@ -664,12 +796,15 @@ def start_app():
 
         styles = get_style_config()['manage_products']
 
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
+
         title_label = tk.Label(content_inner_frame, text="Manage Products", **styles['title'])
-        title_label.pack(pady=10)
+        title_label.pack(pady=(10, 5))
 
         # Create container frame for search that will properly expand/contract
         search_container = tk.Frame(content_inner_frame, bg=styles['frame']['bg'])
-        search_container.pack(fill="x", pady=10)
+        search_container.pack(fill="x", pady=(5, 10))
 
         # Create search widget with dynamic width
         search_frame, search_entry = setup_search_widget(search_container)
@@ -773,7 +908,7 @@ def start_app():
                 for product in uncategorized_products:
                     if col == 0:
                         row_frame = tk.Frame(scrollable_frame, **styles['frame'])
-                        row_frame.pack(fill="x", pady=10)
+                        row_frame.pack(fill="x", pady=10, padx=20)
                         row_count += 1
 
                     product_frame = create_product_management_frame(
@@ -814,7 +949,7 @@ def start_app():
                 for product in category_products:
                     if col == 0:
                         row_frame = tk.Frame(scrollable_frame, **styles['frame'])
-                        row_frame.pack(fill="x", pady=10)
+                        row_frame.pack(fill="x", pady=10, padx=20)
                         row_count += 1
 
                     product_frame = create_product_management_frame(
@@ -850,6 +985,9 @@ def start_app():
         clear_frame(content_inner_frame)
 
         styles = get_style_config()['edit_product']
+
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         combo_style = ttk.Style()
         combo_style.configure('Edit.TCombobox',
@@ -953,6 +1091,9 @@ def start_app():
 
         styles = get_style_config()['manage_categories']
 
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
+
         tk.Label(content_inner_frame, text="Manage Categories", **styles['title']).pack(pady=10)
 
         tk.Label(content_inner_frame, text="Category Name", **styles['labels']).pack(pady=5)
@@ -1041,6 +1182,9 @@ def start_app():
         # Select theme based on context
         theme_type = 'light' if from_login else 'dark'
         styles = get_style_config()['change_password'][theme_type]
+
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
 
         # Configure main frame background
         main_frame.configure(bg=styles['title']['bg'])

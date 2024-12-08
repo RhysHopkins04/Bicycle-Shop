@@ -1,5 +1,5 @@
 import tkinter as tk
-
+from PIL import Image, ImageTk # To allow for image resizing and displaying in the product_page
 from file_manager import get_theme
 
 # Logging Feature
@@ -210,7 +210,23 @@ def get_style_config():
         },
         'product_page': {
             'title': {
-                'font': ("Arial", 18),
+                'font': ("Arial", 18, "bold"),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'frame': {
+                'bg': theme['dark_primary']
+            },
+            'image_frame': {
+                'bg': theme['dark_primary']
+            },
+            'description': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text'],
+                'justify': 'left'
+            },
+            'price': {
+                'font': ("Arial", 16, "bold"),
                 'bg': theme['dark_primary'],
                 'fg': theme['light_text']
             },
@@ -218,8 +234,11 @@ def get_style_config():
                 'bg': theme['dark_primary'],
                 'fg': theme['light_text']
             },
-            'image_frame': {
-                'bg': theme['dark_primary']
+            'buttons': {
+                'bg': theme['med_primary'],
+                'fg': theme['dark_text'],
+                'activebackground': theme['med_primary'],
+                'activeforeground': theme['dark_text']
             },
             'message': {
                 'bg': theme['dark_primary']
@@ -727,9 +746,55 @@ def create_product_management_frame(row_frame, product, product_width, edit_call
     """Creates product frame with management buttons"""
     product_frame = create_basic_product_frame(row_frame, product, product_width)
     
-    tk.Button(product_frame, text="Edit", 
-              command=lambda p=product[0]: edit_callback(p)).pack(side="left")
-    tk.Button(product_frame, text="Delete", 
-              command=lambda p=product[0]: delete_callback(p)).pack(side="right")
+    tk.Button(product_frame, text="Edit", command=lambda p=product[0]: edit_callback(p)).pack(side="left")
+    tk.Button(product_frame, text="Delete", command=lambda p=product[0]: delete_callback(p)).pack(side="right")
     
     return product_frame
+
+def create_product_listing_frame(row_frame, product, product_width, view_callback):
+    """Creates product frame with view button for store listing"""
+    theme = get_theme()
+    product_frame = create_basic_product_frame(row_frame, product, product_width)
+    
+    # Add View Product button
+    tk.Button(product_frame, text="View Product", bg=theme['med_primary'], fg=theme['dark_text'], activebackground=theme['med_primary'], activeforeground=theme['dark_text'], command=lambda p=product[0]: view_callback(p)).pack(pady=5)
+    
+    return product_frame
+
+def resize_product_image(image_path, max_width=800, max_height=600, min_width=200, min_height=150):
+    """Resize product image maintaining aspect ratio within constraints"""
+    try:
+        img = Image.open(image_path)
+        orig_width, orig_height = img.size
+        
+        aspect_ratio = orig_width / orig_height
+        
+        new_width = min(max_width, orig_width)
+        new_height = new_width / aspect_ratio
+        
+        if new_height > max_height:
+            new_height = max_height
+            new_width = new_height * aspect_ratio
+            
+        if new_width < min_width:
+            new_width = min_width
+            new_height = new_width / aspect_ratio
+        if new_height < min_height:
+            new_height = min_height
+            new_width = new_height * aspect_ratio
+            
+        resized = img.resize((int(new_width), int(new_height)), Image.Resampling.LANCZOS)
+        return ImageTk.PhotoImage(resized)
+    except Exception as e:
+        print(f"Error resizing image: {e}")
+        return None
+    
+def resize_qr_code(qr_path, size=(150, 150)):
+    """Resize QR code to specified dimensions while maintaining aspect ratio"""
+    try:
+        qr_img = Image.open(qr_path)
+        qr_resized = qr_img.resize(size, Image.Resampling.LANCZOS)
+        return ImageTk.PhotoImage(qr_resized)
+    except Exception as e:
+        print(f"Error resizing QR code: {e}")
+        return None

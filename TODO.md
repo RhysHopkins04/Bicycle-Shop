@@ -1,11 +1,8 @@
 # **TODO:**
 ## **Incomplete:**
 
-
-- Create Pictures for products and a separate product page per one when clicked
-
-- Make change of listed/not listed available on main manage products screen
 - Adjust button locations/buttons on manage products
+- Potentially make it so that the edit product is done with editable boxes on the view product screen for ease of how it will look + changeability.
 
 - Global Search bar to find functions
 - qr code scanning/ link to global search on main page + find the product page on admin
@@ -30,6 +27,11 @@
 ? Ask about use of CTK (custom tkinter) ?
 
 ## **Known Issues, unsure how to fix:**
+
+TKINTER DOESNT SUPPORT % BASED PADDING AHHHHHH
+
+Make change of listed/not listed available on main manage products screen cant be done since it would require changes since an unlisted product doesnt require all the details.
+
 Sometimes a slight ghosting can be seen of the dropdown box when the screen has been moved since it updates in 1ms.
 
 The manage products search bar wont unfocus if you click on the top_bar or the left_nav since they are outside of the manage products and cannot be included in the removal of focus.
@@ -49,6 +51,11 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Adjusted padding inside of the manage_products screen and the store_listing to ensure a more uniform look
+- Adjusted padding on the content_inner_frame across the store listing and admin dashboard.
+- Added the unbinding of configure and button 1 to remaining functions that were missing them.
+- Added the view product button to the product listing page.
+- Create Pictures for products and a separate product page per one when clicked
 - Added feature where if the category is deleted, then it will remove the products that were in it from that category and unlist them to avoid issues.
 - Resolved issue where you could scroll even when the products fit in the canvas.
 - Resolved issue where the border of the canvas was getting overriden when scrolling in it.
