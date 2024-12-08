@@ -3,9 +3,8 @@ import cv2
 
 def generate_qr_code(data, filename):
     """Generate a QR code and save it to a file."""
-    qr = qrcode.QRCode()
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=4) # Creates qr code with the smallest possible, and lowest 7% error correction in a standardized size 10 (210x210px) with a set border of 4 modules each side.
     qr.add_data(data)
-    qr.make(fit=True)
     img = qr.make_image(fill="black", back_color="white")
     img.save(filename)
 

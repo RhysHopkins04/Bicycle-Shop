@@ -1,8 +1,8 @@
 # **TODO:**
 ## **Incomplete:**
 
-- Adjust button locations/buttons on manage products
 - Potentially make it so that the edit product is done with editable boxes on the view product screen for ease of how it will look + changeability.
+- Make it so that on the store listing the images are the image of the product not the qr code.
 
 - Global Search bar to find functions
 - qr code scanning/ link to global search on main page + find the product page on admin
@@ -52,6 +52,8 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Fixed issue with weird qr code generation complexity and size, not standardized with verion 1 and error correction.
+- Adjusted the button's on both manage products and store listing.
 - Allowed the qr code to also scale from minx 150px to max 300px depending on space.
 - Adjusted padding inside of the manage_products screen and the store_listing to ensure a more uniform look
 - Adjusted padding on the content_inner_frame across the store listing and admin dashboard.

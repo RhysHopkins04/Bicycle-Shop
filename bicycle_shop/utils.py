@@ -724,42 +724,57 @@ def setup_product_grid(scrollable_frame, canvas, products, product_width=290, pa
     num_columns = max(1, content_width // (product_width + padding))
     return num_columns
 
-def create_basic_product_frame(row_frame, product, product_width):
+def create_basic_product_frame(row_frame, product, product_width, buttons=None):
     """Creates standard product frame with common elements"""
     theme = get_theme()
-    bg_color=theme['dark_primary']
-    fg_color=theme['light_primary']
+    bg_color = theme['dark_primary']
+    fg_color = theme['light_primary']
 
     product_frame = tk.Frame(row_frame, width=product_width, padx=1, pady=1, bg=bg_color)
     product_frame.pack(side="left", padx=1, pady=1)
 
+    # Name and price labels
     tk.Label(product_frame, text=f"Name: {product[1]}", bg=bg_color, fg=fg_color).pack()
     tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", bg=bg_color, fg=fg_color).pack()
 
-    qr_code_image = tk.PhotoImage(file=product[3])
-    tk.Label(product_frame, image=qr_code_image, bg=bg_color).pack()
-    product_frame.image = qr_code_image
-    
+    # Buttons if requested
+    if buttons:
+        button_frame = tk.Frame(product_frame, bg=bg_color)
+        button_frame.pack(pady=5)
+        for btn_text, btn_callback in buttons:
+            def create_command(callback=btn_callback, prod_id=product[0]):
+                return lambda: callback(prod_id)
+            tk.Button(
+                button_frame,
+                text=btn_text,
+                command=create_command(),
+                bg=theme['med_primary'],
+                fg=theme['dark_text'],
+                width=14
+            ).pack(side="left", padx=2)
+
+    # Resize QR code before displaying
+    if product[3]:  # If QR code exists
+        qr_resized = resize_qr_code(product[3], size=(290, 290))  # Fixed size for consistency
+        if qr_resized:
+            qr_label = tk.Label(product_frame, image=qr_resized, bg=bg_color)
+            qr_label.image = qr_resized  # Keep a reference
+            qr_label.pack()
+
     return product_frame
 
 def create_product_management_frame(row_frame, product, product_width, edit_callback, delete_callback):
     """Creates product frame with management buttons"""
-    product_frame = create_basic_product_frame(row_frame, product, product_width)
-    
-    tk.Button(product_frame, text="Edit", command=lambda p=product[0]: edit_callback(p)).pack(side="left")
-    tk.Button(product_frame, text="Delete", command=lambda p=product[0]: delete_callback(p)).pack(side="right")
-    
-    return product_frame
+    buttons = [
+        ("Edit", edit_callback),
+        ("Delete", delete_callback)
+    ]
+    return create_basic_product_frame(row_frame, product, product_width, buttons)
 
 def create_product_listing_frame(row_frame, product, product_width, view_callback):
     """Creates product frame with view button for store listing"""
-    theme = get_theme()
-    product_frame = create_basic_product_frame(row_frame, product, product_width)
-    
-    # Add View Product button
-    tk.Button(product_frame, text="View Product", bg=theme['med_primary'], fg=theme['dark_text'], activebackground=theme['med_primary'], activeforeground=theme['dark_text'], command=lambda p=product[0]: view_callback(p)).pack(pady=5)
-    
-    return product_frame
+    buttons = [("View Product", view_callback)]
+    return create_basic_product_frame(row_frame, product, product_width, buttons)
 
 def resize_product_image(image_path, max_width=800, max_height=600, min_width=200, min_height=150):
     """Resize product image maintaining aspect ratio within constraints"""
