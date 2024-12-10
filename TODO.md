@@ -1,6 +1,9 @@
 # **TODO:**
 ## **Incomplete:**
 
+- Updated the edit_products function to use the layout of the view products page shown in the store, adjusted it to make it dynamic in its updated viewing size and added a placeholder image to avoid issues with there being no image and instruct to add one.
+
+
 - Potentially make it so that the edit product is done with editable boxes on the view product screen for ease of how it will look + changeability.
 - Make it so that on the store listing the images are the image of the product not the qr code.
 
@@ -52,6 +55,7 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Updated the edit_products function to use the layout of the view products page shown in the store, adjusted it to make it dynamic in its updated viewing size and added a placeholder image to avoid issues with there being no image and instruct to add one.
 - Fixed issues with cleanup of files not being activated when needed and activated when unneeded (added a new keep_files variable to parse that will be activated if the listing variable is the only one that changed!)
 - Fixed error with redundant validation function inside save_edit_product causing errors when editing without a category
 - Fixed issue with weird qr code generation complexity and size, not standardized with verion 1 and error correction.

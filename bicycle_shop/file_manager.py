@@ -63,7 +63,8 @@ DEFAULT_CONFIG = {
         'password_show': 'visible.png',
         'password_hide': 'hidden.png',
         'user_icon': 'user_icon_thumbnail.png',
-        'admin_icon': 'admin_icon_thumbnail.png'
+        'admin_icon': 'admin_icon_thumbnail.png',
+        'placeholder': 'placeholder.png'
     }
 }
 
@@ -232,7 +233,8 @@ def get_icon_paths():
         'password_show': os.path.join(paths['icons_dir'], config['Icons']['password_show']),
         'password_hide': os.path.join(paths['icons_dir'], config['Icons']['password_hide']),
         'user_icon': os.path.join(paths['icons_dir'], config['Icons']['user_icon']), 
-        'admin_icon': os.path.join(paths['icons_dir'], config['Icons']['admin_icon'])
+        'admin_icon': os.path.join(paths['icons_dir'], config['Icons']['admin_icon']),
+        'placeholder': os.path.join(paths['icons_dir'], config['Icons']['placeholder'])
     }
 
 def ensure_directories_exist():
@@ -251,7 +253,8 @@ def ensure_directories_exist():
             'password_show': 'visible.png',
             'password_hide': 'hidden.png',
             'user_icon': 'user_icon_thumbnail.png',
-            'admin_icon': 'admin_icon_thumbnail.png'
+            'admin_icon': 'admin_icon_thumbnail.png',
+            'placeholder': 'placeholder.png'
         }
         
         for icon_name, icon_file in icon_files.items():
@@ -304,10 +307,13 @@ def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None, k
     if keep_files:
         return
 
-    # If name was changed, adjust the old QR code path to the new directory
+    # If name changed, adjust paths for both QR and image
     if new_name and old_name != new_name:
         new_product_dir = os.path.join(paths['products_dir'], new_name)
-        old_qr_code = os.path.join(new_product_dir, os.path.basename(old_qr_code))
+        if old_qr_code:
+            old_qr_code = os.path.join(new_product_dir, os.path.basename(old_qr_code))
+        if old_image:
+            old_image = os.path.join(old_product_dir, os.path.basename(old_image))
     
     # Clean up old QR code if it exists
     if old_qr_code:
@@ -321,9 +327,10 @@ def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None, k
             print(f"Error removing old QR code: {e}")
             
     # Only clean up image if not in QR-only cleanup mode
-    if not clean_qr_only and old_image and os.path.exists(old_image):
+    if not clean_qr_only and old_image:
         try:
-            os.remove(old_image)
+            if os.path.exists(old_image):
+                os.remove(old_image)
         except OSError as e:
             print(f"Error removing old image: {e}")
             

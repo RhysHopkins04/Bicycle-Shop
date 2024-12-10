@@ -114,38 +114,51 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
     
     # Get old product info
     cursor.execute("SELECT name, price, qr_code, image, listed FROM Products WHERE id = ?", (product_id,))
-    old_product = cursor.fetchone()
-    old_name, old_price, old_qr_code, old_image, old_listed = old_product
+    old_name, old_price, old_qr_code, old_image, old_listed = cursor.fetchone()
 
+    # Handle directory rename if needed
     paths = get_paths()
-    new_product_dir = rename_product_directory(old_name, name) if old_name != name else os.path.join(paths['products_dir'], name)
+    name_changed = old_name != name
+    new_product_dir = rename_product_directory(old_name, name) if name_changed else os.path.join(paths['products_dir'], name)
     
-    # Determine if we need new files based on listing status
-    if keep_files:  # Unlisting the product
-        new_qr_code_path = old_qr_code
-        image_path = old_image
-    else:  # Product is/will be listed
-        # Handle QR code
-        needs_new_qr = old_name != name or old_price != price or not old_listed
-        if needs_new_qr:
-            new_qr_code_path = handle_qr_code(name, price, new_product_dir)
-            cleanup_old_product_files(old_name, old_qr_code, None, name, keep_files, clean_qr_only=True)
-        else:
-            new_qr_code_path = old_qr_code
-            
-        # Handle image separately
-        if image and image != old_image:
-            # Clean up old image first
-            cleanup_old_product_files(old_name, None, old_image, name, keep_files, clean_qr_only=False)
-            # Then add new image
+    # Initialize paths
+    new_qr_code_path = old_qr_code
+    image_path = old_image
+
+    # Step 1: Handle name change updates first
+    if name_changed:
+        # Update paths for existing files in new directory
+        if old_image:
+            image_path = os.path.join(new_product_dir, os.path.basename(old_image))
+        if old_qr_code:
+            new_qr_code_path = os.path.join(new_product_dir, os.path.basename(old_qr_code))
+
+    # Step 2: Handle QR code changes
+    if qr_code is True:
+        # Clean up old QR code first
+        if old_qr_code:
+            cleanup_old_product_files(old_name, old_qr_code, None, name, False, clean_qr_only=True)
+        # Generate new QR code
+        new_qr_code_path = handle_qr_code(name, price, new_product_dir)
+
+    # Step 3: Handle image changes
+    if image != old_image:
+        # Clean up old image first
+        if old_image:
+            cleanup_old_product_files(old_name, None, old_image, name, False, clean_qr_only=False)
+        # Add new image
+        if image:
             image_path = handle_product_image(image, new_product_dir)
-        else:
-            image_path = old_image
-            
+
+    # Update database record
     cursor.execute("""
-        UPDATE Products SET name = ?, price = ?, qr_code = ?, description = ?, 
-        category_id = ?, image = ?, stock = ? WHERE id = ?
-    """, (name, price, new_qr_code_path, description, category_id, image_path, stock, product_id))
+        UPDATE Products 
+        SET name = ?, price = ?, qr_code = ?, description = ?, 
+            category_id = ?, image = ?, stock = ?
+        WHERE id = ?
+    """, (name, price, new_qr_code_path, description, category_id, 
+          image_path, stock, product_id))
+    
     conn.commit()
     conn.close()
 

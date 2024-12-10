@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, filedialog as filedialog, PhotoImage
+import os
 
 # Functions from other locations in the program: auth, database, qr_code_util
 from auth import (register_user, authenticate_user, update_user_password, promote_user_to_admin, 
@@ -20,7 +21,7 @@ from utils import (display_error, display_success, clear_frame, show_dropdown, h
                    get_style_config, center_window, create_fullscreen_handler, resize_product_image, resize_qr_code
 
                    )
-from file_manager import (get_application_settings, get_icon_paths)
+from file_manager import (get_application_settings, get_icon_paths, get_paths)
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
@@ -801,7 +802,6 @@ def start_app():
         
         tk.Button(content_inner_frame, text="Add Product", command=handle_add_product, **styles['buttons']).pack(pady=10) # Button that calls this function to add the products to the database
 
-    # TODO: Make it so that you can change if a product is listed or not from the main manage products screen along with inside the edit product screen for easier ux due to less clicks. #
     def show_manage_products_screen():
         """Display the manage products screen."""
         clear_frame(content_inner_frame)
@@ -993,106 +993,357 @@ def start_app():
 
     # Shows the screen for the editing of individual products based on the product id so they dont have to be deleted and readded to make changes
     def show_edit_product_screen(product_id):
-        """Display the edit product screen."""
+        """Display the edit product screen with preview layout."""
         clear_frame(content_inner_frame)
-
-        styles = get_style_config()['edit_product']
-
+        
         window.unbind("<Configure>")
         window.unbind("<Button-1>")
-
-        combo_style = ttk.Style()
-        combo_style.configure('Edit.TCombobox',
-            background=styles['combobox']['bg'],
-            fieldbackground=styles['combobox']['fieldbackground'],
-            foreground=styles['combobox']['fg'],
-            selectbackground=styles['combobox']['selectbackground'],
-            selectforeground=styles['combobox']['selectforeground']
-        )
+        content_inner_frame.unbind("<Configure>")
         
-        tk.Label(content_inner_frame, text="Edit Product", **styles['title']).pack(pady=10)
+        styles = get_style_config()['edit_product']  # Use product_page styles for consistent look
+
         product = get_product_by_id(product_id)
+        if product:
+            # Create title container frame to hold title
+            title_container = tk.Frame(content_inner_frame, **styles['frame'])
+            title_container.pack(fill="x", pady=(0, 8))
 
-        # Creates the entry boxes for the name and price of the product and sets the default values to the current values of the product from the database
-        tk.Label(content_inner_frame, text="Name", **styles['labels']).pack()
-        name_entry = tk.Entry(content_inner_frame, **styles['entries'])
-        name_entry.insert(0, product[1])
-        name_entry.pack()
+            name_entry = tk.Entry(title_container, **styles['entries'])
+            name_entry.insert(0, product[1])
+            name_entry.pack(side="left", expand=True)
 
-        tk.Label(content_inner_frame, text="Price", **styles['labels']).pack()
-        price_entry = tk.Entry(content_inner_frame, **styles['entries'])
-        price_entry.insert(0, product[2])
-        price_entry.pack()
+            # Create outer container
+            container_frame = tk.Frame(content_inner_frame, **styles['frame'])
+            container_frame.pack(fill="both", expand=True)
 
-        tk.Label(content_inner_frame, text="Description", **styles['labels']).pack()
-        description_entry = tk.Entry(content_inner_frame, **styles['entries'])
-        description_entry.insert(0, product[5])
-        description_entry.pack()
+            # Create scrollable frame setup
+            wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(container_frame)
+            wrapper.pack(fill="both", expand=True)
 
-        tk.Label(content_inner_frame, text="Category", **styles['labels']).pack()
-        category_combobox = ttk.Combobox(content_inner_frame, values=get_categories(), width=price_entry.cget("width") - 3, style='Edit.TCombobox')
-        category_name = get_category_name(product[6])
-        if category_name:
-            category_combobox.current(get_categories().index(category_name))
-        category_combobox.pack()
+            # Create main content frame
+            content_frame = tk.Frame(scrollable_frame, **styles['frame'])
+            content_frame.pack(fill="both", expand=True, padx=15, pady=15)
 
-        tk.Label(content_inner_frame, text="Image", **styles['labels']).pack()
-        image_path = tk.StringVar(value=product[7])
-        image_entry = tk.Entry(content_inner_frame, textvariable=image_path, state='readonly', **styles['entries'])
-        image_entry.pack()
+            # Details container frame
+            details_frame = tk.Frame(content_frame, **styles['frame'])
+            details_frame.pack(fill="both", expand=True, pady=10)
 
-        def select_image():
-            file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
-            if file_path:
-                image_path.set(file_path)
-        
-        select_image_button = tk.Button(content_inner_frame, text="Select Image", command=select_image, **styles['buttons'])
-        select_image_button.pack()
+            # Left side - Product image
+            left_frame = tk.Frame(details_frame, **styles['frame'])
+            left_frame.pack(side="left", fill="both", expand=True, padx=(5, 5))
 
-        tk.Label(content_inner_frame, text="Stock", **styles['labels']).pack()
-        stock_entry = tk.Entry(content_inner_frame, **styles['entries'])
-        stock_entry.insert(0, product[8])
-        stock_entry.pack()
+            # Right side setup with fixed width and minimum height
+            right_frame = tk.Frame(details_frame, width=250, **styles['frame']) #, height=340
+            right_frame.pack(side="right", fill="both", padx=(10, 0))
+            right_frame.pack_propagate(False)
 
-        tk.Label(content_inner_frame, text="Listed", **styles['labels']).pack()
-        listed_var = tk.StringVar(value="Yes" if product[4] else "No")
-        listed_combobox = ttk.Combobox(content_inner_frame, textvariable=listed_var, values=["Yes", "No"], width=price_entry.cget("width") - 3, style='Edit.TCombobox')
-        listed_combobox.pack()
+            # Create inner frame with minimum height
+            inner_right_frame = tk.Frame(right_frame, **styles['frame'])
+            inner_right_frame.pack(fill="both", expand=True, padx=10, pady=5)
+            #inner_right_frame.configure(height=340)
 
-        message_label = tk.Label(content_inner_frame, text="", **styles['message'])
-        message_label.pack(pady=10)
+            # Price at top
+            price_frame = tk.Frame(inner_right_frame, **styles['frame'])
+            price_frame.pack(pady=5)
+            tk.Label(price_frame, text="Price: £", **styles['price']).pack(side="left")
+            price_entry = tk.Entry(price_frame, width=10, **styles['entries'])
+            price_entry.insert(0, f"{product[2]:.2f}")
+            price_entry.pack(side="left")
 
-        def save_edit_product():
-            name = name_entry.get()
-            price = price_entry.get()
-            description = description_entry.get()
-            category = category_combobox.get()
-            image = image_path.get()
-            stock = stock_entry.get()
-            listed = 1 if listed_var.get() == "Yes" else 0
+            # Description box below price
+            desc_frame = tk.Frame(inner_right_frame, **styles['frame'])
+            desc_frame.pack(fill="x", pady=5)
+            tk.Label(desc_frame, text="Description:", **styles['labels']).pack(anchor="n")
+            description_text = tk.Text(desc_frame, height=4, wrap="word", **styles['entries'])
+            description_text.insert("1.0", product[5])
+            description_text.pack(fill="x", pady=5)
 
-            is_valid, message = validate_product_fields(name, price, stock, listed, category, image, description)
-            if not is_valid:
-                display_error(message_label, message)
-                return
+            # Add to Cart button
+            cart_button = tk.Button(inner_right_frame, text="Add to Cart", **styles['buttons'])
+            cart_button.pack(pady=(10, 0))
 
-            # Convert values after validation
-            price = float(price)
-            stock = int(stock) if stock else 0
-            category_id = get_category_id(category) if category else None
+            # Stock entry with container for centering
+            stock_frame = tk.Frame(inner_right_frame, **styles['frame'])
+            stock_frame.pack(fill="x", pady=(0, 5))
+            stock_container = tk.Frame(stock_frame, **styles['frame'])
+            stock_container.pack(expand=True)
+            tk.Label(stock_container, text="Stock:", **styles['labels']).pack(side="left")
+            stock_entry = tk.Entry(stock_container, width=10, **styles['entries'])
+            stock_entry.insert(0, product[8])
+            stock_entry.pack(side="left", padx=5)
 
-            keep_files = not listed  # True if unlisting (listed=0)
-            update_product(product_id, name, price, None, description, category_id, image, stock, keep_files)
-            list_product(product_id, listed)
-            display_success(message_label, "Product updated successfully!")
-            show_manage_products_screen()
+            # Bottom frame spanning full width (moved to after QR code)
+            bottom_frame = tk.Frame(content_frame, **styles['frame'])
+            bottom_frame.pack(fill="x", expand=True)
 
-        def cancel_edit_product():
-            clear_frame(content_inner_frame)
-            show_manage_products_screen()
+            # Category and Listed status (side by side)
+            settings_frame = tk.Frame(bottom_frame, **styles['frame'])
+            settings_frame.pack(expand=True, pady=(2, 2))
 
-        tk.Button(content_inner_frame, text="Save", command=save_edit_product, **styles['buttons']).pack(pady=10)
-        tk.Button(content_inner_frame, text="Cancel", command=cancel_edit_product, **styles['buttons']).pack(pady=10)
+            # Container for horizontal layout
+            controls_container = tk.Frame(settings_frame, **styles['frame'])
+            controls_container.pack(expand=True)
+
+            # Category on the left
+            category_container = tk.Frame(controls_container, **styles['frame'])
+            category_container.pack(side="left", padx=10)
+            tk.Label(category_container, text="Category:", **styles['labels']).pack()
+            category_combobox = ttk.Combobox(category_container, values=get_categories(), style='Edit.TCombobox', width=20)
+            if get_category_name(product[6]):
+                category_combobox.set(get_category_name(product[6]))
+            category_combobox.pack(pady=2)
+
+            # Listed status on the right
+            listed_container = tk.Frame(controls_container, **styles['frame'])
+            listed_container.pack(side="left", padx=10)
+            tk.Label(listed_container, text="Listed:", **styles['labels']).pack()
+            listed_var = tk.StringVar(value="Yes" if product[4] else "No")
+            listed_combobox = ttk.Combobox(listed_container, textvariable=listed_var, values=["Yes", "No"], style='Edit.TCombobox', width=20)
+            listed_combobox.pack(pady=2)
+
+            # Message label
+            message_label = tk.Label(bottom_frame, text="", **styles['message'])
+            message_label.pack(pady=5)
+
+            # Action buttons
+            button_frame = tk.Frame(bottom_frame, **styles['frame'])
+            button_frame.pack(pady=(2, 0))
+            tk.Button(button_frame, text="Save", command=lambda: save_edit_product(), **styles['buttons']).pack(side="left", padx=5)
+            tk.Button(button_frame, text="Cancel", command=lambda: show_manage_products_screen(), **styles['buttons']).pack(side="left", padx=5)
+
+            def select_image():
+                """Handle image selection"""
+                file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
+                if file_path:
+                    image_path.set(file_path)
+                    # Force immediate resize
+                    resize_content()
+
+            # Modify existing image handling:
+            image_path = tk.StringVar(value=product[7])
+            image_frame = tk.Frame(left_frame, **styles['frame'])
+            image_frame.pack(pady=(0, 5))
+
+            # Add select image button
+            select_image_button = tk.Button(left_frame, text="Change Image", command=select_image, **styles['buttons'])
+            select_image_button.pack(pady=5)
+
+            resize_timer = None
+
+            def debounced_resize(event=None):
+                """Debounced version of resize_content"""
+                nonlocal resize_timer
+                if resize_timer is not None:
+                    window.after_cancel(resize_timer)
+                resize_timer = window.after(150, lambda: resize_content(event))
+
+            def resize_content(event=None):
+                """Handle responsive resizing of images"""
+                image_to_resize = image_path.get() or product[7]
+                
+                # Use placeholder if no image exists
+                if not image_to_resize:
+                    image_to_resize = os.path.join(get_paths()['icons_dir'], 'placeholder.png')
+                
+                 # Get window dimensions first
+                window_width = window.winfo_width()
+                window_height = window.winfo_height()
+                    
+                # Force geometry updates
+                window.update_idletasks()
+                
+                # Set minimum heights and get current heights
+                MIN_RIGHT_HEIGHT = 330  # Increased from 340 to ensure QR visibility
+                MIN_QR_PADDING = 5    # Minimum padding around QR code
+                
+                left_height = left_frame.winfo_reqheight()
+                right_height = right_frame.winfo_reqheight()
+                
+                # Enforce minimum right frame height
+                final_right_height = max(MIN_RIGHT_HEIGHT, right_height)
+                right_frame.configure(height=final_right_height)
+                inner_right_frame.configure(height=final_right_height)
+                
+                # Calculate QR padding based on available space
+                if left_height > right_height:
+                    # If left side is taller, distribute extra space
+                    extra_space = left_height - right_height
+                    qr_top_padding = max(MIN_QR_PADDING, extra_space // 3)
+                    bottom_padding = max(MIN_QR_PADDING, extra_space // 4)
+                else:
+                    # Use minimum padding if heights are similar
+                    qr_top_padding = MIN_QR_PADDING
+                    bottom_padding = MIN_QR_PADDING
+                
+                # Update QR code padding
+                if hasattr(inner_right_frame, 'qr_label'):
+                    inner_right_frame.qr_label.pack_configure(pady=(qr_top_padding, MIN_QR_PADDING))
+                
+                # Update bottom frame padding
+                bottom_frame.pack_configure(pady=(bottom_padding, 0))
+
+                # Calculate responsive dimensions based on window size
+                # Cant go below the minimum width and height since thats set at the start
+                if window_width <= 1280:  # Small screens (1280x720)
+                    width_factor = 0.25
+                    height_factor = 0.3
+                    min_width_factor = 0.02
+                    min_height_factor = 0.02
+                    qr_factor = 0.12
+                    qr_min_size = 90
+                    qr_max_size = 90
+                elif window_width <= 1366:  # Keep existing factors for larger screens
+                    width_factor = 0.35
+                    height_factor = 0.45
+                    min_width_factor = 0.1
+                    min_height_factor = 0.1
+                    qr_factor = 0.12
+                    qr_min_size = 100
+                    qr_max_size = 100
+                elif window_width <= 1600:  # Medium screens
+                    width_factor = 0.38
+                    height_factor = 0.48
+                    min_width_factor = 0.15
+                    min_height_factor = 0.15
+                    qr_factor = 0.1
+                    qr_min_size = 140
+                    qr_max_size = 140
+                elif window_width <= 1920:  # Full HD
+                    width_factor = 0.4
+                    height_factor = 0.5
+                    min_width_factor = 0.2
+                    min_height_factor = 0.2
+                    qr_factor = 0.1
+                    qr_min_size = 160
+                    qr_max_size = 160
+                elif window_width <= 2560:  # 2K/QHD
+                    width_factor = 0.45
+                    height_factor = 0.55
+                    min_width_factor = 0.25
+                    min_height_factor = 0.25
+                    qr_factor = 0.08
+                    qr_min_size = 180
+                    qr_max_size = 180
+                else:  # 4K and larger
+                    width_factor = 0.5
+                    height_factor = 0.6
+                    min_width_factor = 0.3
+                    min_height_factor = 0.3
+                    qr_factor = 0.06
+                    qr_min_size = 200
+                    qr_max_size = 200
+
+                # Calculate image dimensions
+                max_img_width = min(int(window_width * width_factor), 1800)
+                max_img_height = min(int(window_height * height_factor), 1600)
+                min_img_width = max(int(window_width * min_width_factor), 100)
+                min_img_height = max(int(window_height * min_height_factor), 75)
+                
+                # Simplified QR sizing with fixed min/max per resolution
+                qr_base_size = min(int(window_width * qr_factor), qr_max_size)
+                qr_size = max(qr_min_size, min(qr_base_size, qr_max_size))
+
+                # Resize product image
+                resized_image = resize_product_image(
+                    image_to_resize,
+                    max_width=max_img_width,
+                    max_height=max_img_height,
+                    min_width=min_img_width,
+                    min_height=min_img_height
+                )
+
+                # Update product image
+                if resized_image:
+                    if hasattr(left_frame, 'image_label'):
+                        left_frame.image_label.configure(image=resized_image)
+                        left_frame.image_label.image = resized_image
+                    else:
+                        left_frame.image_label = tk.Label(left_frame, image=resized_image, **styles['image_frame'])
+                        left_frame.image_label.image = resized_image
+                        left_frame.image_label.pack(pady=(0, 5))
+
+                # Update QR code with dynamic padding based on window size
+                if product[3]:
+                    resized_qr = resize_qr_code(product[3], size=(qr_size, qr_size))
+                    if resized_qr:
+                        if hasattr(inner_right_frame, 'qr_label'):
+                            inner_right_frame.qr_label.configure(image=resized_qr)
+                            inner_right_frame.qr_label.image = resized_qr
+                        else:
+                            # Create QR container frame with minimal spacing
+                            qr_container = tk.Frame(inner_right_frame, **styles['frame'])
+                            qr_container.pack(fill="x", expand=False, pady=(5, 5))  # Reduced vertical padding
+                            
+                            inner_right_frame.qr_label = tk.Label(qr_container, image=resized_qr, **styles['image_frame'])
+                            inner_right_frame.qr_label.image = resized_qr
+                            inner_right_frame.qr_label.pack(pady=2)  # Minimal padding around QR code
+
+            def save_edit_product():
+                # Get all form values
+                name = name_entry.get()
+                price = float(price_entry.get())
+                description = description_text.get("1.0", "end-1c")
+                category = category_combobox.get()
+                image = image_path.get()
+                stock = int(stock_entry.get() or 0)
+                listed = 1 if listed_var.get() == "Yes" else 0
+
+                # Validate inputs
+                is_valid, message = validate_product_fields(name, price, stock, listed, category, image, description)
+                if not is_valid:
+                    display_error(message_label, message)
+                    return
+
+                # Get category ID
+                category_id = get_category_id(category) if category else None
+
+                # Get current product state
+                current_product = get_product_by_id(product_id)
+
+                # Determine what needs updating
+                name_changed = current_product[1] != name
+                price_changed = abs(float(current_product[2]) - price) > 0.001
+                image_changed = image != current_product[7]
+
+                # Keep files only if no changes to name/price/image
+                keep_files = not (name_changed or price_changed or image_changed)
+
+                # Force QR regeneration if:
+                needs_qr = name_changed or (price_changed and listed)
+
+                # Set QR code value - force regeneration if needed
+                qr_code = True if needs_qr else current_product[3]
+
+                # Update product
+                update_product(
+                    product_id=product_id,
+                    name=name,
+                    price=price,
+                    qr_code=qr_code,
+                    description=description,
+                    category_id=category_id,
+                    image=image,
+                    stock=stock,
+                    keep_files=keep_files
+                )
+                
+                # Update listing status
+                list_product(product_id, listed)
+                display_success(message_label, "Product updated successfully!")
+                show_manage_products_screen()
+
+            # Bind resize event
+            window.bind("<Configure>", debounced_resize)
+            window.update_idletasks()
+            window.after(100, resize_content)
+
+            # Enable mouse wheel scrolling
+            bind_wheel()
+
+        else:
+            message_label = tk.Label(content_inner_frame, text="", **styles['message'])
+            message_label.pack()
+            display_error(message_label, "Product not found!")
 
     def show_manage_categories_screen():
         """Display the manage categories screen."""

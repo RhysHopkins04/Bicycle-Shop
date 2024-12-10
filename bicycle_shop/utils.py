@@ -210,7 +210,7 @@ def get_style_config():
         },
         'product_page': {
             'title': {
-                'font': ("Arial", 18, "bold"),
+                'font': ("Arial", 24, "bold"),
                 'bg': theme['dark_primary'],
                 'fg': theme['light_text']
             },
@@ -220,10 +220,11 @@ def get_style_config():
             'image_frame': {
                 'bg': theme['dark_primary']
             },
-            'description': {
-                'bg': theme['dark_primary'],
-                'fg': theme['light_text'],
-                'justify': 'left'
+            'entries': {
+                'bg': theme['light_primary'],
+                'fg': theme['dark_text'],
+                'insertbackground': theme['dark_text'],
+                'relief': 'flat'
             },
             'price': {
                 'font': ("Arial", 16, "bold"),
@@ -231,6 +232,10 @@ def get_style_config():
                 'fg': theme['light_text']
             },
             'labels': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'description': {
                 'bg': theme['dark_primary'],
                 'fg': theme['light_text']
             },
@@ -347,17 +352,28 @@ def get_style_config():
         },
         'edit_product': {
             'title': {
-                'font': ("Arial", 24, "bold"),
+                'font': ("Arial", 18, "bold"),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'frame': {
+                'bg': theme['dark_primary']
+            },
+            'image_frame': {
+                'bg': theme['dark_primary']
+            },
+            'entries': {
+                'bg': theme['light_primary'],
+                'fg': theme['dark_text']
+            },
+            'price': {
+                'font': ("Arial", 16, "bold"),
                 'bg': theme['dark_primary'],
                 'fg': theme['light_text']
             },
             'labels': {
                 'bg': theme['dark_primary'],
                 'fg': theme['light_text']
-            },
-            'entries': {
-                'bg': theme['light_primary'],
-                'fg': theme['dark_text']
             },
             'combobox': {
                 'bg': theme['light_primary'],
