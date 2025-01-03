@@ -1,15 +1,8 @@
 # **TODO:**
 ## **Incomplete:**
 
-- Updated the edit_products function to use the layout of the view products page shown in the store, adjusted it to make it dynamic in its updated viewing size and added a placeholder image to avoid issues with there being no image and instruct to add one.
-
-
-- Potentially make it so that the edit product is done with editable boxes on the view product screen for ease of how it will look + changeability.
-- Make it so that on the store listing the images are the image of the product not the qr code.
-
-- Global Search bar to find functions
+- Global Search bar to find functions for admin usage.
 - qr code scanning/ link to global search on main page + find the product page on admin
-- Switch from globals to state management for shopping card integration if needed
 - Create a Shopping Cart Function
 
 - Add manage users widget
@@ -23,6 +16,8 @@
 - Create Dashboard page with likely to be common use parts
 
 ## **Potential:**
+? Switch from globals to state management for shopping card integration if needed ?
+? Make it so that on the store listing the images are the image of the product not the qr code. ?
 ? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
 ? Could do with updating the color scheme default ?
 ? add max pswd length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
@@ -31,6 +26,8 @@
 ? Ask about use of CTK (custom tkinter) ?
 
 ## **Known Issues, unsure how to fix:**
+
+Admin login page was able to be accessed from standard user in dropdown one time (cannot see it again when checking but i will keep an eye out for this issue possibly reoccuring.)
 
 TKINTER DOESNT SUPPORT % BASED PADDING AHHHHHH
 
@@ -55,6 +52,7 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Reworked the product edit logic to avoid issues and handle all properly and robustly
 - Updated the edit_products function to use the layout of the view products page shown in the store, adjusted it to make it dynamic in its updated viewing size and added a placeholder image to avoid issues with there being no image and instruct to add one.
 - Fixed issues with cleanup of files not being activated when needed and activated when unneeded (added a new keep_files variable to parse that will be activated if the listing variable is the only one that changed!)
 - Fixed error with redundant validation function inside save_edit_product causing errors when editing without a category

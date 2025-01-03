@@ -1279,56 +1279,62 @@ def start_app():
                             inner_right_frame.qr_label.pack(pady=2)  # Minimal padding around QR code
 
             def save_edit_product():
-                # Get all form values
-                name = name_entry.get()
-                price = float(price_entry.get())
-                description = description_text.get("1.0", "end-1c")
-                category = category_combobox.get()
-                image = image_path.get()
-                stock = int(stock_entry.get() or 0)
-                listed = 1 if listed_var.get() == "Yes" else 0
+                """Handle product updates with validation"""
+                # Collect form values
+                new_values = {
+                    'name': name_entry.get().strip(),
+                    'price': float(price_entry.get()),
+                    'description': description_text.get("1.0", "end-1c").strip(),
+                    'category': category_combobox.get(),
+                    'image': image_path.get(),
+                    'stock': int(stock_entry.get() or 0),
+                    'listed': 1 if listed_var.get() == "Yes" else 0
+                }
 
                 # Validate inputs
-                is_valid, message = validate_product_fields(name, price, stock, listed, category, image, description)
+                is_valid, message = validate_product_fields(
+                    new_values['name'], 
+                    new_values['price'],
+                    new_values['stock'], 
+                    new_values['listed'],
+                    new_values['category'],
+                    new_values['image'],
+                    new_values['description']
+                )
+                
                 if not is_valid:
                     display_error(message_label, message)
                     return
 
-                # Get category ID
-                category_id = get_category_id(category) if category else None
-
-                # Get current product state
+                category_id = get_category_id(new_values['category']) if new_values['category'] else None
+                
+                # Get current product state to check what's changing
                 current_product = get_product_by_id(product_id)
+                
+                # Only perform file operations if name, price, or image changes
+                needs_name_price_update = (
+                    new_values['name'] != current_product[1] or 
+                    abs(float(new_values['price']) - float(current_product[2])) > 0.001
+                )
+                needs_image_update = (new_values['image'] and new_values['image'] != current_product[7])
 
-                # Determine what needs updating
-                name_changed = current_product[1] != name
-                price_changed = abs(float(current_product[2]) - price) > 0.001
-                image_changed = image != current_product[7]
-
-                # Keep files only if no changes to name/price/image
-                keep_files = not (name_changed or price_changed or image_changed)
-
-                # Force QR regeneration if:
-                needs_qr = name_changed or (price_changed and listed)
-
-                # Set QR code value - force regeneration if needed
-                qr_code = True if needs_qr else current_product[3]
-
-                # Update product
+                # Update product with appropriate file handling
                 update_product(
                     product_id=product_id,
-                    name=name,
-                    price=price,
-                    qr_code=qr_code,
-                    description=description,
+                    name=new_values['name'],
+                    price=new_values['price'],
+                    qr_code=True,  # Let database.py determine if new QR needed
+                    description=new_values['description'],
                     category_id=category_id,
-                    image=image,
-                    stock=stock,
-                    keep_files=keep_files
+                    image=new_values['image'],
+                    stock=new_values['stock'],
+                    keep_qr=not needs_name_price_update,
+                    keep_image=not needs_image_update
                 )
-                
-                # Update listing status
-                list_product(product_id, listed)
+
+                # Only handle listing status separately
+                list_product(product_id, new_values['listed'])
+
                 display_success(message_label, "Product updated successfully!")
                 show_manage_products_screen()
 

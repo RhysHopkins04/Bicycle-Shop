@@ -121,6 +121,7 @@ def validate_product_fields(name, price, stock, listed=False, category=None, ima
             return False, "Stock must be a valid number for listed products."
     
     return True, "Valid"
+
 # Category Validation Functions:
 def validate_category_name(name):
     """Validate category name."""
