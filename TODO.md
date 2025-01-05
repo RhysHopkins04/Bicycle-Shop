@@ -48,6 +48,8 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Fixed error when the to go back to the admin dashboard after visiting the cart and going back to the store page.
+- Fixed error when trying to go back to store page from cart, when cart is empty and store page is empty.
 - Added the search bar: "enable"/"disable" function to allow for it to only be usable under pages where it is allowed (this should completely stop the ability for an error to occur where the search bar cant filter the page).
 - Added scrollability to the shopping cart function, may still need some more done to it, butit will be alright for now.
 - Created a shopping cart function that works as required, still a few polishing touches left.

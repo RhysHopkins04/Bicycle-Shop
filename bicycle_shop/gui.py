@@ -238,6 +238,9 @@ def start_app():
         
         clear_frame(main_frame)
 
+         # Check admin status using current user
+        is_admin = get_current_user_admin_status(current_username)
+
         # Unbind existing events from the dropdown frame to avoid trying to configure a non existent frame
         window.unbind("<Configure>")
         window.unbind("<Button-1>")
@@ -296,7 +299,7 @@ def start_app():
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
         current_admin_status = get_current_user_admin_status(current_username)
-        if is_admin and current_admin_status:  # Only show if user is admin AND came from admin panel
+        if is_admin:
             tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="View Cart", command=show_cart, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
@@ -345,7 +348,7 @@ def start_app():
         content_frame = tk.Frame(main_frame, bg=styles['content']['frame_bg'])
         content_frame.pack(side="right", fill="both", expand=True)  # Fills the remaining space of the window with this frame
 
-         # Creates an inner content frame for the dynamic widgets to be added to so there is a contrast border between the header, nav bar and the widgets
+        # Creates an inner content frame for the dynamic widgets to be added to so there is a contrast border between the header, nav bar and the widgets
         global content_inner_frame
         content_inner_frame = tk.Frame(content_frame, bg=styles['content']['inner_frame']['bg'], padx=50, pady=10)
         content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)  # Fills the remaining space of the window with this frame
@@ -661,6 +664,11 @@ def start_app():
         styles = get_style_config()['cart']
         image_styles = get_style_config()['product_page']['image_frame']
         
+        # Create new content_inner_frame with padding
+        global content_inner_frame
+        content_inner_frame = tk.Frame(content_frame, bg=get_style_config()['store_listing']['content']['inner_frame']['bg'], padx=50, pady=10)
+        content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)
+
         # Create clean copies of styles to avoid conflicts
         label_styles = dict(styles['labels'])
         if 'font' in label_styles: label_styles.pop('font')
@@ -668,24 +676,24 @@ def start_app():
         
         button_styles = dict(styles['buttons'])
         if 'fg' in button_styles: button_styles.pop('fg')
-        
-        # Create new content_inner_frame with padding
-        global content_inner_frame
-        content_inner_frame = tk.Frame(
-            content_frame, 
-            bg=get_style_config()['store_listing']['content']['inner_frame']['bg']
-        )
-        content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)
-        
-        # Remove font and fg from label styles to avoid conflicts
-        label_styles = dict(styles['labels'])
-        if 'font' in label_styles: label_styles.pop('font')
-        if 'fg' in label_styles: label_styles.pop('fg')
-        
-        # Navigation buttons
+
+        # Get cart items
+        cart_items = get_cart_items(current_user_id)
+
+        # Navigation section at top
         nav_frame = tk.Frame(content_inner_frame, **styles['frame'])
-        nav_frame.pack(fill="x", pady=(20, 20), padx=20)
-        
+        nav_frame.pack(fill="x", pady=(10, 0))
+
+        # Create scrollable frame early and pack it immediately
+        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
+        wrapper.pack(fill="both", expand=True, pady=(20, 0))
+
+        # Clean up bindings when leaving cart
+        def cleanup_cart():
+            unbind_wheel()  # Remove scroll wheel binding
+            canvas.unbind('<Configure>')  # Remove resize check binding
+            window.unbind("<Button-1>")  # Remove other bindings
+
         # Left side container for buttons
         button_container = tk.Frame(nav_frame, **styles['frame'])
         button_container.pack(side="left")
@@ -702,26 +710,10 @@ def start_app():
         )
         back_button.pack(side="left", padx=(0, 180)) # right side padding to shift the title towards the center of the checkout section below.
         
-        if get_current_user_admin_status(current_username):
-            admin_button = tk.Button(
-                nav_frame,
-                text="Back to Admin Panel", 
-                command=switch_to_admin_panel, 
-                **styles['buttons']
-            )
-            admin_button.pack(side="left")
-
-        # Get cart items
-        cart_items = get_cart_items(current_user_id)
-        
-        if not cart_items:
-            message_label = tk.Label(content_inner_frame, text="Your cart is empty", **styles['message'])
-            message_label.pack(pady=20)
-            return
-
+        # Cart summary info
         total_items = sum(item[-1] for item in cart_items)
         total_price = 0
-        
+
         # Cart title next to buttons
         tk.Label(
             nav_frame,
@@ -731,16 +723,28 @@ def start_app():
             **label_styles
         ).pack(side="left")
 
-        # Create scrollable frame
-        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
-        wrapper.pack(fill="both", expand=True)
+        # Early return if cart is empty
+        if not cart_items:
+            message_label = tk.Label(scrollable_frame, text="", **styles['message'])
+            message_label.pack(pady=20)
+            display_error(message_label, "No items in cart")  # Using display_error for consistent styling
+            return
 
         # Enable mouse wheel scrolling initially
         bind_wheel()
 
+        if get_current_user_admin_status(current_username):
+            admin_button = tk.Button(
+                nav_frame,
+                text="Back to Admin Panel", 
+                command=switch_to_admin_panel, 
+                **styles['buttons']
+            )
+            admin_button.pack(side="left")
+
         # Headers
         header_frame = tk.Frame(scrollable_frame, **styles['frame'])
-        header_frame.pack(fill="x", pady=(0, 10), padx=20)
+        header_frame.pack(fill="x", pady=(10, 10), padx=20)
         
         # Column headers
         tk.Label(header_frame, text="Item", width=40, anchor="w", fg="white", **label_styles).pack(side="left", padx=10)
@@ -891,12 +895,6 @@ def start_app():
 
         # Bind to canvas resize events
         canvas.bind('<Configure>', check_scroll_needed)
-
-        # Clean up bindings when leaving cart
-        def cleanup_cart():
-            unbind_wheel()  # Remove scroll wheel binding
-            canvas.unbind('<Configure>')  # Remove resize check binding
-            window.unbind("<Button-1>")  # Remove other bindings
 
     # TODO: Add the rest of the functionality required + extras and fill out the "Dashboard" screen itself for commonly used parts of the program to speed up tasks #
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
@@ -1132,9 +1130,10 @@ def start_app():
         search_container = tk.Frame(content_inner_frame, bg=styles['frame']['bg'])
         search_container.pack(fill="x", pady=(5, 10))
 
-        # Create search widget with dynamic width
-        search_frame, search_entry = setup_search_widget(search_container)
-        search_frame.pack(expand=True)  # Allow frame to expand
+        # Create search widget with dynamic width and capture all return values
+        global disable_search, enable_search
+        search_frame, search_entry, disable_search, enable_search = setup_search_widget(search_container)
+        search_frame.pack(expand=True)
 
         # Configure search entry to expand within its frame
         search_entry.pack(fill="x", expand=True, padx=100)  # Add padding to entry itself
