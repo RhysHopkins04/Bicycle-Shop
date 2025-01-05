@@ -636,7 +636,7 @@ def create_user_info_display(parent, username, first_name, last_name, is_admin, 
 def setup_search_widget(parent, placeholder="Search for products", font_size=20):
     """Create and setup search entry with placeholder"""
     theme = get_theme()
-    bg_color=theme['dark_primary']
+    bg_color = theme['dark_primary']
     search_frame = tk.Frame(parent, bg=bg_color)
     search_entry = tk.Entry(search_frame, width=50, fg=theme['med_text'], font=("Arial", font_size))
     search_entry.insert(0, placeholder)
@@ -652,10 +652,20 @@ def setup_search_widget(parent, placeholder="Search for products", font_size=20)
             search_entry.insert(0, placeholder)
             search_entry.config(fg=theme['med_text'])
     
+    def disable_search():
+        search_entry.config(state="disabled")
+        search_entry.unbind("<FocusIn>")
+        search_entry.unbind("<FocusOut>")
+        
+    def enable_search():
+        search_entry.config(state="normal")
+        search_entry.bind("<FocusIn>", on_focus_in)
+        search_entry.bind("<FocusOut>", on_focus_out)
+    
     search_entry.bind("<FocusIn>", on_focus_in)
     search_entry.bind("<FocusOut>", on_focus_out)
     
-    return search_frame, search_entry
+    return search_frame, search_entry, disable_search, enable_search
 
 # UI Scrollable Frame Functions
 def create_scrollable_frame(parent):

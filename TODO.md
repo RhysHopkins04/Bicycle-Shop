@@ -1,7 +1,5 @@
 # **TODO:**
 ## **Incomplete:**
-- Error when using the search bar inside of the cart since it is still on the top of the screen (headder)
-
 - Add manage users widget
 - Allow the user to manage themselves using the top right
 - Add change password ability to the top right for both users and admin users
@@ -50,6 +48,7 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Added the search bar: "enable"/"disable" function to allow for it to only be usable under pages where it is allowed (this should completely stop the ability for an error to occur where the search bar cant filter the page).
 - Added scrollability to the shopping cart function, may still need some more done to it, butit will be alright for now.
 - Created a shopping cart function that works as required, still a few polishing touches left.
 - Fixed issue where admin page was accessible after a normal user was to go to a product page. Added proper user authentification (checks to ensure a user is an admin) before the dropdown interface is shown.

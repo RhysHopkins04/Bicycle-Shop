@@ -33,13 +33,15 @@ def start_app():
     icon_paths = get_icon_paths()
 
     # Global Variables other than the main_frame 
-    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id, current_user_id
+    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id, current_user_id, disable_search, enable_search
     logout_button = None
     current_admin_id = None
     current_username = None
     current_first_name = None
     current_last_name = None
     current_user_id = None
+    disable_search = None
+    enable_search = None
 
     # Add window state tracking
     global window_state
@@ -267,11 +269,15 @@ def start_app():
 
         # Create container frame for search that will properly expand/contract
         search_container = tk.Frame(top_bar, bg=styles['top_bar']['bg'])
-        search_container.pack(side="left", fill="x", expand=True, padx=(20, 0))  # Add left padding
+        search_container.pack(side="left", fill="x", expand=True, padx=(20, 0))
 
-        # Create search widget with dynamic width
-        search_frame, search_entry = setup_search_widget(search_container)
-        search_frame.pack(expand=True)  # Allow frame to expand
+        # Create search widget with dynamic width and capture enable/disable functions
+        global disable_search, enable_search
+        search_frame, search_entry, disable_search, enable_search = setup_search_widget(search_container)
+        search_frame.pack(expand=True)
+
+        # Enable search when returning to store
+        enable_search()  # Call the enable function
 
         # Configure search entry to expand within its frame
         search_entry.pack(fill="x", expand=True, padx=100)  # Add padding to entry itself
@@ -647,6 +653,9 @@ def start_app():
         """Display user's shopping cart"""
         window.unbind("<Configure>")
         window.unbind("<Button-1>")
+
+        # Disable search bar when entering cart
+        disable_search()  # Call the disable function
         
         clear_frame(content_frame)
         styles = get_style_config()['cart']
