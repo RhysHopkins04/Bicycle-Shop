@@ -1,21 +1,21 @@
 # **TODO:**
 ## **Incomplete:**
-
-- Global Search bar to find functions for admin usage.
-- qr code scanning/ link to global search on main page + find the product page on admin
-- Create a Shopping Cart Function
+- Finish the shopping cart function with proper scrollability
 
 - Add manage users widget
 - Allow the user to manage themselves using the top right
 - Add change password ability to the top right for both users and admin users
 - Utilize the change password function for first admin logon for change password in manage users & within the management user widget (management of others as an admin)
-- Must have 1 persistant admin account.
+- Must have 1 persistant admin account
 
+- Global Search bar to find functions for admin usage
 - Create QR Code Discount Maker
 - Create User Logs page for Admins
 - Create Dashboard page with likely to be common use parts
+- qr code scanning/ link to global search on main page + find the product page on admin
 
 ## **Potential:**
+? Can add product to a category without ability to remove it back to unlisted even without full content on the product (as required for listing a product) ?
 ? Switch from globals to state management for shopping card integration if needed ?
 ? Make it so that on the store listing the images are the image of the product not the qr code. ?
 ? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
@@ -26,8 +26,6 @@
 ? Ask about use of CTK (custom tkinter) ?
 
 ## **Known Issues, unsure how to fix:**
-
-Admin login page was able to be accessed from standard user in dropdown one time (cannot see it again when checking but i will keep an eye out for this issue possibly reoccuring.)
 
 TKINTER DOESNT SUPPORT % BASED PADDING AHHHHHH
 
@@ -52,6 +50,8 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Created a shopping cart function that works as required, still a few polishing touches left.
+- Fixed issue where admin page was accessible after a normal user was to go to a product page. Added proper user authentification (checks to ensure a user is an admin) before the dropdown interface is shown.
 - Reworked the product edit logic to avoid issues and handle all properly and robustly
 - Updated the edit_products function to use the layout of the view products page shown in the store, adjusted it to make it dynamic in its updated viewing size and added a placeholder image to avoid issues with there being no image and instruct to add one.
 - Fixed issues with cleanup of files not being activated when needed and activated when unneeded (added a new keep_files variable to parse that will be activated if the listing variable is the only one that changed!)

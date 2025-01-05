@@ -9,7 +9,8 @@ from auth import (register_user, authenticate_user, update_user_password, promot
 from database import (create_tables, initialize_admin, get_products, get_product_by_id, get_connection, 
                       list_product, add_product, update_product, delete_product as db_delete_product, 
                       add_category, get_categories, get_category_id, get_category_name, delete_category, 
-                      update_category
+                      update_category, add_to_cart, get_cart_items, update_cart_quantity,
+                      get_current_user_admin_status
                       )
 from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
                         validate_registration_fields, validate_username_uniqueness, validate_product_fields, 
@@ -26,18 +27,19 @@ from file_manager import (get_application_settings, get_icon_paths, get_paths)
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
     """Start the Tkinter GUI application.""" #Docstring's which i will use to help with future code documentation along with the comments.
-    
+
     # Get configuration settings
     app_settings = get_application_settings()
     icon_paths = get_icon_paths()
 
     # Global Variables other than the main_frame 
-    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id
+    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id, current_user_id
     logout_button = None
     current_admin_id = None
     current_username = None
     current_first_name = None
     current_last_name = None
+    current_user_id = None
 
     # Add window state tracking
     global window_state
@@ -97,7 +99,7 @@ def start_app():
 
         # Login function to be called by the login button
         def login(event=None): 
-            global current_username, current_first_name, current_last_name, current_admin_id
+            global current_username, current_first_name, current_last_name, current_admin_id, current_user_id
             username = username_entry.get()
             password = password_entry.get()
             success, is_admin, password_changed, first_name, last_name, user_id = authenticate_user(username, password)
@@ -106,6 +108,7 @@ def start_app():
                 current_username = username
                 current_first_name = first_name
                 current_last_name = last_name
+                current_user_id = user_id
                 if is_admin:
                     current_admin_id = user_id # Sets the global variable for later use
                     if not password_changed: # If the user is an admin but its the first login it forces the change password
@@ -286,9 +289,10 @@ def start_app():
         dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
-        # Add buttons to the dropdown frame with consistent styling
-        if is_admin:
+        current_admin_status = get_current_user_admin_status(current_username)
+        if is_admin and current_admin_status:  # Only show if user is admin AND came from admin panel
             tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
+        tk.Button(dropdown_frame, text="View Cart", command=show_cart, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
         # Add update dropdown position handler
@@ -423,7 +427,12 @@ def start_app():
                         row_frame.pack(fill="x", pady=10, padx=20)
                         row_count += 1
 
-                    product_frame = create_product_listing_frame(row_frame, product, 290, show_product_page)
+                    product_frame = create_product_listing_frame(
+                        row_frame, 
+                        product, 
+                        290,
+                        lambda p=product[0]: show_product_page(p, user_info_frame, dropdown_frame)
+                    )
 
                     col += 1
                     if col >= num_columns:
@@ -439,8 +448,13 @@ def start_app():
         # Call display_products initially to show all products
         display_products(get_products(listed_only=True))
 
-    def show_product_page(product_id):
+        # If this was called from show_product_page, update the cart button
+        if hasattr(content_inner_frame, 'update_cart_callback'):
+            content_inner_frame.update_cart_callback(user_info_frame, dropdown_frame)
+
+    def show_product_page(product_id, user_info_frame=None, dropdown_frame=None):
         """Display the product page for the given product ID."""
+        global current_user_id
         clear_frame(content_inner_frame)
         styles = get_style_config()['product_page']
 
@@ -500,11 +514,20 @@ def start_app():
             description_label = tk.Label(desc_frame, text=product[5], wraplength=280, **styles['description'])
             description_label.pack(pady=5)
 
-            # Add to Cart button
-            cart_button = tk.Button(inner_right_frame, text="Add to Cart", **styles['buttons'])
-            cart_button.pack(pady=(50, 0))
+            # Create message label just above the cart button
+            message_label = tk.Label(inner_right_frame, text="", **styles['message'])
+            message_label.pack(pady=(5, 0))
 
-            # Stock display
+            # Create cart button with proper user_info and dropdown frame references
+            cart_button = tk.Button(
+                inner_right_frame, 
+                text="Add to Cart",
+                command=lambda: add_to_cart_handler(user_info_frame, dropdown_frame),
+                **styles['buttons']
+            )
+            cart_button.pack(pady=(5, 10))
+
+            # Stock display below cart button
             stock_label = tk.Label(inner_right_frame, text=f"Stock: {product[8]}", **styles['labels'])
             stock_label.pack(pady=(0, 5))
 
@@ -527,7 +550,7 @@ def start_app():
                 wraplength_timer = window.after(150, lambda: update_wraplength(event))
 
             def resize_content(event=None):
-                if not product[7]:
+                if not product[7] or not left_frame.winfo_exists():
                     return
                     
                 # Calculate responsive dimensions based on window size
@@ -591,15 +614,265 @@ def start_app():
             # Enable mouse wheel scrolling
             bind_wheel()
 
+            def add_to_cart_handler(user_info=None, dropdown=None):
+                if not current_user_id:
+                    display_error(message_label, "Please log in to add items to cart")
+                    return
+                
+                success, message = add_to_cart(current_user_id, product_id)
+                if success:
+                    display_success(message_label, "Item added to cart")
+                    if user_info and dropdown:
+                        try:
+                            show_dropdown(None, user_info, dropdown)
+                            window.after(5000, lambda: safe_hide_dropdown(user_info, dropdown))
+                        except tk.TclError:
+                            pass  # Ignore if widgets are destroyed
+                else:
+                    display_error(message_label, message)
+
+            def safe_hide_dropdown(user_info, dropdown):
+                try:
+                    if user_info.winfo_exists() and dropdown.winfo_exists():
+                        hide_dropdown(None, user_info, dropdown)
+                except tk.TclError:
+                    pass
+
         else:
             message_label = tk.Label(content_inner_frame, text="", **styles['message'])
             message_label.pack()
             display_error(message_label, "Product not found!")
 
+    def show_cart():
+        """Display user's shopping cart"""
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
+        
+        clear_frame(content_frame)
+        styles = get_style_config()['cart']
+        image_styles = get_style_config()['product_page']['image_frame']
+        
+        # Create clean copies of styles to avoid conflicts
+        label_styles = dict(styles['labels'])
+        if 'font' in label_styles: label_styles.pop('font')
+        if 'fg' in label_styles: label_styles.pop('fg')
+        
+        button_styles = dict(styles['buttons'])
+        if 'fg' in button_styles: button_styles.pop('fg')
+        
+        # Create new content_inner_frame with padding
+        global content_inner_frame
+        content_inner_frame = tk.Frame(
+            content_frame, 
+            bg=get_style_config()['store_listing']['content']['inner_frame']['bg']
+        )
+        content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)
+        
+        # Remove font and fg from label styles to avoid conflicts
+        label_styles = dict(styles['labels'])
+        if 'font' in label_styles: label_styles.pop('font')
+        if 'fg' in label_styles: label_styles.pop('fg')
+        
+        # Navigation buttons
+        nav_frame = tk.Frame(content_inner_frame, **styles['frame'])
+        nav_frame.pack(fill="x", pady=(20, 20), padx=20)
+        
+        # Left side container for buttons
+        button_container = tk.Frame(nav_frame, **styles['frame'])
+        button_container.pack(side="left")
+
+        # Back button
+        back_button = tk.Button(
+            button_container, 
+            text="← Back to Store", 
+            command=lambda: switch_to_store_listing(is_admin=False), 
+            **styles['buttons']
+        )
+        back_button.pack(side="left", padx=(0, 180)) # right side padding to shift the title towards the center of the checkout section below.
+        
+        if get_current_user_admin_status(current_username):
+            admin_button = tk.Button(
+                nav_frame,
+                text="Back to Admin Panel", 
+                command=switch_to_admin_panel, 
+                **styles['buttons']
+            )
+            admin_button.pack(side="left")
+
+        # Get cart items
+        cart_items = get_cart_items(current_user_id)
+        
+        if not cart_items:
+            message_label = tk.Label(content_inner_frame, text="Your cart is empty", **styles['message'])
+            message_label.pack(pady=20)
+            return
+
+        total_items = sum(item[-1] for item in cart_items)
+        total_price = 0
+        
+        # Cart title next to buttons
+        tk.Label(
+            nav_frame,
+            text=f"Your Cart ({total_items} items)",
+            font=("Arial", 16, "bold"),
+            fg="white",
+            **label_styles
+        ).pack(side="left")
+
+        # Create scrollable frame
+        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
+        wrapper.pack(fill="both", expand=True)
+
+        # Headers
+        header_frame = tk.Frame(scrollable_frame, **styles['frame'])
+        header_frame.pack(fill="x", pady=(0, 10), padx=20)
+        
+        # Column headers
+        tk.Label(header_frame, text="Item", width=40, anchor="w", fg="white", **label_styles).pack(side="left", padx=10)
+        tk.Label(header_frame, text="Price", width=10, fg="white", **label_styles).pack(side="left", padx=10)
+        tk.Label(header_frame, text="Quantity", width=15, fg="white", **label_styles).pack(side="left", padx=10)
+        tk.Label(header_frame, text="Total", width=15, fg="white", **label_styles).pack(side="left", padx=10)
+
+        # Add separator
+        ttk.Separator(scrollable_frame, orient="horizontal").pack(fill="x", padx=20)
+
+        # Cart items loop
+        for item in cart_items:
+            item_frame = tk.Frame(scrollable_frame, **styles['frame'])
+            item_frame.pack(fill="x", pady=10, padx=20)
+            
+            # Product info with image
+            info_frame = tk.Frame(item_frame, **styles['frame'])
+            info_frame.pack(side="left", fill="x", expand=True)
+
+            if item[7]: # 7 is the image of the product
+                # Set fixed width and minimum height for consistent display locations of each item in the list.
+                img = resize_product_image(item[7], 
+                                        max_width=300,
+                                        min_width=50),
+                if img:
+                    img_label = tk.Label(info_frame, 
+                                    image=img,
+                                    **image_styles)
+                    img_label.image = img  # Keep reference to avoid garbage collection
+                    img_label.pack(side="left", padx=5)
+            
+            # Product name
+            tk.Label(info_frame, text=item[1], font=("Arial", 12), fg="white", **label_styles).pack(side="left", padx=10)
+            
+            # Unit price
+            tk.Label(
+                item_frame,
+                text=f"£{item[2]:.2f}",
+                font=("Arial", 11),
+                fg="#666666",
+                **label_styles
+            ).pack(side="left", padx=(50, 10))
+            
+            # Quantity controls
+            qty_frame = tk.Frame(item_frame, **styles['frame'])
+            qty_frame.pack(side="left", padx=10)
+            
+            def update_quantity(pid, current_qty, delta):
+                new_qty = current_qty + delta
+                if new_qty <= 0:
+                    update_cart_quantity(current_user_id, pid, 0)
+                else:
+                    update_cart_quantity(current_user_id, pid, new_qty)
+                show_cart()
+
+            # Quantity buttons and display
+            tk.Button(qty_frame, text="-", command=lambda pid=item[0], qty=item[-1]: update_quantity(pid, qty, -1), width=2, **button_styles).pack(side="left", padx=2)
+            tk.Label(qty_frame, text=str(item[-1]), width=3, fg="white", **label_styles).pack(side="left", padx=5)
+            tk.Button(qty_frame, text="+", command=lambda pid=item[0], qty=item[-1]: update_quantity(pid, qty, 1), width=2, **button_styles).pack(side="left", padx=2)
+
+            # Item total
+            item_total = item[2] * item[-1]
+            total_price += item_total
+            tk.Label(
+                item_frame,
+                text=f"£{item_total:.2f}",
+                font=("Arial", 11, "bold"),
+                fg="white",
+                **label_styles
+            ).pack(side="left", padx=(50, 10))
+            
+            # Remove button (red X)
+            remove_button = tk.Button(
+                item_frame,
+                text="×",
+                command=lambda pid=item[0]: (
+                    update_cart_quantity(current_user_id, pid, 0),  # Remove item
+                    show_cart()  # Refresh cart display
+                ),
+                font=("Arial", 16, "bold"),
+                fg="red",
+                bd=0,
+                highlightthickness=0,
+                bg=styles['frame']['bg'],
+                activebackground=styles['frame']['bg'],
+                activeforeground="darkred",
+                cursor="hand2"
+            )
+            remove_button.pack(side="right", padx=10)
+
+            # Add separator after each item
+            ttk.Separator(scrollable_frame, orient="horizontal").pack(fill="x", padx=20)
+
+        # Add final separator after all items
+        ttk.Separator(scrollable_frame, orient="horizontal").pack(fill="x", padx=20)
+
+        # Summary section
+        summary_frame = tk.Frame(scrollable_frame, **styles['frame'])
+        summary_frame.pack(fill="x", pady=20, padx=20)
+        
+        # Subtotal
+        tk.Label(
+            summary_frame,
+            text=f"Subtotal: £{total_price:.2f}",
+            font=("Arial", 12),
+            fg="#666666",
+            **label_styles
+        ).pack(pady=5)
+        
+        # Add coupon button
+        tk.Button(
+            summary_frame,
+            text="Add Coupon",
+            **button_styles
+        ).pack(pady=10)
+        
+        # Grand total
+        tk.Label(
+            summary_frame,
+            text=f"Grand Total: £{total_price:.2f}",
+            font=("Arial", 14, "bold"),
+            fg="white",
+            **label_styles
+        ).pack(pady=10)
+        
+        # Checkout button
+        tk.Button(
+            summary_frame,
+            text="Check Out",
+            font=("Arial", 12, "bold"),
+            width=20,
+            height=2,
+            **button_styles
+        ).pack(pady=10)
+
     # TODO: Add the rest of the functionality required + extras and fill out the "Dashboard" screen itself for commonly used parts of the program to speed up tasks #
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
     def switch_to_admin_panel():
         """Navigate to the admin panel."""
+        # Get current user's admin status from session or database
+        current_user_is_admin = get_current_user_admin_status(current_username)  # Pass the username
+    
+        if not current_user_is_admin:
+            # Redirect to store listing or show error
+            switch_to_store_listing(is_admin=False)
+            return
+    
         window.minsize(1280, 720)  # Minimum size for store listing
         
         # Handle maximized state if not fullscreen, ensures that it wont bring you out of fullscreen if you pressed it again.
@@ -649,6 +922,10 @@ def start_app():
         # Create a dropdown frame with a more visible style
         dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
+
+        # Get current admin status before creating dropdown buttons
+        if get_current_user_admin_status(current_username):  # Use fresh admin status check
+            tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
         # Add buttons to the dropdown frame with consistent styling
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
@@ -1493,6 +1770,15 @@ def start_app():
         main_frame.bind('<Return>', lambda event: change_password())
         change_button.bind('<Return>', lambda event: change_password())
 
+    def logout():
+        """Handle logout."""
+        global current_username, current_first_name, current_last_name, current_admin_id, current_user_id
+        current_user_id = None
+        current_username = None
+        current_first_name = None
+        current_last_name = None
+        current_admin_id = None
+        show_login_screen()
 
     window.mainloop() # Actually starts the application and allows the user to interact with the GUI
 

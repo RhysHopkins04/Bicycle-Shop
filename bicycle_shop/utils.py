@@ -249,6 +249,24 @@ def get_style_config():
                 'bg': theme['dark_primary']
             }
         },
+        'cart': {
+            'frame': {
+                'bg': theme['dark_primary']
+            },
+            'labels': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'message': {
+                'bg': theme['dark_primary']
+            },
+            'buttons': {
+                'bg': theme['med_primary'],
+                'fg': theme['dark_text'],
+                'activebackground': theme['med_primary'],
+                'activeforeground': theme['dark_text']
+            }
+        },
         'admin_panel': {
             'top_bar': {
                 'bg': theme['dark_primary'],
