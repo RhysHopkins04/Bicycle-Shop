@@ -1,6 +1,6 @@
 # **TODO:**
 ## **Incomplete:**
-- Finish the shopping cart function with proper scrollability
+- Error when using the search bar inside of the cart since it is still on the top of the screen (headder)
 
 - Add manage users widget
 - Allow the user to manage themselves using the top right
@@ -50,6 +50,7 @@ The manage products search bar wont unfocus if you click on the top_bar or the l
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense
 
 ## **Done:**
+- Added scrollability to the shopping cart function, may still need some more done to it, butit will be alright for now.
 - Created a shopping cart function that works as required, still a few polishing touches left.
 - Fixed issue where admin page was accessible after a normal user was to go to a product page. Added proper user authentification (checks to ensure a user is an admin) before the dropdown interface is shown.
 - Reworked the product edit logic to avoid issues and handle all properly and robustly

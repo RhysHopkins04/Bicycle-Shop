@@ -685,7 +685,10 @@ def start_app():
         back_button = tk.Button(
             button_container, 
             text="← Back to Store", 
-            command=lambda: switch_to_store_listing(is_admin=False), 
+            command=lambda: (
+                cleanup_cart(),
+                switch_to_store_listing(is_admin=False)
+            ), 
             **styles['buttons']
         )
         back_button.pack(side="left", padx=(0, 180)) # right side padding to shift the title towards the center of the checkout section below.
@@ -722,6 +725,9 @@ def start_app():
         # Create scrollable frame
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
         wrapper.pack(fill="both", expand=True)
+
+        # Enable mouse wheel scrolling initially
+        bind_wheel()
 
         # Headers
         header_frame = tk.Frame(scrollable_frame, **styles['frame'])
@@ -860,6 +866,28 @@ def start_app():
             height=2,
             **button_styles
         ).pack(pady=10)
+
+        # Bind resize event to check content height
+        def check_scroll_needed(event=None):
+            canvas.update_idletasks()
+            bbox = canvas.bbox("all")
+            if bbox:
+                scroll_height = bbox[3] - bbox[1]  # Total scrollable height
+                visible_height = canvas.winfo_height()  # Visible canvas height
+                
+                if scroll_height > visible_height:
+                    bind_wheel()  # Enable scrolling
+                else:
+                    unbind_wheel()  # Disable scrolling
+
+        # Bind to canvas resize events
+        canvas.bind('<Configure>', check_scroll_needed)
+
+        # Clean up bindings when leaving cart
+        def cleanup_cart():
+            unbind_wheel()  # Remove scroll wheel binding
+            canvas.unbind('<Configure>')  # Remove resize check binding
+            window.unbind("<Button-1>")  # Remove other bindings
 
     # TODO: Add the rest of the functionality required + extras and fill out the "Dashboard" screen itself for commonly used parts of the program to speed up tasks #
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
