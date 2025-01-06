@@ -440,6 +440,42 @@ def get_style_config():
                 'bg': theme['dark_primary']
             }
         },
+        'manage_users': {
+            'title': {
+                'font': ("Arial", 24, "bold"),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'frame': {
+                'bg': theme['dark_primary']
+            },
+            'user_frame': {
+                'bg': theme['dark_primary']
+            },
+            'header': {
+                'font': ("Arial", 14, "bold"),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'text': {
+                'font': ("Arial", 12),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'entries': {
+                'bg': theme['light_primary'],
+                'fg': theme['dark_text']
+            },
+            'buttons': {
+                'bg': theme['med_primary'],
+                'fg': theme['dark_text'],
+                'activebackground': theme['med_primary'],
+                'activeforeground': theme['dark_text']
+            },
+            'message': {
+                'bg': theme['dark_primary']
+            }
+        },
         'change_password': {
             'light': {
                 'title': {

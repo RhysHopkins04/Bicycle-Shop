@@ -76,32 +76,16 @@ def update_user_password(username, new_password):
     finally:
         conn.close()
 
-def promote_user_to_admin(user_id):
-    """Promote a user to admin."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE Users SET is_admin = 1 WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-
-def demote_user_from_admin(user_id, current_admin_id):
-    """Demote a user from admin."""
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    # Check if the user to be demoted is the current admin
-    if user_id == current_admin_id:
-        conn.close()
-        return "You cannot demote yourself."
-
-    # Check if there is more than one admin
-    cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 1")
-    admin_count = cursor.fetchone()[0]
-    if admin_count <= 1:
-        conn.close()
-        return "There must be at least one admin."
-
-    cursor.execute("UPDATE Users SET is_admin = 0 WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
-    return "User demoted successfully."
+def validate_user_edit(first_name, last_name, age, is_admin):
+    """Validate user edit fields."""
+    if not first_name or not last_name:
+        return False, "Name fields cannot be empty"
+    
+    try:
+        age = int(age)
+        if age < 18:
+            return False, "User must be 18 or older"
+    except ValueError:
+        return False, "Age must be a number"
+        
+    return True, ""

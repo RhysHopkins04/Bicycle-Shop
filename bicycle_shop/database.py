@@ -338,6 +338,103 @@ def delete_category(category_id):
     finally:
         conn.close()
 
+# User management functions:
+def get_all_users():
+    """Retrieve all users from database ordered by ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            SELECT id, username, first_name, last_name, age, is_admin 
+            FROM Users 
+            ORDER BY id
+        """)
+        return cursor.fetchall()
+    finally:
+        conn.close()
+
+def update_user_details(user_id, first_name, last_name, age, is_admin):
+    """Update user details in database."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Don't allow removing last admin
+        if not is_admin:
+            cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 1")
+            admin_count = cursor.fetchone()[0]
+            cursor.execute("SELECT is_admin FROM Users WHERE id = ?", (user_id,))
+            current_is_admin = cursor.fetchone()[0]
+            if admin_count <= 1 and current_is_admin:
+                return False, "Cannot remove last admin user"
+
+        cursor.execute("""
+            UPDATE Users 
+            SET first_name = ?, 
+                last_name = ?, 
+                age = ?,
+                is_admin = ?
+            WHERE id = ?
+        """, (first_name, last_name, age, is_admin, user_id))
+        conn.commit()
+        return True, "User updated successfully"
+    except sqlite3.Error as e:
+        return False, f"Error updating user: {str(e)}"
+    finally:
+        conn.close()
+
+def delete_user(user_id):
+    """Delete user if not last admin."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT is_admin FROM Users WHERE id = ?", (user_id,))
+        is_admin = cursor.fetchone()[0]
+        
+        if is_admin:
+            cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 1")
+            admin_count = cursor.fetchone()[0]
+            if admin_count <= 1:
+                return False, "Cannot delete last admin user"
+        
+        cursor.execute("DELETE FROM Users WHERE id = ?", (user_id,))
+        conn.commit()
+        return True, "User deleted successfully"
+    except sqlite3.Error as e:
+        return False, f"Error deleting user: {str(e)}"
+    finally:
+        conn.close()
+
+def promote_user_to_admin(user_id):
+    """Promote a user to admin."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE Users SET is_admin = 1 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+
+def demote_user_from_admin(user_id, current_admin_id):
+    """Demote a user from admin."""
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    # Check if the user to be demoted is the current admin
+    if user_id == current_admin_id:
+        conn.close()
+        return "You cannot demote yourself."
+
+    # Check if there is more than one admin
+    cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 1")
+    admin_count = cursor.fetchone()[0]
+    if admin_count <= 1:
+        conn.close()
+        return "There must be at least one admin."
+
+    cursor.execute("UPDATE Users SET is_admin = 0 WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return "User demoted successfully."
+
+# Cart Functioanlity
 def add_to_cart(user_id, product_id, quantity=1):
     """Add or update product quantity in user's cart"""
     conn = get_connection()

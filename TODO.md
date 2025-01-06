@@ -13,6 +13,7 @@
 - qr code scanning/ link to global search on main page + find the product page on admin.
 
 ## **Potential:**
+? Update the adding of categories and management of categories screen since it is primitive and not user friendly for first time useage. ?
 ? Can add product to a category without ability to remove it back to unlisted even without full content on the product (as required for listing a product) ?
 ? Switch from globals to state management for shopping card integration if needed ?
 ? Make it so that on the store listing the images are the image of the product not the qr code. ?
