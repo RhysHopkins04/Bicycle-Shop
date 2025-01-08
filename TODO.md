@@ -1,11 +1,5 @@
 # **TODO:**
 ## **Incomplete:**
-- Add manage users widget.
-- Allow the user to manage themselves using the top right.
-- Add change password ability to the top right for both users and admin users.
-- Utilize the change password function for first admin logon for change password in manage users & within the management user widget (management of others as an admin).
-- Must have 1 persistant admin account.
-
 - Global Search bar to find functions for admin usage.
 - Create QR Code Discount Maker.
 - Create User Logs page for Admins.
@@ -44,6 +38,10 @@
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense.
 
 ## **Done:**
+- System works to stop an admin from demoting themselves or deleting themselves ensuring there is always a persistent admin account.
+- Adjusted the change passsowrd function to work for all password changes, including first login, self change and admin changes.
+- Added ability for users to manage themselves from the dropdown, including change passwords from inside of that.
+- Added Manage Users Widget, ensures admin cannot delete themselves, or take away admin status from themselves. Confirmations before deletion takes place on other users.
 - Fixed error when the to go back to the admin dashboard after visiting the cart and going back to the store page.
 - Fixed error when trying to go back to store page from cart, when cart is empty and store page is empty.
 - Added the search bar: "enable"/"disable" function to allow for it to only be usable under pages where it is allowed (this should completely stop the ability for an error to occur where the search bar cant filter the page).

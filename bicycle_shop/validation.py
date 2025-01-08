@@ -3,10 +3,10 @@ from database import get_connection, get_category_id
 
 # Core Validation Functions:
 def validate_empty_fields(*fields):
-    """Validate that none of the fields are empty."""
+    """Validate that required fields are not empty."""
     for field in fields:
-        if not field:
-            return False, "All fields are required."
+        if not field or str(field).strip() == "":
+            return False, "All required fields must be filled."
     return True, "Valid"
 
 # Password Validation Functions:
@@ -55,27 +55,54 @@ def validate_age(age):
     return True, "Valid"
 
 # Combined User Validation Function:
-def validate_registration_fields(username, first_name, last_name, password, confirm_password, age):
-    """Validate registration fields."""
-    is_valid, message = validate_empty_fields(username, first_name, last_name, password, confirm_password, age)
-    if not is_valid:
-        return False, message
+def validate_user_fields(username, first_name, last_name, password, confirm_password, age, check_type="register"):
+    """
+    Validate user fields for registration, editing, and password changes.
     
-    is_valid, message = validate_username_uniqueness(username)
-    if not is_valid:
-        return False, message
+    Args:
+        username: Username to validate
+        first_name: First name to validate
+        last_name: Last name to validate
+        password: Password to validate (if required)
+        confirm_password: Password confirmation (if required)
+        age: Age to validate
+        check_type: Type of validation ("register", "edit", or "password")
+    """
+    # Basic field validation based on operation type
+    if check_type == "register":
+        is_valid, message = validate_empty_fields(username, first_name, last_name, password, confirm_password, age)
+        if not is_valid:
+            return False, message
+            
+        is_valid, message = validate_username_uniqueness(username)
+        if not is_valid:
+            return False, message
+            
+    elif check_type == "edit":
+        is_valid, message = validate_empty_fields(first_name, last_name, age)
+        if not is_valid:
+            return False, message
+            
+    elif check_type == "password":
+        is_valid, message = validate_empty_fields(password, confirm_password)
+        if not is_valid:
+            return False, message
 
-    is_valid, message = validate_password_match(password, confirm_password)
-    if not is_valid:
-        return False, message
+    # Password validation when required
+    if check_type in ["register", "password"]:
+        is_valid, message = validate_password_match(password, confirm_password)
+        if not is_valid:
+            return False, message
 
-    is_valid, message = validate_password(username, password)
-    if not is_valid:
-        return False, message
+        is_valid, message = validate_password(username, password)
+        if not is_valid:
+            return False, message
 
-    is_valid, message = validate_age(age)
-    if not is_valid:
-        return False, message
+    # Age validation always required except for password changes
+    if check_type in ["register", "edit"]:
+        is_valid, message = validate_age(age)
+        if not is_valid:
+            return False, message
 
     return True, "Valid"
 

@@ -101,14 +101,17 @@ def create_password_field(parent, label_text, entry_width=16, show_label=True, e
             "fg": theme['light_text'],
             "frame_bg": theme['dark_primary'],
             "entry_bg": theme['light_primary'],
-            "entry_fg": theme['dark_text']
+            "entry_fg": theme['dark_text'],
+            "button_bg": theme['light_primary']
+
         },
         "light": {
             "bg": theme['med_primary'],
             "fg": theme['dark_text'], 
             "frame_bg": theme['med_primary'],
             "entry_bg": theme['light_primary'],
-            "entry_fg": theme['dark_text']
+            "entry_fg": theme['dark_text'],
+            "button_bg": theme['light_primary']
         }
     }
     
@@ -130,7 +133,8 @@ def create_password_field(parent, label_text, entry_width=16, show_label=True, e
     button = tk.Button(frame, image=eye_closed_image, 
                       command=lambda: toggle_password_visibility(entry, button, '*', eye_open_image, eye_closed_image),
                       takefocus=False,
-                      bg=current_style["frame_bg"])
+                      bg=current_style["button_bg"],
+                      activebackground=current_style["button_bg"])
     button.pack()
     
     return entry, frame, button
@@ -265,6 +269,33 @@ def get_style_config():
                 'fg': theme['dark_text'],
                 'activebackground': theme['med_primary'],
                 'activeforeground': theme['dark_text']
+            }
+        },
+        'manage_user': {
+            'title': {
+                'font': ("Arial", 24, "bold"),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'frame': {
+                'bg': theme['dark_primary']
+            },
+            'labels': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'entries': {
+                'bg': theme['light_primary'],
+                'fg': theme['dark_text'],
+            },
+            'buttons': {
+                'bg': theme['med_primary'],
+                'fg': theme['dark_text'],
+                'activebackground': theme['med_primary'],
+                'activeforeground': theme['dark_text']
+            },
+            'message': {
+                'bg': theme['dark_primary']
             }
         },
         'admin_panel': {
@@ -468,12 +499,49 @@ def get_style_config():
             },
             'buttons': {
                 'bg': theme['med_primary'],
-                'fg': theme['dark_text'],
-                'activebackground': theme['med_primary'],
-                'activeforeground': theme['dark_text']
+                'fg': theme['dark_text']
             },
             'message': {
                 'bg': theme['dark_primary']
+            }
+        },
+        'edit_user_dialog': {
+            'dialog': {
+                'bg': theme['dark_primary'],
+            },
+            'frame': {
+                'bg': theme['dark_primary'],
+            },
+            'title': {
+                'font': ("Arial", 24, "bold"),
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text']
+            },
+            'labels': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text'],
+            },
+            'entries': {
+                'bg': theme['light_primary'],
+                'fg': theme['dark_text'],
+            },
+            'buttons': {
+                'bg': theme['med_primary'],
+                'fg': theme['dark_text'],
+                'activebackground': theme['med_primary'],
+                'activeforeground': theme['dark_text'],
+            },
+            'combobox': {
+                'bg': theme['light_primary'],
+                'fg': theme['dark_text'],
+                'fieldbackground': theme['light_primary'],
+                'selectbackground': theme['light_primary'],
+                'selectforeground': theme['dark_text']
+            },
+            'message': {
+                'bg': theme['dark_primary'],
+                'fg': 'red',
+                'font': ('Arial', 10)
             }
         },
         'change_password': {
@@ -786,6 +854,66 @@ def create_scrollable_frame(parent):
     # Pack canvas with padding
     canvas.pack(side="left", fill="both", expand=True, padx=2, pady=2)
     
+    return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel
+
+# Grid based scrollable frame:
+def create_scrollable_grid_frame(parent):
+    """Create scrollable frame with canvas using grid geometry"""
+    theme = get_theme()
+    bg_color = theme['dark_primary']
+    
+    # Create wrapper frame
+    wrapper = tk.Frame(parent, bg=bg_color)
+    wrapper.grid(sticky="nsew")
+    wrapper.grid_columnconfigure(0, weight=1)
+    wrapper.grid_rowconfigure(0, weight=1)
+    
+    # Create border frame
+    border_frame = tk.Frame(wrapper, 
+                          bg=bg_color, 
+                          bd=1, 
+                          relief="solid", 
+                          highlightthickness=1, 
+                          highlightbackground=theme['light_text'])
+    border_frame.grid(row=0, column=0, sticky="nsew", padx=2, pady=2)
+    border_frame.grid_columnconfigure(0, weight=1)
+    border_frame.grid_rowconfigure(0, weight=1)
+    
+    # Create canvas with width setting
+    canvas = tk.Canvas(border_frame, 
+                      bg=bg_color,
+                      highlightthickness=0)
+    canvas.grid(row=0, column=0, sticky="nsew")
+    
+    # Configure scrollbar
+    scrollbar = tk.Scrollbar(border_frame, orient="vertical", command=canvas.yview)
+    scrollbar.grid(row=0, column=1, sticky="ns")
+    
+    # Create scrollable frame
+    scrollable_frame = tk.Frame(canvas, bg=bg_color)
+    
+    # Configure canvas scrolling
+    def on_canvas_configure(event):
+        # Update the scrollable frame's width to match the canvas
+        canvas.itemconfig("frame", width=event.width)
+        
+    canvas.bind("<Configure>", on_canvas_configure)
+    scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    
+    # Create window for scrollable frame
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw", tags="frame")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    def on_mouse_wheel(event):
+        if canvas.winfo_exists():
+            canvas.yview_scroll(-1 * (event.delta // 120), "units")
+    
+    def bind_mouse_wheel():
+        canvas.bind_all("<MouseWheel>", on_mouse_wheel)
+    
+    def unbind_mouse_wheel():
+        canvas.unbind_all("<MouseWheel>")
+
     return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel
 
 # UI Product Display Functions:

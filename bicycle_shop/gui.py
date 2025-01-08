@@ -12,13 +12,14 @@ from database import (create_tables, initialize_admin, get_products, get_product
                       promote_user_to_admin, demote_user_from_admin
                       )
 from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
-                        validate_registration_fields, validate_username_uniqueness, validate_product_fields, 
+                        validate_user_fields, validate_username_uniqueness, validate_product_fields, 
                         validate_category_name
                         )
 from utils import (display_error, display_success, clear_frame, show_dropdown, hide_dropdown, hide_dropdown_on_click, 
                    create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, 
                    create_password_field, setup_product_grid, create_product_listing_frame, create_product_management_frame, 
-                   get_style_config, center_window, create_fullscreen_handler, resize_product_image, resize_qr_code
+                   get_style_config, center_window, create_fullscreen_handler, resize_product_image, resize_qr_code,
+                   create_scrollable_grid_frame
                    )
 from file_manager import (get_application_settings, get_icon_paths, get_paths)
 
@@ -112,7 +113,7 @@ def start_app():
                 if is_admin:
                     current_admin_id = user_id # Sets the global variable for later use
                     if not password_changed: # If the user is an admin but its the first login it forces the change password
-                        switch_to_change_password(username, from_login=True)
+                        switch_to_change_password(username, from_source="login")
                     else:
                         switch_to_admin_panel() # Switch the user straight to the admin dashboard
                 else:
@@ -187,7 +188,7 @@ def start_app():
             password = password_entry.get()
             confirm_password = confirm_password_entry.get()
             age = age_entry.get()
-            is_valid, validation_message = validate_registration_fields(username, first_name, last_name, password, confirm_password, age)
+            is_valid, validation_message = validate_user_fields(username, first_name, last_name,password, confirm_password, age, check_type="register")
             if not is_valid:
                 display_error(message_label, validation_message)
                 return
@@ -300,6 +301,7 @@ def start_app():
         if is_admin:
             tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="View Cart", command=show_cart, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
+        tk.Button(dropdown_frame, text="Manage Account", command=lambda: show_manage_user_screen(current_username, current_user_id),  **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
         # Add update dropdown position handler
@@ -894,6 +896,145 @@ def start_app():
         # Bind to canvas resize events
         canvas.bind('<Configure>', check_scroll_needed)
 
+    def show_manage_user_screen(username, user_id):
+        """Show dialog for users to manage their own profile."""
+        global window
+
+        # Check if dialog already exists for this user
+        for child_window in window.winfo_children():  # Changed variable name
+            if isinstance(child_window, tk.Toplevel) and hasattr(child_window, 'editing_user_id'):
+                if child_window.editing_user_id == user_id:
+                    child_window.lift()
+                    return
+
+        styles = get_style_config()['manage_user']
+        dialog = tk.Toplevel(window)
+        dialog.editing_user_id = user_id  # Tag dialog with user ID
+        dialog.title("My Profile")
+        dialog.configure(**styles['frame'])
+        
+        # Center dialog
+        dialog_width, dialog_height = 400, 350
+        dialog.minsize(dialog_width, dialog_height)
+        x = (dialog.winfo_screenwidth() - dialog_width) // 2
+        y = (dialog.winfo_screenheight() - dialog_height) // 2
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+
+        # Make dialog modal
+        dialog.transient(window)
+        dialog.grab_set()
+        
+        # Ensure dialog stays on top
+        dialog.focus_set()
+        dialog.lift()
+        dialog.attributes('-topmost', True)
+
+        # Create container for user info
+        form_frame = tk.Frame(dialog, **styles['frame'])
+        form_frame.pack(fill='both', expand=True, padx=20, pady=20)
+
+        tk.Label(form_frame, text="Your Profile", **styles['title']).pack(pady=(0, 20))
+
+        # Message label for feedback
+        message_label = tk.Label(form_frame, text="", **styles['message'])
+        message_label.pack(pady=(0, 10))
+
+        # Get current user details from database
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT username, first_name, last_name, age, is_admin 
+            FROM Users WHERE id = ?
+        """, (user_id,))
+        user_data = cursor.fetchone()
+        conn.close()
+
+        if not user_data:
+            display_error(message_label, "Error loading user data")
+            return
+
+        # Create entry fields
+        fields = {
+            'First Name': user_data[1],
+            'Last Name': user_data[2],
+            'Age': user_data[3]
+        }
+
+        entries = {}
+        for label, value in fields.items():
+            field_frame = tk.Frame(form_frame, **styles['frame'])
+            field_frame.pack(pady=5, fill='x')
+            
+            tk.Label(
+                field_frame,
+                text=label + ":",
+                width=12,
+                anchor='w',
+                **styles['labels']
+            ).pack(side='left', padx=5)
+            
+            entry = tk.Entry(field_frame, width=20, **styles['entries'])
+            entry.insert(0, str(value))
+            entry.pack(side='left', padx=5, expand=True, fill='x')
+            entries[label.lower().replace(' ', '_')] = entry
+
+        def save_profile_changes():
+            """Save user profile changes"""
+            first_name = entries['first_name'].get()
+            last_name = entries['last_name'].get()
+            age = entries['age'].get()
+            
+            # Use existing validation from validation.py
+            # For profile editing
+            is_valid, validation_message = validate_user_fields(username, first_name, last_name, "", "", age, check_type="edit")
+            
+            if not is_valid:
+                display_error(message_label, validation_message)
+                return
+
+            success, message = update_user_details(
+                user_id,
+                first_name,
+                last_name,
+                int(age),
+                user_data[4]  # Keep existing admin status
+            )
+
+            if success:
+                display_success(message_label, "Profile updated successfully")
+                dialog.after(1500, dialog.destroy)  # Close dialog after success
+            else:
+                display_error(message_label, message)
+
+        # Button frame
+        button_frame = tk.Frame(form_frame, **styles['frame'])
+        button_frame.pack(pady=20)
+
+        # Save button
+        tk.Button(
+            button_frame,
+            text="Save Changes",
+            command=save_profile_changes,
+            **styles['buttons']
+        ).pack(side='left', padx=5)
+
+        # Change Password button
+        tk.Button(
+            button_frame,
+            text="Change Password",
+            command=lambda: switch_to_change_password(username, from_source="self", parent_dialog=dialog),
+            **styles['buttons']
+        ).pack(side='left', padx=5)
+
+        # Close button
+        tk.Button(
+            button_frame,
+            text="Close",
+            command=dialog.destroy,
+            **styles['buttons']
+        ).pack(side='left', padx=5)
+
+
     # TODO: Add the rest of the functionality required + extras and fill out the "Dashboard" screen itself for commonly used parts of the program to speed up tasks #
     # If the user account is Admin (Administrative Account) brings to the Admin Dashboard
     def switch_to_admin_panel():
@@ -956,11 +1097,10 @@ def start_app():
         dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
         dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
-        # Get current admin status before creating dropdown buttons
-        if get_current_user_admin_status(current_username):  # Use fresh admin status check
-            tk.Button(dropdown_frame, text="Back to Admin Panel", command=switch_to_admin_panel, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
+        # No Back to admin dashboard button since this is the admin dashboard
 
         # Add buttons to the dropdown frame with consistent styling
+        tk.Button(dropdown_frame, text="Manage Account", command=lambda: show_manage_user_screen(current_username, current_user_id),  **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
         tk.Button(dropdown_frame, text="Logout", command=show_login_screen, **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
                 # Add update dropdown position handler
@@ -1768,17 +1908,19 @@ def start_app():
         clear_frame(content_inner_frame)
         styles = get_style_config()['manage_users']
         
-        # Create container frame first and pack it immediately with proper fill
+        # Create container frame using grid
         user_list_frame = tk.Frame(content_inner_frame, **styles['frame'])
-        user_list_frame.pack(fill="both", expand=True, padx=10)
-        
-        # Create title inside container
+        user_list_frame.grid(row=0, column=0, sticky="nsew", padx=10)
+        content_inner_frame.grid_columnconfigure(0, weight=1)
+        content_inner_frame.grid_rowconfigure(0, weight=1)
+
+        # Header section using grid
         title_label = tk.Label(user_list_frame, text="User Management", **styles['title'])
-        title_label.pack(pady=10)
-        
-        # Message label inside container 
+        title_label.grid(row=0, column=0, pady=10)
+
+        # Message label 
         message_label = tk.Label(user_list_frame, text="", **styles['message'])
-        message_label.pack(pady=5)
+        message_label.grid(row=1, column=0, pady=5)
 
         # Store resize timer as an attribute of the content_inner_frame
         content_inner_frame.resize_timer = None
@@ -1791,128 +1933,299 @@ def start_app():
 
         # Bind the resize event with debouncing
         content_inner_frame.bind("<Configure>", handle_resize)
-        
+
         # Headers frame
+        scrollbar_width = 10  # Standard scrollbar width on canvas
         headers_frame = tk.Frame(user_list_frame, **styles['frame'])
-        headers_frame.pack(fill="x", padx=10)
-        
+        headers_frame.grid(row=2, column=0, sticky="ew", padx=(5, scrollbar_width + 10))
+
         headers = ['ID', 'Username', 'Name', 'Age', 'Admin', 'Actions']
         weights = [1, 2, 3, 1, 1, 2]
-        
-        for i, (header, weight) in enumerate(zip(headers, weights)):
+
+        # Configure column weights for headers
+        for i, weight in enumerate(weights):
             headers_frame.grid_columnconfigure(i, weight=weight)
-            tk.Label(headers_frame, text=header, **styles['header']).grid(
-                row=0, column=i, padx=5, sticky="ew"
-            )
+
+        header_labels = []
+        for i, (header, weight) in enumerate(zip(headers, weights)):
+            header_frame = tk.Frame(headers_frame, **styles['frame'], height=30)
+            header_frame.grid(row=0, column=i, padx=5, sticky="nsew")
+            header_frame.grid_propagate(False)
+            header_frame.grid_columnconfigure(0, weight=1)
             
-        # Create scrollable frame
-        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(user_list_frame)
-        wrapper.pack(fill="both", expand=True)
+            label = tk.Label(
+                header_frame, 
+                text=header,
+                **styles['header']
+            )
+            label.grid(row=0, column=0, sticky="nsew")
+            label.configure(anchor="center")
+            header_labels.append(label)
+
+        # Create scrollable frame using grid
+        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_grid_frame(user_list_frame)
+        wrapper.grid(row=3, column=0, sticky="nsew")
+        user_list_frame.grid_columnconfigure(0, weight=1)
+        user_list_frame.grid_rowconfigure(3, weight=1)
 
         def display_users():
             # Clear existing content
             for widget in scrollable_frame.winfo_children():
                 widget.destroy()
             
-            # Create container frame with same style as headers
-            users_container = tk.Frame(scrollable_frame, **styles['frame'])
-            users_container.pack(fill="x", expand=True, padx=10)  # Match headers padding
-            
-            # Configure grid columns with same weights as headers
-            for i, weight in enumerate(weights):
-                users_container.grid_columnconfigure(i, weight=weight)
+            # Configure scrollable_frame columns to match headers
+            for col, weight in enumerate(weights):
+                scrollable_frame.grid_columnconfigure(col, weight=weight)
             
             users = get_all_users()
-            for row_idx, user in enumerate(users):
-                # Create cells with proper grid sticky parameter
-                tk.Label(users_container, text=str(user[0]), **styles['text']).grid(
-                    row=row_idx, column=0, padx=5, pady=2, sticky="nsew")
-                tk.Label(users_container, text=user[1], **styles['text']).grid(
-                    row=row_idx, column=1, padx=5, pady=2, sticky="nsew") 
-                tk.Label(users_container, text=f"{user[2]} {user[3]}", **styles['text']).grid(
-                    row=row_idx, column=2, padx=5, pady=2, sticky="nsew")
-                tk.Label(users_container, text=str(user[4]), **styles['text']).grid(
-                    row=row_idx, column=3, padx=5, pady=2, sticky="nsew")
-                tk.Label(users_container, text="Yes" if user[5] else "No", **styles['text']).grid(
-                    row=row_idx, column=4, padx=5, pady=2, sticky="nsew")
-
-                # Actions frame - align to right
-                actions_frame = tk.Frame(users_container, **styles['frame'])
-                actions_frame.grid(row=row_idx, column=5, padx=5, pady=2, sticky="e")
+            
+            for row, user in enumerate(users):
+                user_id, username, first_name, last_name, age, is_admin = user[:6]
+                full_name = f"{first_name} {last_name}"
                 
-                tk.Button(actions_frame, text="Edit",
-                        command=lambda u=user: open_edit_dialog(u),
-                        **styles['buttons']).pack(side="left", padx=2)
+                display_values = [
+                    str(user_id),
+                    username,
+                    full_name,
+                    str(age),
+                    "Yes" if is_admin else "No"
+                ]
                 
-                if user[1] != current_username:
-                    tk.Button(actions_frame, text="Delete",
-                            command=lambda uid=user[0]: handle_delete_user(uid),
-                            **styles['buttons']).pack(side="left", padx=2)
-
-        def open_edit_dialog(user):
-            """Open dialog to edit user details."""
-            edit_window = tk.Toplevel(window)
-            edit_window.title("Edit User")
-            edit_window.geometry("400x450")
-            
-            styles = get_style_config()['manage_users']
-            
-            message_label = tk.Label(edit_window, text="", **styles['message'])
-            message_label.pack(pady=5)
-            
-            # Create input fields
-            tk.Label(edit_window, text="First Name", **styles['text']).pack(pady=5)
-            first_name_entry = tk.Entry(edit_window, **styles['entries'])
-            first_name_entry.insert(0, user[2])
-            first_name_entry.pack(pady=5)
-            
-            tk.Label(edit_window, text="Last Name", **styles['text']).pack(pady=5)
-            last_name_entry = tk.Entry(edit_window, **styles['entries'])
-            last_name_entry.insert(0, user[3])
-            last_name_entry.pack(pady=5)
-            
-            tk.Label(edit_window, text="Age", **styles['text']).pack(pady=5)
-            age_entry = tk.Entry(edit_window, **styles['entries'])
-            age_entry.insert(0, str(user[4]))
-            age_entry.pack(pady=5)
-            
-            # Only show admin toggle if editing another user
-            is_admin_var = tk.BooleanVar(value=user[5])
-            if user[1] != current_username:
-                tk.Label(edit_window, text="Admin Status", **styles['text']).pack(pady=5)
-                admin_check = tk.Checkbutton(edit_window, text="Is Admin", 
-                                        variable=is_admin_var, **styles['text'])
-                admin_check.pack(pady=5)
-            
-            def save_changes():
-                """Handle saving user changes."""
-                is_valid, message = validate_user_edit(
-                    first_name_entry.get(),
-                    last_name_entry.get(), 
-                    age_entry.get(),
-                    is_admin_var.get()
-                )
-                
-                if not is_valid:
-                    display_error(message_label, message)
-                    return
+                # Add data cells with debug colors
+                for col, value in enumerate(display_values):
+                    cell_frame = tk.Frame(
+                        scrollable_frame,
+                        **styles['frame'],
+                        height=30
+                    )
+                    cell_frame.grid(row=row, column=col, padx=5, pady=2, sticky="nsew")
+                    cell_frame.grid_propagate(False)
+                    cell_frame.grid_columnconfigure(0, weight=1)
                     
-                success, message = update_user_details(
-                    user[0],
-                    first_name_entry.get(),
-                    last_name_entry.get(),
-                    int(age_entry.get()),
-                    is_admin_var.get()
-                )
+                    # Create a copy of the style dict and remove bg if it exists
+                    label_style = styles['text'].copy()
+                    if 'bg' in label_style:
+                        del label_style['bg']
+                    
+                    label = tk.Label(
+                        cell_frame,
+                        text=value,
+                        **styles['text']
+                    )
+                    label.grid(row=0, column=0, sticky="nsew")
+                    label.configure(anchor="center")
+                    
+                    # Print cell width after update
+                    cell_frame.update_idletasks()
                 
+                # Actions column
+                actions_frame = tk.Frame(
+                    scrollable_frame,
+                    **styles['frame'],
+                    height=30
+                )
+                actions_frame.grid(row=row, column=5, padx=5, pady=2, sticky="nsew")
+                actions_frame.grid_propagate(False)
+                actions_frame.grid_columnconfigure(0, weight=1)
+                
+                buttons_frame = tk.Frame(actions_frame, **styles['frame'])
+                buttons_frame.place(relx=0.5, rely=0.5, anchor="center")
+                
+                edit_btn = tk.Button(
+                    buttons_frame,
+                    text="Edit",
+                    command=lambda u=user: open_edit_dialog(u[0], u[1], u[2], u[3], u[4], u[5]),  # Unpack user tuple
+                    **styles['buttons']
+                )
+                edit_btn.pack(side="left", padx=2)
+                
+                delete_btn = tk.Button(
+                    buttons_frame,
+                    text="Delete",
+                    command=lambda uid=user_id: handle_delete_user(uid),
+                    state="disabled" if username == current_username else "normal",
+                    **styles['buttons']
+                )
+                delete_btn.pack(side="left", padx=2)
+                
+                # Print actions column width
+                actions_frame.update_idletasks()
+            
+            # Print total frame width
+            scrollable_frame.update_idletasks()
+            
+            # Update scroll region
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def open_edit_dialog(user_id, username, first_name, last_name, age, is_admin):
+            """Open dialog to edit user details."""
+            global window
+
+            # Check if dialog already exists for this user
+            for child_window in window.winfo_children():  # Changed from 'window' to 'child_window'
+                if isinstance(child_window, tk.Toplevel) and hasattr(child_window, 'editing_user_id'):
+                    if child_window.editing_user_id == user_id:
+                        child_window.lift()
+                        return
+
+            styles = get_style_config()['edit_user_dialog']
+
+            # Setup combobox style
+            combo_style = ttk.Style()
+            combo_style.configure('Edit.TCombobox',
+                background=styles['combobox']['bg'],
+                fieldbackground=styles['combobox']['fieldbackground'],
+                foreground=styles['combobox']['fg'],
+                selectbackground=styles['combobox']['selectbackground'],
+                selectforeground=styles['combobox']['selectforeground']
+            )
+
+            dialog = tk.Toplevel(window)
+            dialog.editing_user_id = user_id  # Tag dialog with user ID
+            dialog.title("Edit User")
+            dialog.configure(**styles['dialog'])
+            
+            # Center dialog
+            dialog_width, dialog_height = 400, 500
+            dialog.minsize(dialog_width, dialog_height)
+            x = (dialog.winfo_screenwidth() - dialog_width) // 2
+            y = (dialog.winfo_screenheight() - dialog_height) // 2
+            dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+
+            # Make dialog modal
+            dialog.transient(window)
+            dialog.grab_set()
+            
+            # Ensure dialog stays on top
+            dialog.focus_set()
+            dialog.lift()
+            dialog.attributes('-topmost', True)
+
+            frame = tk.Frame(dialog, **styles['frame'])
+            frame.pack(fill='both', expand=True, padx=20, pady=20)
+
+            # Title
+            tk.Label(frame, text="Edit User",**styles['title']).pack(pady=(0, 20))
+
+            message_label = tk.Label(frame, text="", **styles['message'])
+            message_label.pack(pady=(0, 10))
+
+            is_current_user = (username == current_username)
+
+            # Username
+            tk.Label(frame, text="Username:", **styles['labels']).pack(anchor='w', padx=5)
+            username_entry = tk.Entry(frame, width=25, **styles['entries'])
+            username_entry.insert(0, username)
+            username_entry.pack(pady=(0, 10), padx=5)
+
+            # First name
+            tk.Label(frame, text="First Name:", **styles['labels']).pack(anchor='w', padx=5)
+            first_name_entry = tk.Entry(frame, width=25, **styles['entries'])
+            first_name_entry.insert(0, first_name)
+            first_name_entry.pack(pady=(0, 10), padx=5)
+
+            # Last name
+            tk.Label(frame, text="Last Name:", **styles['labels']).pack(anchor='w', padx=5)
+            last_name_entry = tk.Entry(frame, width=25, **styles['entries'])
+            last_name_entry.insert(0, last_name)
+            last_name_entry.pack(pady=(0, 10), padx=5)
+
+            # Age
+            tk.Label(frame, text="Age:", **styles['labels']).pack(anchor='w', padx=5)
+            age_entry = tk.Entry(frame, width=25, **styles['entries'])
+            age_entry.insert(0, str(age))
+            age_entry.pack(pady=(0, 10), padx=5)
+
+            # Admin status combobox
+            tk.Label(frame, text="Admin Status:", **styles['labels']).pack(anchor='w', padx=5)
+            admin_var = tk.StringVar(value="Yes" if is_admin else "No")
+            admin_combobox = ttk.Combobox(
+                frame,
+                textvariable=admin_var,
+                values=["Yes", "No"],
+                width=22,
+                state='readonly' if username != current_username else 'disabled',
+                style='Edit.TCombobox'
+            )
+            admin_combobox.pack(pady=(0, 10), padx=5)
+
+            def save_changes():
+                new_first_name = first_name_entry.get()
+                new_last_name = last_name_entry.get()
+                new_age = age_entry.get()
+                new_is_admin = admin_var.get() == "Yes"  # Convert Yes/No to boolean
+
+                # Use existing validation from validation.py
+                is_valid, validation_message = validate_user_fields(username, first_name, last_name, "", "", age, check_type="edit")
+
+                if not is_valid:
+                    display_error(message_label, validation_message)
+                    return
+
+                # Check admin status change
+                if new_is_admin != is_admin:
+                    conn = get_connection()
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 1")
+                    admin_count = cursor.fetchone()[0]
+                    conn.close()
+                    
+                    if admin_count <= 1 and not new_is_admin:
+                        display_error(message_label, "Cannot remove last admin user")
+                        return
+
+                success, message = update_user_details(
+                    user_id,
+                    new_first_name,
+                    new_last_name,
+                    int(new_age),
+                    new_is_admin
+                )
+
                 if success:
-                    edit_window.destroy()
-                    display_users()
+                    display_success(message_label, "User updated successfully")
+                    dialog.after(1000, lambda: [dialog.destroy(), show_manage_users_screen()])
                 else:
                     display_error(message_label, message)
-            
-            tk.Button(edit_window, text="Save", command=save_changes, 
-                    **styles['buttons']).pack(pady=10)
+
+            button_frame = tk.Frame(frame, **styles['frame'])
+            button_frame.pack(pady=(10, 0))
+
+            tk.Button(
+                button_frame,
+                text="Save",
+                command=save_changes,
+                width=10,
+                **styles['buttons']
+            ).pack(side='left', padx=5)
+
+            # Add Change Password button
+            change_pwd_btn = tk.Button(
+                button_frame,
+                text="Change Password",
+                command=lambda: switch_to_change_password(username, from_source="admin", parent_dialog=dialog),
+                **styles['buttons']
+            )
+            change_pwd_btn.pack(side='left', padx=5)
+
+            tk.Button(
+                button_frame,
+                text="Cancel",
+                command=dialog.destroy,
+                width=10,
+                **styles['buttons']
+            ).pack(side='left', padx=5)
+
+            dialog.transient(window)
+            dialog.grab_set()
+
+            def on_dialog_close():
+                """Handle dialog closure"""
+                dialog.grab_release()
+                dialog.destroy()
+
+            dialog.protocol("WM_DELETE_WINDOW", on_dialog_close)
+            dialog.wait_window()
 
         def handle_delete_user(user_id):
             """Handle user deletion"""
@@ -1929,60 +2242,175 @@ def start_app():
         # Initial display
         display_users()
 
-    # Change password screen that is called for when an admin account is logged into for the first time. 
-    def switch_to_change_password(username, from_login=False):
-        """Prompt admin to change their password."""
-        window.geometry("400x300")
-        clear_frame(main_frame)
-
-        # Select theme based on context
-        theme_type = 'light' if from_login else 'dark'
-        styles = get_style_config()['change_password'][theme_type]
-
-        window.unbind("<Configure>")
-        window.unbind("<Button-1>")
-
-        # Configure main frame background
-        main_frame.configure(bg=styles['title']['bg'])
-
-        tk.Label(main_frame, text="Change Password", **styles['title']).pack(pady=10)
-
-        new_password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style=theme_type)
-
-        confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=eye_open_image, eye_closed_image=eye_closed_image, style=theme_type)
-
-        def change_password():
-            new_password = new_password_entry.get()
-            confirm_password = confirm_password_entry.get()
-
-            is_valid, validation_message = validate_password_match(new_password, confirm_password)
-            if not is_valid:
-                display_error(message_label, validation_message)
-                return
-
-            is_valid, validation_message = validate_password(username, new_password)
-            if not is_valid:
-                display_error(message_label, validation_message)
-                return
-            
-            success, message = update_user_password(username, new_password)
-            if success:
-                display_success(message_label, message)
-                switch_to_admin_panel()
-            else:
-                display_error(message_label, message)
-
-        # Binds the enter key to the login function if either the button or the main_frame is in focus
-        message_label = tk.Label(main_frame, text="", **styles['message'])
-        message_label.pack()
-
-        change_button = tk.Button(main_frame, text="Change Password", command=change_password, **styles['buttons'])
-        change_button.pack(pady=10)
+    def switch_to_change_password(username, from_source="login", parent_dialog=None):
+        """
+        Show password change screen based on context.
         
-        # Bind enter key to both frame and button
-        main_frame.bind('<Return>', lambda event: change_password())
-        change_button.bind('<Return>', lambda event: change_password())
+        Args:
+            username: Username of account to change password
+            from_source: Source of change request ('login', 'self', 'admin')
+        """
+        if from_source == "login":
+            # Use existing login change password screen behavior
+            window.geometry("400x300")
+            clear_frame(main_frame)
+            styles = get_style_config()['change_password']['light']
+            window.unbind("<Configure>")
+            window.unbind("<Button-1>")
+            
+            main_frame.configure(bg=styles['title']['bg'])
+            tk.Label(main_frame, text="Change Password", **styles['title']).pack(pady=10)
+            
+            new_password_entry, _, _ = create_password_field(
+                main_frame, "New Password", 
+                eye_open_image=eye_open_image, 
+                eye_closed_image=eye_closed_image, 
+                style="light"
+            )
+            
+            confirm_password_entry, _, _ = create_password_field(
+                main_frame, "Confirm Password",
+                eye_open_image=eye_open_image, 
+                eye_closed_image=eye_closed_image,
+                style="light"
+            )
+            pass
+        else:
+            # Create dialog window for self/admin password changes
+            styles = get_style_config()['manage_user']
+            dialog = tk.Toplevel(window)
+            dialog.title("Change Password")
+            dialog.configure(**styles['frame'])
+            
+            if parent_dialog:
+                # Make this dialog modal relative to parent
+                dialog.transient(parent_dialog)
+                parent_dialog.attributes('-disabled', True)
+            else:
+                dialog.transient(window)
+                
+            dialog.grab_set()
+            dialog.focus_set()
 
+            # Center dialog
+            dialog_width = 400
+            dialog_height = 350 if from_source == "self" else 300
+            dialog.minsize(dialog_width, dialog_height)
+            x = (dialog.winfo_screenwidth() - dialog_width) // 2
+            y = (dialog.winfo_screenheight() - dialog_height) // 2
+            dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+            
+            # Make dialog modal
+            dialog.transient(window)
+            dialog.grab_set()
+            dialog.focus_set()
+            dialog.attributes('-topmost', True)
+
+            def on_close():
+                if parent_dialog:
+                    parent_dialog.attributes('-disabled', False)
+                    parent_dialog.focus_set()
+                dialog.destroy()
+
+            # Create form
+            form_frame = tk.Frame(dialog, **styles['frame'])
+            form_frame.pack(fill='both', expand=True, padx=20, pady=20)
+            
+            tk.Label(form_frame, text="Change Password", **styles['title']).pack(pady=(0, 20))
+            
+            message_label = tk.Label(form_frame, text="", **styles['message'])
+            message_label.pack(pady=(0, 10))
+
+            # Add current password field for self-change only
+            current_password_entry = None
+            if from_source == "self":
+                current_password_entry, _, _ = create_password_field(
+                    form_frame, "Current Password",
+                    eye_open_image=eye_open_image,
+                    eye_closed_image=eye_closed_image,
+                    style="dark"
+                )
+
+            new_password_entry, _, _ = create_password_field(
+                form_frame, "New Password",
+                eye_open_image=eye_open_image,
+                eye_closed_image=eye_closed_image,
+                style="dark"
+            )
+            
+            confirm_password_entry, _, _ = create_password_field(
+                form_frame, "Confirm Password",
+                eye_open_image=eye_open_image,
+                eye_closed_image=eye_closed_image,
+                style="dark"
+            )
+
+            def change_password():
+                new_password = new_password_entry.get()
+                confirm_password = confirm_password_entry.get()
+                current_password = current_password_entry.get() if from_source == "self" else None
+
+                # Validate based on source
+                if from_source == "self":
+                    # Verify current password first
+                    success, *_ = authenticate_user(username, current_password)
+                    if not success:
+                        display_error(message_label, "Current password is incorrect")
+                        return
+
+                # Use validate_user_fields for password validation
+                is_valid, validation_message = validate_user_fields(
+                    username=username,
+                    first_name="",
+                    last_name="",
+                    password=new_password,
+                    confirm_password=confirm_password,
+                    age="",
+                    check_type="password"
+                )
+                
+                if not is_valid:
+                    display_error(message_label, validation_message)
+                    return
+
+                success, message = update_user_password(username, new_password)
+                if success:
+                    display_success(message_label, message)
+                    if from_source == "login":
+                        dialog.after(1500, lambda: switch_to_admin_panel())
+                    else:
+                        dialog.after(1500, on_close)
+                else:
+                    display_error(message_label, message)
+                
+            dialog.protocol("WM_DELETE_WINDOW", on_close)
+
+        # Add buttons
+        button_frame = tk.Frame(form_frame if from_source != "login" else main_frame, **styles['frame'])
+        button_frame.pack(pady=20)
+
+        change_button = tk.Button(
+            button_frame,
+            text="Change Password",
+            command=change_password,
+            **styles['buttons']
+        )
+        change_button.pack(side='left', padx=5)
+
+        if from_source != "login":
+            tk.Button(
+                button_frame,
+                text="Cancel",
+                command=on_close,
+                **styles['buttons']
+            ).pack(side='left', padx=5)
+
+        # Bind enter key
+        if from_source == "login":
+            main_frame.bind('<Return>', lambda event: change_password())
+            change_button.bind('<Return>', lambda event: change_password())
+
+    # Should switch to using logout function instead of just transitioning to showing the login screen even though the login process refreshes these variables.
     def logout():
         """Handle logout."""
         global current_username, current_first_name, current_last_name, current_admin_id, current_user_id
@@ -1995,6 +2423,5 @@ def start_app():
 
     window.mainloop() # Actually starts the application and allows the user to interact with the GUI
 
-# TODO: Explain functionality reason behind this on ONE of the files (pref main.py) #
 if __name__ == "__main__":
     start_app()
