@@ -1,11 +1,12 @@
 # **TODO:**
 ## **Incomplete:**
 - Create Dashboard page with likely to be common use parts.
-- Global Search bar to find functions for admin usage.
-- qr code scanning/ link to global search on main page + find the product page on admin.
+- Improve my documentation as a whole, comments and docustrings.
 
 ## **Potential:**
-? Test all logging both user and admin(success and failure), to ensure there are no broken parts ?
+? Global Search bar to find functions for admin usage. ?
+? qr code scanning/ link to global search on main page + find the product page on admin. ?
+? Test all logging both user and admin(success and failure), to ensure there are no broken parts. ?
 ? issue with stock not being checked to ensure it is an integer when editing a product ?
 ? Potentially an issue with the old qr codes for products not being removed againn... ?
 ? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product)
