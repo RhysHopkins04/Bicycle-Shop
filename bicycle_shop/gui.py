@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, filedialog as filedialog, PhotoImage, messagebox
+from tkinter import ttk, filedialog as filedialog, PhotoImage, messagebox, scrolledtext
 import os
 import cv2
 
@@ -12,7 +12,8 @@ from database import (create_tables, initialize_admin, get_products, get_product
                       get_current_user_admin_status, get_all_users, update_user_details, delete_user, 
                       promote_user_to_admin, demote_user_from_admin, get_all_discounts, add_discount, 
                       delete_discount, update_discount, toggle_discount_status, increment_discount_uses,
-                      verify_discount_qr,
+                      verify_discount_qr, export_logs_to_temp_file, get_username_by_id,
+                      get_user_id_by_username
                       )
 from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
                         validate_user_fields, validate_username_uniqueness, validate_product_fields, 
@@ -22,9 +23,9 @@ from utils import (display_error, display_success, clear_frame, show_dropdown, h
                    create_nav_buttons, create_user_info_display, setup_search_widget, create_scrollable_frame, 
                    create_password_field, setup_product_grid, create_product_listing_frame, create_product_management_frame, 
                    get_style_config, center_window, create_fullscreen_handler, resize_product_image, resize_qr_code,
-                   create_scrollable_grid_frame
+                   create_scrollable_grid_frame, log_action, get_action_type
                    )
-from file_manager import (get_application_settings, get_icon_paths, get_paths)
+from file_manager import (get_application_settings, get_icon_paths, get_paths, get_user_logging_status, set_user_logging_status)
 
 from qr_code_util import (scan_qr_code, scan_qr_code_from_file)
 
@@ -37,7 +38,7 @@ def start_app():
     icon_paths = get_icon_paths()
 
     # Global Variables other than the main_frame 
-    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id, current_user_id, disable_search, enable_search
+    global main_frame, logout_button, window, current_username, current_first_name, current_last_name, current_admin_id, current_user_id, disable_search, enable_search, user_log_text, admin_log_text
     logout_button = None
     current_admin_id = None
     current_username = None
@@ -46,6 +47,8 @@ def start_app():
     current_user_id = None
     disable_search = None
     enable_search = None
+    user_log_text = None
+    admin_log_text = None
 
     # Add window state tracking
     global window_state
@@ -108,6 +111,10 @@ def start_app():
             global current_username, current_first_name, current_last_name, current_admin_id, current_user_id
             username = username_entry.get()
             password = password_entry.get()
+
+            is_admin_account = get_current_user_admin_status(username)
+
+
             success, is_admin, password_changed, first_name, last_name, user_id = authenticate_user(username, password)
             if success:
                 # On successful login (all above are satisfied and user authenticates properly) set below global variables for later use in the GUI.
@@ -115,8 +122,11 @@ def start_app():
                 current_first_name = first_name
                 current_last_name = last_name
                 current_user_id = user_id
+                
+                log_action('LOGIN', user_id=current_user_id, details=f"Successful login") # Logging Statement
                 if is_admin:
                     current_admin_id = user_id # Sets the global variable for later use
+                    log_action('ADMIN_LOGIN', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Admin login: {username}") # Logging Statement
                     if not password_changed: # If the user is an admin but its the first login it forces the change password
                         switch_to_change_password(username, from_source="login")
                     else:
@@ -124,7 +134,13 @@ def start_app():
                 else:
                     switch_to_store_listing() # Switch normal user to the normal store page.
             else:
-               display_error(message_label, "Invalid credentials!")
+                display_error(message_label, "Invalid credentials!")
+                if is_admin_account:
+                    # Log failed admin login attempt
+                    log_action('ADMIN_LOGIN', is_admin=True, admin_id=None, target_type='user', target_id=None, details=f"Failed admin login attempt for admin account: {username}", status='failed') # Logging Statement
+                else:
+                    # Log normal failed login attempt
+                    log_action('LOGIN', user_id=None, details=f"Failed login attempt for username: {username}", status='failed') # Logging Statement
 
         login_button = tk.Button(main_frame, text="Login", command=login, **styles['buttons'])
         login_button.pack(pady=10)
@@ -198,12 +214,14 @@ def start_app():
                 display_error(message_label, validation_message)
                 return
 
-            result = register_user(username, first_name, last_name, password, int(age))
+            success, user_id, message = register_user(username, first_name, last_name, password, int(age))
 
-            if "successful" in result: # Success message if all requirements are met and user is created
-                display_success(message_label, result)
+            if success: # Success message if all requirements are met and user is created
+                display_success(message_label, message)
+                log_action('REGISTER', user_id=user_id, details=f"New user registered: {username}") # Logging Statement
             else:
-                display_error(message_label, result)
+                display_error(message_label, message)
+                log_action('REGISTER', user_id=None, details=f"Failed registration attempt for username: {username}", status='failed') # Logging Statement
 
         register_button = tk.Button(main_frame, text="Register", command=register, **styles['buttons'])
         register_button.pack(pady=10)
@@ -477,6 +495,8 @@ def start_app():
 
         product = get_product_by_id(product_id)
         if product:
+            log_action('VIEW_PRODUCT', user_id=current_user_id, details=f"Viewed product: {product[1]}") # Logging Statement
+
             # Create title container frame to hold both title and back button
             title_container = tk.Frame(content_inner_frame, **styles['frame'])
             title_container.pack(fill="x", pady=(0, 8))
@@ -636,6 +656,7 @@ def start_app():
                 success, message = add_to_cart(current_user_id, product_id)
                 if success:
                     display_success(message_label, "Item added to cart")
+                    log_action('CART_ADD', user_id=current_user_id, details=f"Added product {product_id} to cart") # Logging Statement
                     if user_info and dropdown:
                         try:
                             show_dropdown(None, user_info, dropdown)
@@ -644,6 +665,7 @@ def start_app():
                             pass  # Ignore if widgets are destroyed
                 else:
                     display_error(message_label, message)
+                    log_action('CART_ADD', user_id=current_user_id, details=f"Failed to add product {product_id}", status='failed') # Logging Statement
 
             def safe_hide_dropdown(user_info, dropdown):
                 try:
@@ -738,9 +760,17 @@ def start_app():
         def update_quantity(pid, current_qty, delta):
             new_qty = current_qty + delta
             if new_qty <= 0:
-                update_cart_quantity(current_user_id, pid, 0)
+                success, message = update_cart_quantity(current_user_id, pid, 0)
+                if success:
+                    log_action('CART_UPDATE', user_id=current_user_id, details=f"Removed product {pid} from cart") # Logging Statement
+                else:
+                    log_action('CART_UPDATE', user_id=current_user_id, details=f"Failed to remove product {pid}: {message}", status='failed') # Logging Statement
             else:
-                update_cart_quantity(current_user_id, pid, new_qty)
+                success, message = update_cart_quantity(current_user_id, pid, new_qty)
+                if success:
+                    log_action('CART_UPDATE', user_id=current_user_id, details=f"Updated product {pid} quantity to {new_qty}") # Logging Statement
+                else:
+                    log_action('CART_UPDATE', user_id=current_user_id, details=f"Failed to update product {pid}: {message}", status='failed') # Logging Statement
             show_cart()
 
         for item in cart_items:
@@ -1102,9 +1132,11 @@ def start_app():
 
             if success:
                 display_success(message_label, "Profile updated successfully")
+                log_action('PROFILE_UPDATE', user_id=current_user_id, details=f"Updated profile: {first_name}, {last_name}, {age}") # Logging Statement
                 dialog.after(1500, dialog.destroy)  # Close dialog after success
             else:
                 display_error(message_label, message)
+                log_action('PROFILE_UPDATE', user_id=current_user_id, details="Failed to update profile", status='failed') # Logging Statement
 
         # Button frame
         button_frame = tk.Frame(form_frame, **styles['frame'])
@@ -1263,6 +1295,7 @@ def start_app():
             ("Manage Categories", show_manage_categories_screen),
             ("Manage Discounts", show_manage_discounts_screen),
             ("Manage Users", show_manage_users_screen),
+            ("Logging", show_logging_screen),
             ("View Store as User", lambda: switch_to_store_listing(is_admin=True))
         ]
         create_nav_buttons(left_nav, button_configs)
@@ -1349,8 +1382,14 @@ def start_app():
             category_id = get_category_id(category) if category else None
 
             # Now just pass None for qr_code - it will be generated in database.py
-            add_product(name, price, None, listed, description, category_id, image, stock)
-            display_success(message_label, "Product added successfully!")
+            success, product_id, message = add_product(name, price, None, listed, description, category_id, image, stock)
+    
+            if success:
+                display_success(message_label, "Product added successfully!")
+                log_action('CREATE_PRODUCT', is_admin=True, admin_id=current_admin_id, target_type='product', target_id=product_id, details=f"Created product: {name} (Price: £{price}, Stock: {stock}, Listed: {listed})") # Logging Statement
+            else:
+                display_error(message_label, message)
+                log_action('CREATE_PRODUCT', is_admin=True, admin_id=current_admin_id, target_type='product', target_id=None, details=f"Failed to create product: {message}", status='failed') # Logging Statement
         
         tk.Button(content_inner_frame, text="Add Product", command=handle_add_product, **styles['buttons']).pack(pady=10) # Button that calls this function to add the products to the database
 
@@ -1413,8 +1452,16 @@ def start_app():
 
         def handle_delete_product(product_id):
             """Handle product deletion and refresh display."""
-            db_delete_product(product_id)
-            display_products(get_products(listed_only=False))
+            product = get_product_by_id(product_id)
+            if product:
+                    product_name = product[1]  # Get name before deletion
+                    success, msg = db_delete_product(product_id)
+                    if success:
+                        display_products(get_products(listed_only=False))
+                        log_action('DELETE_PRODUCT', is_admin=True, admin_id=current_admin_id, target_type='product', target_id=product_id, details=f"Deleted product: {product_name}") # Logging Statement
+                    else:
+                        messagebox.showerror("Error", msg)
+                        log_action('DELETE_PRODUCT', is_admin=True, admin_id=current_admin_id, target_type='product', target_id=product_id, details=f"Failed to delete product {product_name}: {msg}", status='failed') # Logging Statement
 
         def display_products(products):
             """Display products grouped by category in manage products view."""
@@ -1857,6 +1904,8 @@ def start_app():
                 
                 if not is_valid:
                     display_error(message_label, message)
+                    log_action('UPDATE_PRODUCT', is_admin=True, admin_id=current_admin_id, target_type='product', target_id=product_id, details=f"Failed to update product: {message}", status='failed') # Logging Statement
+                    
                     return
 
                 category_id = get_category_id(new_values['category']) if new_values['category'] else None
@@ -1889,6 +1938,7 @@ def start_app():
                 list_product(product_id, new_values['listed'])
 
                 display_success(message_label, "Product updated successfully!")
+                log_action('UPDATE_PRODUCT', is_admin=True, admin_id=current_admin_id, target_type='product', target_id=product_id, details=f"Updated product: {new_values['name']} (Price: £{new_values['price']}, Stock: {new_values['stock']}, Listed: {new_values['listed']})") # Logging Statement
                 show_manage_products_screen()
 
             # Bind resize event
@@ -1942,20 +1992,25 @@ def start_app():
             name = category_entry.get()
             if not name:
                 display_error(message_label, "Category name is required.")
+                log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=None, details=f"Failed to create category: Name required", status='failed') # Logging Statement
                 return
 
             is_valid, message = validate_category_name(name)
             if not is_valid:
                 display_error(message_label, message)
+                log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=None, details=f"Failed to create category: {message}", status='failed') # Logging Statement
                 return
 
             success, message = add_category(name)
             if success:
+                category_id = get_category_id(name)  # Get the new category's ID
                 display_success(message_label, message)
+                log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=category_id, details=f"Created category: {name}") # Logging Statement
                 category_entry.delete(0, tk.END)
                 display_categories()
             else:
                 display_error(message_label, message)
+                log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=None, details=f"Failed to create category {name}: {message}", status='failed') # Logging Statement
 
         add_button = tk.Button(content_inner_frame, text="Add Category", command=handle_add_category, **styles['buttons'])
         add_button.pack(pady=5)
@@ -1976,18 +2031,23 @@ def start_app():
             success, message = update_category(category_id, new_name)
             if success:
                 display_success(message_label, message)
+                log_action('UPDATE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=category_id, details=f"Updated category name from {old_name} to {new_name}") # Logging Statement
                 category_entry.delete(0, tk.END)
                 display_categories()
             else:
                 display_error(message_label, message)
+                log_action('UPDATE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=category_id, details=f"Failed to update category {old_name}: {message}", status='failed') # Logging Statement
 
         def handle_delete_category(category_id):
+            category_name = get_category_name(category_id)  # Get name before deletion
             success, message = delete_category(category_id)
             if success:
                 display_success(message_label, message)
+                log_action('DELETE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=category_id, details=f"Deleted category: {category_name}") # Logging Statement
                 display_categories()
             else:
                 display_error(message_label, message)
+                log_action('DELETE_CATEGORY', is_admin=True, admin_id=current_admin_id, target_type='category', target_id=category_id, details=f"Failed to delete category {category_name}: {message}", status='failed') # Logging Statement
 
         # Call display_categories to show the categories initially
         display_categories()
@@ -2262,6 +2322,7 @@ def start_app():
 
                 if not is_valid:
                     display_error(message_label, validation_message)
+                    log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Failed to update user {username}: {validation_message}", status='failed') # Logging Statement
                     return
 
                 # Check admin status change
@@ -2274,6 +2335,7 @@ def start_app():
                     
                     if admin_count <= 1 and not new_is_admin:
                         display_error(message_label, "Cannot remove last admin user")
+                        log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Failed to update user {username}: Cannot remove last admin", status='failed') # Logging Statement
                         return
 
                 success, message = update_user_details(
@@ -2286,9 +2348,11 @@ def start_app():
 
                 if success:
                     display_success(message_label, "User updated successfully")
+                    log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Updated user {username}: Name={new_first_name} {new_last_name}, Age={new_age}, Admin={new_is_admin}") # Logging Statement
                     dialog.after(1000, lambda: [dialog.destroy(), show_manage_users_screen()])
                 else:
                     display_error(message_label, message)
+                    log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Failed to update user {username}: {message}", status='failed') # Logging Statement
 
             button_frame = tk.Frame(frame, **styles['frame'])
             button_frame.pack(pady=(10, 0))
@@ -2335,11 +2399,14 @@ def start_app():
                 return
                 
             success, message = delete_user(user_id)
+            username = get_username_by_id(user_id)
             if success:
                 display_success(message_label, message)
+                log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Deleted user: {username}") # Logging Statement
                 display_users()
             else:
                 display_error(message_label, message)
+                log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=user_id, details=f"Failed to delete user {username}: {message}", status='failed') # Logging Statement
 
         # Initial display
         display_users()
@@ -2400,6 +2467,7 @@ def start_app():
 
             if not name or not percentage:
                 display_error(message_label, "Please fill in all fields")
+                log_action('CREATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=None, details="Failed to create discount: Empty fields", status='failed') # Logging Statement
                 return
 
             try:
@@ -2408,17 +2476,20 @@ def start_app():
                     raise ValueError
             except ValueError:
                 display_error(message_label, "Percentage must be between 1-100")
+                log_action('CREATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=None, details=f"Failed to create discount: Invalid percentage format", status='failed') # Logging Statement
                 return
 
-            success, msg = add_discount(name, percentage)
+            success, new_id, msg = add_discount(name, percentage)
             if success:
                 # Clear entries
                 name_entry.delete(0, tk.END)
                 percentage_entry.delete(0, tk.END)
                 display_success(message_label, msg)
+                log_action('CREATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=new_id, details=f"Created discount: {name} ({percentage}%)") # Logging Statement
                 display_discounts()
             else:
                 display_error(message_label, msg)
+                log_action('CREATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=None, details=f"Failed to create discount: {msg}", status='failed') # Logging Statement
 
         # Add discount button
         tk.Button(
@@ -2645,6 +2716,7 @@ def start_app():
 
                     if not name or not percentage:
                         display_error(message_label, "Please fill in all fields")
+                        log_action('UPDATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount[0], details=f"Failed to update discount: Empty fields", status='failed') # Logging Statement
                         return
 
                     try:
@@ -2653,15 +2725,18 @@ def start_app():
                             raise ValueError
                     except ValueError:
                         display_error(message_label, "Percentage must be between 1-100")
+                        log_action('UPDATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount[0], details=f"Failed to update discount: Invalid percentage value", status='failed') # Logging Statement
                         return
 
                     success, msg = update_discount(discount[0], name, percentage)
                     if success:
                         display_success(message_label, "Discount updated successfully")
+                        log_action('UPDATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount[0], details=f"Updated discount {name} ({percentage}%)") # Logging Statement
                         dialog.after(1500, dialog.destroy)  # Close dialog after success
                         display_discounts()
                     else:
                         display_error(message_label, msg)
+                        log_action('UPDATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount[0], details=f"Failed to update discount: {msg}", status='failed') # Logging Statement
 
                 # Button frame
                 button_frame = tk.Frame(form_frame, **styles['frame'])
@@ -2689,25 +2764,176 @@ def start_app():
                 if success:
                     display_discounts()
                     display_success(message_label, msg)
+                    log_action('TOGGLE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount[0], details=f"Toggled discount status: {discount[1]}") # Logging Statement
                 else:
                     display_error(message_label, msg)
+                    log_action('TOGGLE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount[0], details=f"Failed to toggle discount status: {msg}", status='failed') # Logging Statement
 
             def handle_delete_discount(discount):
                 """Handle deletion of a discount"""
                 # Extract the discount ID from the tuple
                 discount_id = discount[0]  # The ID is the first element in the tuple
+                discount_name = discount[1]  # The name is the second element
 
                 # Call delete_discount with just the ID
                 success, msg = delete_discount(discount_id)
                 
                 if success:
                     display_discounts()  # Refresh the display
+                    log_action('DELETE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount_id, details=f"Deleted discount: {discount_name}") # Logging Statement
                 else:
                     # Show error message if deletion failed
                     messagebox.showerror("Error", msg)
+                    log_action('DELETE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=discount_id, details=f"Failed to delete discount {discount_name}: {msg}", status='failed') # Logging Statement
 
         # Initial display
         display_discounts()
+
+    def show_logging_screen():
+        """Display the logging management screen"""
+        global content_inner_frame, user_log_text, admin_log_text
+        
+        if not get_current_user_admin_status(current_username):
+            switch_to_store_listing(is_admin=False)
+            return
+
+        clear_frame(content_inner_frame)
+        styles = get_style_config()['logging']
+
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
+        
+        # Create title
+        tk.Label(content_inner_frame, text="System Logs", **styles['title']).pack(pady=10)
+
+        # Create container frame for log controls
+        controls_frame = tk.Frame(content_inner_frame, **styles['frame'])
+        controls_frame.pack(fill="x", padx=20, pady=(0, 10))
+        
+        # Create filters frame
+        filters_frame = tk.Frame(controls_frame, **styles['frame'])
+        filters_frame.pack(side="left", fill="x", expand=True)
+
+        # User logging enable/disable combobox
+        tk.Label(filters_frame, text="User Action Logging:", **styles['labels']).pack(side="left", padx=5)
+        
+        # Create and style the comboboxes
+        combo_style = ttk.Style()
+        combo_style.configure('Logging.TCombobox', 
+            background=styles['frame']['bg'],
+            fieldbackground=styles['text']['bg'],
+            foreground=styles['text']['fg']
+        )
+        
+        # User logging toggle combobox
+        user_logging_var = tk.StringVar(value="Enabled" if get_user_logging_status() else "Disabled")
+        user_logging_combo = ttk.Combobox(
+            filters_frame,
+            textvariable=user_logging_var,
+            values=["Enabled", "Disabled"],
+            state="readonly",
+            style='Logging.TCombobox',
+            width=10
+        )
+        user_logging_combo.pack(side="left", padx=5)
+
+        def on_logging_change(event):
+            """Handle logging enable/disable"""
+            enabled = user_logging_var.get() == "Enabled"
+            success = set_user_logging_status(enabled)
+            if success:
+                if enabled:
+                    log_action('TOGGLE_USER_LOGGING', is_admin=True, admin_id=current_admin_id, target_type='setting', target_id=None, details="Enabled user action logging") # Logging Statement
+                else:
+                    log_action('TOGGLE_USER_LOGGING', is_admin=True, admin_id=current_admin_id, target_type='setting', target_id=None, details="Disabled user action logging") # Logging Statement
+            else:
+                log_action('TOGGLE_USER_LOGGING', is_admin=True, admin_id=current_admin_id, target_type='setting', target_id=None, details=f"Failed to toggle user logging", status='failed') # Logging Statement
+
+        user_logging_combo.bind('<<ComboboxSelected>>', on_logging_change)
+
+        # Log type selection combobox
+        tk.Label(filters_frame, text="View Logs:", **styles['labels']).pack(side="left", padx=(20, 5))
+        log_type_var = tk.StringVar(value="User Actions")
+        log_type_combo = ttk.Combobox(
+            filters_frame,
+            textvariable=log_type_var,
+            values=["Admin Actions", "User Actions"],
+            state="readonly",
+            style='Logging.TCombobox',
+            width=15
+        )
+        log_type_combo.pack(side="left", padx=5)
+        # Auto refresh the logs after a change has been made to the type of logs being viewed.
+        log_type_combo.bind('<<ComboboxSelected>>', lambda e: refresh_logs())
+
+        # Create main log display frame
+        log_frame = tk.Frame(content_inner_frame, **styles['frame'])
+        log_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        # Create text widget for log display
+        log_text = tk.Text(log_frame, wrap="word", **styles['text'])
+        log_text.pack(side="left", fill="both", expand=True)
+
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(log_frame, orient="vertical", command=log_text.yview)
+        scrollbar.pack(side="right", fill="y")
+        log_text.configure(yscrollcommand=scrollbar.set)
+
+        # Make text widget read-only
+        log_text.configure(state="disabled")
+
+        # Create message label for feedback
+        message_label = tk.Label(content_inner_frame, text="", **styles['message'])
+        message_label.pack(pady=10)
+
+        def cleanup_temp_files():
+            """Clean up temporary log files"""
+            temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+            if os.path.exists(temp_dir):
+                for file in os.listdir(temp_dir):
+                    if file.endswith('.log'):
+                        try:
+                            os.remove(os.path.join(temp_dir, file))
+                        except:
+                            pass
+
+        def refresh_logs():
+            """Refresh logs based on selected type"""
+            try:
+                cleanup_temp_files()  # Clean old files first
+                admin_only = log_type_var.get() == "Admin Actions"
+                log_file = export_logs_to_temp_file(admin_only=admin_only)
+                
+                log_text.configure(state="normal")
+                log_text.delete(1.0, tk.END)
+                
+                with open(log_file, 'r') as f:
+                    log_text.insert(tk.END, f.read())
+                    
+                log_text.configure(state="disabled")
+                
+                # Clean up after reading
+                try:
+                    os.remove(log_file)
+                except:
+                    pass
+                    
+                display_success(message_label, "Logs refreshed successfully")
+            except Exception as e:
+                display_error(message_label, f"Failed to load logs: {str(e)}")
+
+        # Add cleanup to window destroy binding
+        window.bind("<Destroy>", lambda e: cleanup_temp_files())
+
+        # Add refresh button
+        tk.Button(controls_frame, text="Refresh Logs", 
+                command=refresh_logs,
+                **styles['buttons']).pack(side="right", padx=5)
+        
+        # Initial load
+        refresh_logs()
+    
+
 
     def switch_to_change_password(username, from_source="login", parent_dialog=None):
         """
@@ -2844,11 +3070,24 @@ def start_app():
                 if success:
                     display_success(message_label, message)
                     if from_source == "login":
+                        log_action('FIRST_LOGIN_PASSWORD', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=current_user_id, details=f"Changed initial admin password") # Logging Statement
+                    elif from_source == "admin":
+                        log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=get_user_id_by_username(username), details=f"Admin changed password for user: {username}") # Logging Statement
+                    else:  # self change
+                        log_action('PASSWORD_CHANGE', user_id=current_user_id, details="Password changed successfully") # Logging Statement
+                        
+                    if from_source == "login":
                         dialog.after(1500, lambda: switch_to_admin_panel())
                     else:
                         dialog.after(1500, on_close)
                 else:
                     display_error(message_label, message)
+                    if from_source == "login":
+                        log_action('FIRST_LOGIN_PASSWORD', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=current_user_id, details=f"Failed to change initial admin password: {message}", status='failed') # Logging Statement
+                    elif from_source == "admin":
+                        log_action('MANAGE_USER', is_admin=True, admin_id=current_admin_id, target_type='user', target_id=get_user_id_by_username(username), details=f"Failed to change password for user {username}: {message}", status='failed') # Logging Statement
+                    else:  # self change
+                        log_action('PASSWORD_CHANGE', user_id=current_user_id, details="Failed to change password", status='failed') # Logging Statement
                 
             dialog.protocol("WM_DELETE_WINDOW", on_close)
 
@@ -2881,6 +3120,7 @@ def start_app():
     def logout():
         """Handle logout."""
         global current_username, current_first_name, current_last_name, current_admin_id, current_user_id
+        log_action('LOGOUT', user_id=current_user_id, details=f"User {current_username} logged out") # Logging Statement before the variables are reset hopefully.
         current_user_id = None
         current_username = None
         current_first_name = None

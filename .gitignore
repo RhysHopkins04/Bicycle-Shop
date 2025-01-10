@@ -10,6 +10,7 @@ Discounts/
 /bicycle_shop/Discounts
 *.ini
 bicycle_shop/.initialized
+bicycle_shop/temp/*.log
 
 
 

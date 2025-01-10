@@ -21,6 +21,7 @@ SECTION_COMMENTS = {
         '# Window and page title settings',
         '# start_maximized: True to start in maximized window mode',
     ],
+    'Logging': "# Logging configuration settings",
     'Theme': "# Color scheme settings for the application interface",
     'DefaultAdmin': [
         "# Default administrator account settings (only used on first setup)",
@@ -37,6 +38,9 @@ DEFAULT_CONFIG = {
         'store_title': 'Store Listing',
         'admin_title': 'Dashboard',
         'start_max_windowed': 'True',
+    },
+    'Logging': {
+        'user_logging_enabled': 'True'  # Default to enabled
     },
     'Theme': {
         'color_primary': '#171d22',
@@ -183,6 +187,31 @@ def get_application_settings():
         'use_maximized': config['Application'].getboolean('start_max_windowed', fallback=True),
         'window_state': 'zoomed' if config['Application'].getboolean('use_maximized', fallback=True) else 'normal'
     }
+
+def get_logging_settings():
+    """Get logging configuration settings"""
+    if not os.path.exists(CONFIG_PATH):
+        create_initial_config()
+    config.read(CONFIG_PATH)
+    return {
+        'user_logging_enabled': config['Logging'].getboolean('user_logging_enabled', fallback=True)
+    }
+
+def get_user_logging_status():
+    """Get user logging status from config (enabled/disabled)"""
+    if not os.path.exists(CONFIG_PATH):
+        create_initial_config()
+    config.read(CONFIG_PATH)
+    return config['Logging'].getboolean('user_logging_enabled', fallback=True)
+
+def set_user_logging_status(enabled):
+    """Set user logging status in config (enabled/disabled)"""
+    if not os.path.exists(CONFIG_PATH):
+        create_initial_config()
+    config.read(CONFIG_PATH)
+    config['Logging']['user_logging_enabled'] = str(enabled).lower()
+    with open(CONFIG_PATH, 'w') as configfile:
+        config.write(configfile)
 
 def get_theme():
     """Get theme color settings."""

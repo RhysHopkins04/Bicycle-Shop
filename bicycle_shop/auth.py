@@ -29,10 +29,11 @@ def register_user(username, first_name, last_name, password, age):
             INSERT INTO Users (username, first_name, last_name, password, salt, age, is_admin, password_changed) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (username, first_name, last_name, hashed_password, salt, age, 0, 1))
+        user_id = cursor.lastrowid
         conn.commit()
-        return "Registration successful."
+        return True, user_id, "Registration successful."
     except sqlite3.IntegrityError:
-        return "Username already exists."
+        return False, None, "Username already exists."
     finally:
         conn.close()
 

@@ -74,6 +74,32 @@ def create_tables():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS UserActions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            user_id INTEGER,
+            action_type TEXT,
+            details TEXT,
+            status TEXT,
+            FOREIGN KEY (user_id) REFERENCES Users(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS AdminActions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            admin_id INTEGER,
+            action_type TEXT,
+            target_type TEXT,
+            target_id INTEGER,
+            details TEXT,
+            status TEXT,
+            FOREIGN KEY (admin_id) REFERENCES Users(id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -135,18 +161,23 @@ def get_current_user_admin_status(username):
 # Product Management Functions:
 def add_product(name, price, qr_code, listed, description, category_id, image, stock):
     """Add a new product to the database."""
-    product_dir = handle_product_directory(name)
-    qr_code_path = handle_qr_code(name, price, product_dir)
-    image_path = handle_product_image(image, product_dir) if image else None
+    try:
+        product_dir = handle_product_directory(name)
+        qr_code_path = handle_qr_code(name, price, product_dir)
+        image_path = handle_product_image(image, product_dir) if image else None
 
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO Products (name, price, qr_code, listed, description, category_id, image, stock) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (name, price, qr_code_path, listed, description, category_id, image_path, stock))
-    conn.commit()
-    conn.close()
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO Products (name, price, qr_code, listed, description, category_id, image, stock) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (name, price, qr_code_path, listed, description, category_id, image_path, stock))
+        new_product_id = cursor.lastrowid  # Get the ID of the newly inserted product
+        conn.commit()
+        conn.close()
+        return True, new_product_id, "Product added successfully"
+    except Exception as e:
+        return False, None, f"Error adding product: {str(e)}"
 
 def update_product(product_id, name, price, qr_code, description, category_id, image, stock, keep_image=False, keep_qr=False):
     """Update product with enhanced error handling and file management"""
@@ -393,8 +424,30 @@ def update_user_details(user_id, first_name, last_name, age, is_admin):
     finally:
         conn.close()
 
+def get_username_by_id(user_id):
+    """Retrieve username by user ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username FROM Users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    conn.close()
+    return user[0] if user else None
+
+def get_user_id_by_username(username):
+    """Retrieve user ID by username."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM Users WHERE username = ?", (username,))
+    user = cursor.fetchone()
+    conn.close()
+    return user[0] if user else None
+
 def delete_user(user_id):
     """Delete user if not last admin."""
+    username = get_username_by_id(user_id)
+    if not username:
+        return False, "User not found"
+
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -544,13 +597,14 @@ def add_discount(name, percentage):
         cursor.execute("""
             INSERT INTO Discounts (name, percentage, qr_code_path)
             VALUES (?, ?, ?)
-        """, (name, percentage, qr_path))
+            """, (name, percentage, qr_path))
+        new_discount_id = cursor.lastrowid  # Get the ID of newly inserted discount
         conn.commit()
-        return True, "Discount added successfully"
+        return True, new_discount_id, "Discount added successfully"
     except sqlite3.IntegrityError:
-        return False, "A discount with this name already exists"
+        return False, None, "A discount with this name already exists"
     except Exception as e:
-        return False, f"Error adding discount: {str(e)}"
+        return False, None, f"Error adding discount: {str(e)}"
     finally:
         conn.close()
 
@@ -660,3 +714,85 @@ def verify_discount_qr(qr_data):
         return result if result else None
     except:
         return None
+    
+# User + Admin Loggings:
+# database.py
+def log_user_action(user_id, action_type, details, status="success"):
+    """Log user action to database"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO UserActions (user_id, action_type, details, status)
+        VALUES (?, ?, ?, ?)
+    """, (user_id, action_type, details, status))
+    print("TEMP PRINT: Logging action to DB User")
+    conn.commit()
+    conn.close()
+
+def log_admin_action(admin_id, action_type, target_type, target_id, details, status="success"):
+    """Log admin action to database"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO AdminActions (admin_id, action_type, target_type, target_id, details, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (admin_id, action_type, target_type, target_id, details, status))
+    print("TEMP PRINT: Logging action to DB Admin")
+    conn.commit()
+    conn.close()
+
+def export_logs_to_temp_file(admin_only=False):
+    """Export logs to temporary file for viewing"""
+    import tempfile
+    import os
+    from file_manager import get_paths
+    
+    # Create temp directory in our application directory
+    app_dir = os.path.dirname(__file__)
+    temp_dir = os.path.join(app_dir, 'temp')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Create temp file with auto-cleanup
+    temp_file = tempfile.NamedTemporaryFile(
+        mode='w',
+        delete=False,  # We'll handle deletion ourselves
+        suffix='.log',
+        dir=temp_dir
+    )
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        if admin_only:
+            cursor.execute("""
+                SELECT timestamp, 
+                       COALESCE(Users.username, 'Unknown User') as username,
+                       action_type, 
+                       target_type, 
+                       details, 
+                       status 
+                FROM AdminActions 
+                LEFT JOIN Users ON AdminActions.admin_id = Users.id
+                ORDER BY timestamp DESC
+            """)
+        else:
+            cursor.execute("""
+                SELECT timestamp,
+                       COALESCE(Users.username, 'Unknown User') as username,
+                       action_type,
+                       details,
+                       status 
+                FROM UserActions 
+                LEFT JOIN Users ON UserActions.user_id = Users.id
+                ORDER BY timestamp DESC
+            """)
+            
+        for row in cursor:
+            temp_file.write(" | ".join(map(str, row)) + "\n")
+            
+        temp_file.close()
+        return temp_file.name
+        
+    finally:
+        conn.close()

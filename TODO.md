@@ -1,12 +1,12 @@
 # **TODO:**
 ## **Incomplete:**
-- Create User Logs page for Admins.
-
 - Create Dashboard page with likely to be common use parts.
 - Global Search bar to find functions for admin usage.
 - qr code scanning/ link to global search on main page + find the product page on admin.
 
 ## **Potential:**
+? Test all logging both user and admin(success and failure), to ensure there are no broken parts ?
+? issue with stock not being checked to ensure it is an integer when editing a product ?
 ? Potentially an issue with the old qr codes for products not being removed againn... ?
 ? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product)
 ? Update the adding of categories and management of categories screen since it is primitive and not user friendly for first time useage. ?
@@ -21,7 +21,7 @@
 ? Ask about use of CTK (custom tkinter) ?
 
 ## **Known Issues, unsure how to fix:**
-- TKINTER DOESNT SUPPORT % BASED PADDING AHHHHHH
+- TKINTER DOESNT SUPPORT % BASED PADDING AHHHHHH, grid may work to resolve issues with weighting
 - Make change of listed/not listed available on main manage products screen cant be done since it would require changes since an unlisted product doesnt require all the details.
 - Sometimes a slight ghosting can be seen of the dropdown box when the screen has been moved since it updates in 1ms.
 - The manage products search bar wont unfocus if you click on the top_bar or the left_nav since they are outside of the manage products and cannot be included in the removal of focus.
@@ -40,6 +40,10 @@
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense.
 
 ## **Done:**
+- Logging files are located in the /temp/ folder in the application directory and get cleaned up automatically to avoid dataleaks (somewhat unnsessary but good practice encase adjusments are made which reveal sensitive data).
+- Created logging for attempted logins to admin accounts that fail to allow admins to stop these before progressing to an attack.
+- Created admin logging for success and failure operations to stop malicious use and ensure that tracking for training recaps can be done.
+- Created user logging for all processes succesful and navigation to monitor interraction.
 - Implimented the qr code scanning or uploading (camera or file) to the cart for the user.
 - Created discount qr code maker and management screen for admins. Qr codes can be added, edited, deactivated./activated and they have their usages tracked.
 - System works to stop an admin from demoting themselves or deleting themselves ensuring there is always a persistent admin account.
