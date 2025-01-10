@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog as filedialog, PhotoImage, messagebox
 import os
+import cv2
 
 # Functions from other locations in the program: auth, database, qr_code_util
 from auth import (register_user, authenticate_user, update_user_password, validate_user_edit)
@@ -9,7 +10,9 @@ from database import (create_tables, initialize_admin, get_products, get_product
                       add_category, get_categories, get_category_id, get_category_name, delete_category, 
                       update_category, add_to_cart, get_cart_items, update_cart_quantity,
                       get_current_user_admin_status, get_all_users, update_user_details, delete_user, 
-                      promote_user_to_admin, demote_user_from_admin
+                      promote_user_to_admin, demote_user_from_admin, get_all_discounts, add_discount, 
+                      delete_discount, update_discount, toggle_discount_status, increment_discount_uses,
+                      verify_discount_qr,
                       )
 from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
                         validate_user_fields, validate_username_uniqueness, validate_product_fields, 
@@ -22,6 +25,8 @@ from utils import (display_error, display_success, clear_frame, show_dropdown, h
                    create_scrollable_grid_frame
                    )
 from file_manager import (get_application_settings, get_icon_paths, get_paths)
+
+from qr_code_util import (scan_qr_code, scan_qr_code_from_file)
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():
@@ -547,19 +552,19 @@ def start_app():
             def debounced_resize(event=None):
                 """Debounced version of resize_content"""
                 nonlocal resize_timer
-                if resize_timer is not None:
+                if (resize_timer is not None):
                     window.after_cancel(resize_timer)
                 resize_timer = window.after(150, lambda: resize_content(event))
 
             def debounced_wraplength(event=None):
                 """Debounced version of update_wraplength"""
                 nonlocal wraplength_timer
-                if wraplength_timer is not None:
+                if (wraplength_timer is not None):
                     window.after_cancel(wraplength_timer)
                 wraplength_timer = window.after(150, lambda: update_wraplength(event))
 
             def resize_content(event=None):
-                if not product[7] or not left_frame.winfo_exists():
+                if (not product[7] or not left_frame.winfo_exists()):
                     return
                     
                 # Calculate responsive dimensions based on window size
@@ -657,19 +662,16 @@ def start_app():
         window.unbind("<Configure>")
         window.unbind("<Button-1>")
 
-        # Disable search bar when entering cart
-        disable_search()  # Call the disable function
+        disable_search()
         
         clear_frame(content_frame)
         styles = get_style_config()['cart']
         image_styles = get_style_config()['product_page']['image_frame']
         
-        # Create new content_inner_frame with padding
         global content_inner_frame
         content_inner_frame = tk.Frame(content_frame, bg=get_style_config()['store_listing']['content']['inner_frame']['bg'], padx=50, pady=10)
         content_inner_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
-        # Create clean copies of styles to avoid conflicts
         label_styles = dict(styles['labels'])
         if 'font' in label_styles: label_styles.pop('font')
         if 'fg' in label_styles: label_styles.pop('fg')
@@ -677,28 +679,22 @@ def start_app():
         button_styles = dict(styles['buttons'])
         if 'fg' in button_styles: button_styles.pop('fg')
 
-        # Get cart items
         cart_items = get_cart_items(current_user_id)
 
-        # Navigation section at top
         nav_frame = tk.Frame(content_inner_frame, **styles['frame'])
         nav_frame.pack(fill="x", pady=(10, 0))
 
-        # Create scrollable frame early and pack it immediately
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(content_inner_frame)
         wrapper.pack(fill="both", expand=True, pady=(20, 0))
 
-        # Clean up bindings when leaving cart
         def cleanup_cart():
-            unbind_wheel()  # Remove scroll wheel binding
-            canvas.unbind('<Configure>')  # Remove resize check binding
-            window.unbind("<Button-1>")  # Remove other bindings
+            unbind_wheel()
+            canvas.unbind('<Configure>')
+            window.unbind("<Button-1>")
 
-        # Left side container for buttons
         button_container = tk.Frame(nav_frame, **styles['frame'])
         button_container.pack(side="left")
 
-        # Back button
         back_button = tk.Button(
             button_container, 
             text="← Back to Store", 
@@ -708,13 +704,11 @@ def start_app():
             ), 
             **styles['buttons']
         )
-        back_button.pack(side="left", padx=(0, 180)) # right side padding to shift the title towards the center of the checkout section below.
+        back_button.pack(side="left", padx=(0, 180))
         
-        # Cart summary info
         total_items = sum(item[-1] for item in cart_items)
         total_price = 0
 
-        # Cart title next to buttons
         tk.Label(
             nav_frame,
             text=f"Your Cart ({total_items} items)",
@@ -723,63 +717,53 @@ def start_app():
             **label_styles
         ).pack(side="left")
 
-        # Early return if cart is empty
         if not cart_items:
             message_label = tk.Label(scrollable_frame, text="", **styles['message'])
             message_label.pack(pady=20)
-            display_error(message_label, "No items in cart")  # Using display_error for consistent styling
+            display_error(message_label, "No items in cart")
             return
 
-        # Enable mouse wheel scrolling initially
         bind_wheel()
 
-        if get_current_user_admin_status(current_username):
-            admin_button = tk.Button(
-                nav_frame,
-                text="Back to Admin Panel", 
-                command=switch_to_admin_panel, 
-                **styles['buttons']
-            )
-            admin_button.pack(side="left")
-
-        # Headers
         header_frame = tk.Frame(scrollable_frame, **styles['frame'])
         header_frame.pack(fill="x", pady=(10, 10), padx=20)
         
-        # Column headers
         tk.Label(header_frame, text="Item", width=40, anchor="w", fg="white", **label_styles).pack(side="left", padx=10)
         tk.Label(header_frame, text="Price", width=10, fg="white", **label_styles).pack(side="left", padx=10)
         tk.Label(header_frame, text="Quantity", width=15, fg="white", **label_styles).pack(side="left", padx=10)
         tk.Label(header_frame, text="Total", width=15, fg="white", **label_styles).pack(side="left", padx=10)
 
-        # Add separator
         ttk.Separator(scrollable_frame, orient="horizontal").pack(fill="x", padx=20)
 
-        # Cart items loop
+        def update_quantity(pid, current_qty, delta):
+            new_qty = current_qty + delta
+            if new_qty <= 0:
+                update_cart_quantity(current_user_id, pid, 0)
+            else:
+                update_cart_quantity(current_user_id, pid, new_qty)
+            show_cart()
+
         for item in cart_items:
             item_frame = tk.Frame(scrollable_frame, **styles['frame'])
-            item_frame.pack(fill="x", pady=10, padx=20)
+            item_frame.pack(fill="x", pady=5, padx=20)
             
-            # Product info with image
             info_frame = tk.Frame(item_frame, **styles['frame'])
             info_frame.pack(side="left", fill="x", expand=True)
-
-            if item[7]: # 7 is the image of the product
-                # Set fixed width and minimum height for consistent display locations of each item in the list.
-                img = resize_product_image(item[7], 
-                                        max_width=300,
-                                        min_width=50),
-                if img:
-                    img_label = tk.Label(info_frame, 
-                                    image=img,
-                                    **image_styles)
-                    img_label.image = img  # Keep reference to avoid garbage collection
-                    img_label.pack(side="left", padx=5)
             
-            # Product name
+            if item[7]:  # If image exists
+                image = resize_product_image(
+                    item[7],
+                    max_width=100,
+                    max_height=100,
+                    min_width=100,
+                    min_height=100
+                )
+                image_label = tk.Label(info_frame, image=image, **styles['frame'])
+                image_label.image = image
+                image_label.pack(side="left", padx=5)
+
             tk.Label(info_frame, text=item[1], font=("Arial", 12), fg="white", **label_styles).pack(side="left", padx=10)
             
-            # Unit price
             tk.Label(
                 item_frame,
                 text=f"£{item[2]:.2f}",
@@ -788,24 +772,13 @@ def start_app():
                 **label_styles
             ).pack(side="left", padx=(50, 10))
             
-            # Quantity controls
             qty_frame = tk.Frame(item_frame, **styles['frame'])
             qty_frame.pack(side="left", padx=10)
             
-            def update_quantity(pid, current_qty, delta):
-                new_qty = current_qty + delta
-                if new_qty <= 0:
-                    update_cart_quantity(current_user_id, pid, 0)
-                else:
-                    update_cart_quantity(current_user_id, pid, new_qty)
-                show_cart()
-
-            # Quantity buttons and display
             tk.Button(qty_frame, text="-", command=lambda pid=item[0], qty=item[-1]: update_quantity(pid, qty, -1), width=2, **button_styles).pack(side="left", padx=2)
             tk.Label(qty_frame, text=str(item[-1]), width=3, fg="white", **label_styles).pack(side="left", padx=5)
             tk.Button(qty_frame, text="+", command=lambda pid=item[0], qty=item[-1]: update_quantity(pid, qty, 1), width=2, **button_styles).pack(side="left", padx=2)
 
-            # Item total
             item_total = item[2] * item[-1]
             total_price += item_total
             tk.Label(
@@ -816,13 +789,12 @@ def start_app():
                 **label_styles
             ).pack(side="left", padx=(50, 10))
             
-            # Remove button (red X)
             remove_button = tk.Button(
                 item_frame,
                 text="×",
                 command=lambda pid=item[0]: (
-                    update_cart_quantity(current_user_id, pid, 0),  # Remove item
-                    show_cart()  # Refresh cart display
+                    update_cart_quantity(current_user_id, pid, 0),
+                    show_cart()
                 ),
                 font=("Arial", 16, "bold"),
                 fg="red",
@@ -835,42 +807,55 @@ def start_app():
             )
             remove_button.pack(side="right", padx=10)
 
-            # Add separator after each item
             ttk.Separator(scrollable_frame, orient="horizontal").pack(fill="x", padx=20)
 
-        # Add final separator after all items
         ttk.Separator(scrollable_frame, orient="horizontal").pack(fill="x", padx=20)
 
         # Summary section
         summary_frame = tk.Frame(scrollable_frame, **styles['frame'])
-        summary_frame.pack(fill="x", pady=20, padx=20)
-        
-        # Subtotal
+        summary_frame.pack(fill="x", pady=10, padx=20)
+
+        # Subtotal label
         tk.Label(
             summary_frame,
             text=f"Subtotal: £{total_price:.2f}",
             font=("Arial", 12),
             fg="#666666",
             **label_styles
-        ).pack(pady=5)
-        
-        # Add coupon button
-        tk.Button(
+        ).pack(pady=(5, 10))
+
+        # Create discount label but don't pack it yet
+        discount_label = tk.Label(
+            summary_frame,
+            text="",
+            fg="green",
+            **label_styles
+        )
+
+        # Add Coupon button
+        coupon_button = tk.Button(
             summary_frame,
             text="Add Coupon",
+            command=lambda: show_coupon_options(),
             **button_styles
-        ).pack(pady=10)
-        
-        # Grand total
-        tk.Label(
+        )
+        coupon_button.pack(pady=5)
+
+        # Message label for feedback on coupon addition
+        message_label = tk.Label(summary_frame, text="", **styles['message'])
+        message_label.pack(pady=(5,0))
+
+        # Total label after coupon button
+        total_label = tk.Label(
             summary_frame,
-            text=f"Grand Total: £{total_price:.2f}",
+            text=f"Total: £{total_price:.2f}",
             font=("Arial", 14, "bold"),
             fg="white",
             **label_styles
-        ).pack(pady=10)
-        
-        # Checkout button
+        )
+        total_label.pack(pady=(0, 5))
+
+        # Checkout button at the bottom
         tk.Button(
             summary_frame,
             text="Check Out",
@@ -880,20 +865,135 @@ def start_app():
             **button_styles
         ).pack(pady=10)
 
-        # Bind resize event to check content height
+        def handle_webcam_scan():
+            """Handle QR code scanning via webcam"""
+            try:
+                # Create flag for tracking if QR code was found
+                qr_found = False
+                cap = cv2.VideoCapture(0)
+                
+                # Create named window that can be closed
+                cv2.namedWindow("QR Code Scanner")
+                
+                while True:
+                    _, frame = cap.read()
+                    if frame is None:
+                        break
+                        
+                    # Detect QR code
+                    detector = cv2.QRCodeDetector()
+                    data, _, _ = detector.detectAndDecode(frame)
+                    
+                    if data:
+                        qr_found = True
+                        cap.release()
+                        cv2.destroyAllWindows()
+                        process_discount(data)
+                        break
+                        
+                    cv2.imshow("QR Code Scanner", frame)
+                    
+                    # Check for window close or 'q' key
+                    key = cv2.waitKey(1) & 0xFF
+                    if key == ord('q') or cv2.getWindowProperty("QR Code Scanner", cv2.WND_PROP_VISIBLE) < 1:
+                        break
+                
+                cap.release()
+                cv2.destroyAllWindows()
+                
+                if not qr_found:
+                    display_error(message_label, "No QR code detected or scan cancelled")
+                    
+            except Exception as e:
+                cv2.destroyAllWindows()
+                display_error(message_label, f"Error accessing webcam: {str(e)}")
+
+        def handle_file_upload():
+            """Handle QR code image upload"""
+            file_path = filedialog.askopenfilename(
+                filetypes=[("Image files", "*.png *.jpg *.jpeg")]
+            )
+            if file_path:
+                try:
+                    qr_data = scan_qr_code_from_file(file_path)
+                    if qr_data:
+                        process_discount(qr_data)
+                    else:
+                        display_error(message_label, "No valid QR code found in image")
+                except Exception as e:
+                    display_error(message_label, f"Error processing image: {str(e)}")
+
+        def process_discount(qr_data):
+            """Process the discount from QR data"""
+            discount = verify_discount_qr(qr_data)
+            if discount:
+                discount_id, percentage = discount
+                success, message = increment_discount_uses(discount_id)
+                if success:
+                    discounted_total = total_price * (1 - percentage/100)
+                    # Clear any existing discount message
+                    discount_label.pack_forget()
+                    discount_label.configure(
+                        text=f"Discount applied: {percentage}%"
+                    )
+                    # Pack after subtotal but before coupon button
+                    discount_label.pack(pady=(0, 5), before=coupon_button)
+                    
+                    # Update total price display
+                    total_label.configure(text=f"Total: £{discounted_total:.2f}")
+                    
+                    coupon_button.configure(text="Change Coupon")
+                    display_success(message_label, "Discount applied successfully!")
+            else:
+                # Add error message when discount is invalid or inactive
+                display_error(message_label, "Invalid or inactive discount code")
+
+        def show_coupon_options():
+            """Show dialog for coupon scanning options"""
+            # Clear any existing discount message when changing coupon
+            discount_label.pack_forget()
+            discount_label.configure(text="")
+            total_label.configure(text=f"Total: £{total_price:.2f}")
+
+            choice_window = tk.Toplevel()
+            choice_window.title("Select Scan Method")
+            choice_window.configure(**styles['frame'])
+            
+            # Center the window
+            window_width = 300
+            window_height = 150
+            screen_width = choice_window.winfo_screenwidth()
+            screen_height = choice_window.winfo_screenheight()
+            x = (screen_width - window_width) // 2
+            y = (screen_height - window_height) // 2
+            choice_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+            
+            tk.Button(
+                choice_window,
+                text="Scan QR Code (Webcam)",
+                command=lambda: (choice_window.destroy(), handle_webcam_scan()),
+                **button_styles
+            ).pack(pady=5)
+            
+            tk.Button(
+                choice_window,
+                text="Upload QR Code",
+                command=lambda: (choice_window.destroy(), handle_file_upload()),
+                **button_styles
+            ).pack(pady=5)
+
         def check_scroll_needed(event=None):
             canvas.update_idletasks()
             bbox = canvas.bbox("all")
             if bbox:
-                scroll_height = bbox[3] - bbox[1]  # Total scrollable height
-                visible_height = canvas.winfo_height()  # Visible canvas height
+                scroll_height = bbox[3] - bbox[1]
+                visible_height = canvas.winfo_height()
                 
                 if scroll_height > visible_height:
-                    bind_wheel()  # Enable scrolling
+                    bind_wheel()
                 else:
-                    unbind_wheel()  # Disable scrolling
+                    unbind_wheel()
 
-        # Bind to canvas resize events
         canvas.bind('<Configure>', check_scroll_needed)
 
     def show_manage_user_screen(username, user_id):
@@ -1161,6 +1261,7 @@ def start_app():
             ("Add Product", show_add_product_screen),
             ("Manage Products", show_manage_products_screen),
             ("Manage Categories", show_manage_categories_screen),
+            ("Manage Discounts", show_manage_discounts_screen),
             ("Manage Users", show_manage_users_screen),
             ("View Store as User", lambda: switch_to_store_listing(is_admin=True))
         ]
@@ -1964,11 +2065,12 @@ def start_app():
 
         # Create scrollable frame using grid
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_grid_frame(user_list_frame)
-        wrapper.grid(row=3, column=0, sticky="nsew")
+        wrapper.grid(row=3, column=0, sticky="nsew", pady=(0, 10))
         user_list_frame.grid_columnconfigure(0, weight=1)
         user_list_frame.grid_rowconfigure(3, weight=1)
 
         def display_users():
+            """Display users in a scrollable grid layout."""
             # Clear existing content
             for widget in scrollable_frame.winfo_children():
                 widget.destroy()
@@ -2241,6 +2343,371 @@ def start_app():
 
         # Initial display
         display_users()
+
+    def show_manage_discounts_screen():
+        """Display the discounts management screen"""
+        if not get_current_user_admin_status(current_username):
+            switch_to_store_listing(is_admin=False)
+            return
+        
+        # Unbind existing events before clearing frame
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
+        if hasattr(content_inner_frame, 'bind_ids'):
+            for bind_id in content_inner_frame.bind_ids:
+                content_inner_frame.unbind(bind_id)
+
+        clear_frame(content_inner_frame)
+        styles = get_style_config()['manage_discounts']
+        
+        # Create container frame using grid
+        user_list_frame = tk.Frame(content_inner_frame, **styles['frame'])
+        user_list_frame.grid(row=0, column=0, sticky="nsew", padx=10)
+        content_inner_frame.grid_columnconfigure(0, weight=1)
+        content_inner_frame.grid_rowconfigure(0, weight=1)
+
+        # Header section using grid
+        title_label = tk.Label(user_list_frame, text="Discount Management", **styles['title'])
+        title_label.grid(row=0, column=0, pady=10)
+
+        # Create new discount frame with grid
+        new_discount_frame = tk.Frame(user_list_frame, **styles['frame'])
+        new_discount_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=(10, 20))
+        new_discount_frame.grid_columnconfigure(0, weight=1)
+
+        # Create input fields frame
+        input_frame = tk.Frame(new_discount_frame, **styles['frame'])
+        input_frame.grid(row=0, column=0)
+
+        # Name entry
+        name_frame = tk.Frame(input_frame, **styles['frame'])
+        name_frame.grid(row=0, column=0, padx=5)
+        tk.Label(name_frame, text="Name:", **styles['labels']).grid(row=0, column=0, padx=(0, 5))
+        name_entry = tk.Entry(name_frame, width=20, **styles['entries'])
+        name_entry.grid(row=0, column=1)
+
+        # Percentage entry
+        percentage_frame = tk.Frame(input_frame, **styles['frame'])
+        percentage_frame.grid(row=0, column=1, padx=5)
+        tk.Label(percentage_frame, text="Percentage:", **styles['labels']).grid(row=0, column=0, padx=(0, 5))
+        percentage_entry = tk.Entry(percentage_frame, width=10, **styles['entries'])
+        percentage_entry.grid(row=0, column=1)
+
+        def add_new_discount():
+            """Handle adding new discount"""
+            name = name_entry.get().strip()
+            percentage = percentage_entry.get().strip()
+
+            if not name or not percentage:
+                display_error(message_label, "Please fill in all fields")
+                return
+
+            try:
+                percentage = int(percentage)
+                if not 0 < percentage <= 100:
+                    raise ValueError
+            except ValueError:
+                display_error(message_label, "Percentage must be between 1-100")
+                return
+
+            success, msg = add_discount(name, percentage)
+            if success:
+                # Clear entries
+                name_entry.delete(0, tk.END)
+                percentage_entry.delete(0, tk.END)
+                display_success(message_label, msg)
+                display_discounts()
+            else:
+                display_error(message_label, msg)
+
+        # Add discount button
+        tk.Button(
+            input_frame,
+            text="Add Discount",
+            command=add_new_discount,
+            **styles['buttons']
+        ).grid(row=0, column=2, padx=5)
+
+        # Message label for feedback
+        message_label = tk.Label(new_discount_frame, text="", **styles['message'])
+        message_label.grid(row=1, column=0, pady=(10, 0))
+
+        # Store resize timer as an attribute of the content_inner_frame
+        content_inner_frame.resize_timer = None
+
+        def handle_resize(event=None):
+            """Handle window resize events with debouncing"""
+            if hasattr(content_inner_frame, 'resize_timer') and content_inner_frame.resize_timer is not None:
+                window.after_cancel(content_inner_frame.resize_timer)
+            content_inner_frame.resize_timer = window.after(150, display_discounts)
+
+        # Bind the resize event with debouncing
+        content_inner_frame.bind("<Configure>", handle_resize)
+
+        # Headers frame
+        scrollbar_width = 10  # Standard scrollbar width on canvas
+        headers_frame = tk.Frame(user_list_frame, **styles['frame'])
+        headers_frame.grid(row=2, column=0, sticky="ew", padx=(5, scrollbar_width + 10))
+
+        # headers and weights for discounts
+        headers = ["ID", "Name", "Percentage", "Uses", "Active", "Actions"]
+        weights = [1, 3, 2, 1, 1, 2]
+
+        # Configure column weights for headers
+        for i, weight in enumerate(weights):
+            headers_frame.grid_columnconfigure(i, weight=weight)
+
+        header_labels = []
+        for i, (header, weight) in enumerate(zip(headers, weights)):
+            header_frame = tk.Frame(headers_frame, **styles['frame'], height=30)
+            header_frame.grid(row=0, column=i, padx=5, sticky="nsew")
+            header_frame.grid_propagate(False)
+            header_frame.grid_columnconfigure(0, weight=1)
+            
+            label = tk.Label(
+                header_frame, 
+                text=header,
+                **styles['header']
+            )
+            label.grid(row=0, column=0, sticky="nsew")
+            label.configure(anchor="center")
+            header_labels.append(label)
+
+        # Create scrollable frame using grid
+        wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_grid_frame(user_list_frame)
+        wrapper.grid(row=3, column=0, sticky="nsew", pady=(0, 10))
+        user_list_frame.grid_columnconfigure(0, weight=1)
+        user_list_frame.grid_rowconfigure(3, weight=1)
+
+        def display_discounts():
+            """Display users in a scrollable grid layout."""
+            # Clear existing content
+            for widget in scrollable_frame.winfo_children():
+                widget.destroy()
+            
+            # Configure scrollable_frame columns to match headers
+            for col, weight in enumerate(weights):
+                scrollable_frame.grid_columnconfigure(col, weight=weight)
+            
+            discounts = get_all_discounts() 
+            
+            for row, discount in enumerate(discounts):
+                discount_id, name, percentage, qr_code_path, uses, active = discount[:6]
+                
+                display_values = [
+                    str(discount_id),
+                    name,
+                    f"{percentage}%",
+                    str(uses if uses is not None else "0"),  # Display uses, not qr_code_path
+                    "Yes" if active else "No"
+                ]
+                
+                # Add data cells
+                for col, value in enumerate(display_values):
+                    cell_frame = tk.Frame(
+                        scrollable_frame,
+                        **styles['frame'],
+                        height=30
+                    )
+                    cell_frame.grid(row=row, column=col, padx=5, pady=2, sticky="nsew")
+                    cell_frame.grid_propagate(False)
+                    cell_frame.grid_columnconfigure(0, weight=1)
+                    
+                    # Create a copy of the style dict and remove bg if it exists
+                    label_style = styles['text'].copy()
+                    if 'bg' in label_style:
+                        del label_style['bg']
+                    
+                    label = tk.Label(
+                        cell_frame,
+                        text=value,
+                        **styles['text']
+                    )
+                    label.grid(row=0, column=0, sticky="nsew")
+                    label.configure(anchor="center")
+                    
+                    cell_frame.update_idletasks()
+                
+                # Actions column
+                actions_frame = tk.Frame(
+                    scrollable_frame,
+                    **styles['frame'],
+                    height=30
+                )
+                actions_frame.grid(row=row, column=5, padx=5, pady=2, sticky="nsew")
+                actions_frame.grid_propagate(False)
+                actions_frame.grid_columnconfigure(0, weight=1)
+                
+                buttons_frame = tk.Frame(actions_frame, **styles['frame'])
+                buttons_frame.place(relx=0.5, rely=0.5, anchor="center")
+                
+                edit_btn = tk.Button(
+                    buttons_frame,
+                    text="Edit",
+                    command=lambda d=discount: handle_edit_discount(d),
+                    **styles['buttons']
+                )
+                edit_btn.pack(side="left", padx=2)
+                
+                toggle_text = "Disable" if active else "Enable"
+                toggle_btn = tk.Button(
+                    buttons_frame,
+                    text=toggle_text,
+                    command=lambda d=discount: handle_toggle_discount(d),
+                    **styles['buttons']
+                )
+                toggle_btn.pack(side="left", padx=2)
+
+                delete_btn = tk.Button(
+                    buttons_frame,
+                    text="Delete",
+                    command=lambda d=discount: handle_delete_discount(d),
+                    **styles['buttons']
+                )
+                delete_btn.pack(side="left", padx=2)
+
+                # Print actions column width
+                actions_frame.update_idletasks()
+            
+            # Print total frame width
+            scrollable_frame.update_idletasks()
+            
+            # Update scroll region
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            
+            def handle_edit_discount(discount):
+                """Handle editing of a discount"""
+                global window
+
+                # Create dialog window
+                dialog = tk.Toplevel(window)
+                dialog.title("Edit Discount")
+                
+                # Configure dialog style
+                dialog.configure(**styles['frame'])
+                
+                # Set dialog size
+                dialog_width = 400
+                dialog_height = 350
+                dialog.minsize(dialog_width, dialog_height)
+                
+                # Center dialog
+                x = (dialog.winfo_screenwidth() - dialog_width) // 2
+                y = (dialog.winfo_screenheight() - dialog_height) // 2
+                dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+
+                # Make dialog modal
+                dialog.transient(window)
+                dialog.grab_set()
+                dialog.focus_set()
+                dialog.lift()
+                dialog.attributes('-topmost', True)
+
+                # Create form frame
+                form_frame = tk.Frame(dialog, **styles['frame'])
+                form_frame.pack(fill='both', expand=True, padx=20, pady=20)
+
+                # Title
+                tk.Label(form_frame, text="Edit Discount", **styles['title']).pack(pady=(0, 20))
+
+                # Message label for feedback
+                message_label = tk.Label(form_frame, text="", **styles['message'])
+                message_label.pack(pady=(0, 10))
+
+                # Create fields
+                fields = {
+                    'Name': discount[1],
+                    'Percentage': str(discount[2])
+                }
+                
+                entries = {}
+                for label, value in fields.items():
+                    field_frame = tk.Frame(form_frame, **styles['frame'])
+                    field_frame.pack(pady=5, fill='x')
+                    
+                    tk.Label(
+                        field_frame,
+                        text=f"{label}:",
+                        width=12,
+                        anchor='w',
+                        **styles['labels']
+                    ).pack(side='left', padx=5)
+                    
+                    entry = tk.Entry(field_frame, width=20, **styles['entries'])
+                    entry.insert(0, value)
+                    entry.pack(side='left', padx=5, expand=True, fill='x')
+                    entries[label.lower()] = entry
+
+                def save_changes():
+                    """Save changes to discount"""
+                    name = entries['name'].get().strip()
+                    percentage = entries['percentage'].get().strip()
+
+                    if not name or not percentage:
+                        display_error(message_label, "Please fill in all fields")
+                        return
+
+                    try:
+                        percentage = int(percentage)
+                        if not 0 < percentage <= 100:
+                            raise ValueError
+                    except ValueError:
+                        display_error(message_label, "Percentage must be between 1-100")
+                        return
+
+                    success, msg = update_discount(discount[0], name, percentage)
+                    if success:
+                        display_success(message_label, "Discount updated successfully")
+                        dialog.after(1500, dialog.destroy)  # Close dialog after success
+                        display_discounts()
+                    else:
+                        display_error(message_label, msg)
+
+                # Button frame
+                button_frame = tk.Frame(form_frame, **styles['frame'])
+                button_frame.pack(pady=20)
+
+                # Save button
+                tk.Button(
+                    button_frame,
+                    text="Save Changes",
+                    command=save_changes,
+                    **styles['buttons']
+                ).pack(side='left', padx=5)
+
+                # Close button  
+                tk.Button(
+                    button_frame,
+                    text="Close",
+                    command=dialog.destroy,
+                    **styles['buttons']
+                ).pack(side='left', padx=5)
+
+            def handle_toggle_discount(discount):
+                """Handle toggling discount active status"""
+                success, msg = toggle_discount_status(discount[0])  # discount[0] is id
+                if success:
+                    display_discounts()
+                    display_success(message_label, msg)
+                else:
+                    display_error(message_label, msg)
+
+            def handle_delete_discount(discount):
+                """Handle deletion of a discount"""
+                # Extract the discount ID from the tuple
+                discount_id = discount[0]  # The ID is the first element in the tuple
+
+                # Call delete_discount with just the ID
+                success, msg = delete_discount(discount_id)
+                
+                if success:
+                    display_discounts()  # Refresh the display
+                else:
+                    # Show error message if deletion failed
+                    messagebox.showerror("Error", msg)
+
+        # Initial display
+        display_discounts()
 
     def switch_to_change_password(username, from_source="login", parent_dialog=None):
         """

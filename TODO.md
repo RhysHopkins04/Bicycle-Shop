@@ -1,12 +1,14 @@
 # **TODO:**
 ## **Incomplete:**
-- Global Search bar to find functions for admin usage.
-- Create QR Code Discount Maker.
 - Create User Logs page for Admins.
+
 - Create Dashboard page with likely to be common use parts.
+- Global Search bar to find functions for admin usage.
 - qr code scanning/ link to global search on main page + find the product page on admin.
 
 ## **Potential:**
+? Potentially an issue with the old qr codes for products not being removed againn... ?
+? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product)
 ? Update the adding of categories and management of categories screen since it is primitive and not user friendly for first time useage. ?
 ? Can add product to a category without ability to remove it back to unlisted even without full content on the product (as required for listing a product) ?
 ? Switch from globals to state management for shopping card integration if needed ?
@@ -38,6 +40,8 @@
 - start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense.
 
 ## **Done:**
+- Implimented the qr code scanning or uploading (camera or file) to the cart for the user.
+- Created discount qr code maker and management screen for admins. Qr codes can be added, edited, deactivated./activated and they have their usages tracked.
 - System works to stop an admin from demoting themselves or deleting themselves ensuring there is always a persistent admin account.
 - Adjusted the change passsowrd function to work for all password changes, including first login, self change and admin changes.
 - Added ability for users to manage themselves from the dropdown, including change passwords from inside of that.

@@ -6,8 +6,11 @@ bicycle_shop\bicycle_shop.db
 bicycle_shop/bicycle_shop.db
 Icons/
 Products/
+Discounts/
+/bicycle_shop/Discounts
 *.ini
 bicycle_shop/.initialized
+
 
 
 # Python gitignore template below:

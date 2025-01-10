@@ -2,7 +2,7 @@ import sqlite3
 import os
 import shutil
 
-from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths, get_absolute_path
+from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths, get_absolute_path, handle_discount_qr_code, cleanup_old_discount_qr
 
 DB_PATH = get_absolute_path('./bicycle_shop.db')
 
@@ -60,6 +60,17 @@ def create_tables():
             quantity INTEGER NOT NULL,
             FOREIGN KEY (user_id) REFERENCES Users(id),
             FOREIGN KEY (product_id) REFERENCES Products(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS Discounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            percentage INTEGER NOT NULL,
+            qr_code_path TEXT,
+            uses INTEGER DEFAULT 0,
+            active INTEGER DEFAULT 1
         )
     """)
 
@@ -520,3 +531,132 @@ def update_cart_quantity(user_id, product_id, quantity):
     conn.commit()
     conn.close()
     return True, "Cart updated"
+
+# Discounts
+def add_discount(name, percentage):
+    """Add new discount with QR code"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Generate QR code and get path
+        qr_path = handle_discount_qr_code(name, percentage)
+        
+        cursor.execute("""
+            INSERT INTO Discounts (name, percentage, qr_code_path)
+            VALUES (?, ?, ?)
+        """, (name, percentage, qr_path))
+        conn.commit()
+        return True, "Discount added successfully"
+    except sqlite3.IntegrityError:
+        return False, "A discount with this name already exists"
+    except Exception as e:
+        return False, f"Error adding discount: {str(e)}"
+    finally:
+        conn.close()
+
+def update_discount(discount_id, name, percentage):
+    """Update discount and regenerate QR code"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Get old QR code path
+        cursor.execute("SELECT qr_code_path FROM Discounts WHERE id = ?", (discount_id,))
+        old_qr = cursor.fetchone()
+        if old_qr:
+            # Generate new QR code
+            new_qr_path = handle_discount_qr_code(name, percentage)
+            # Delete old QR code
+            cleanup_old_discount_qr(old_qr[0])
+            
+            cursor.execute("""
+                UPDATE Discounts 
+                SET name = ?, percentage = ?, qr_code_path = ?
+                WHERE id = ?
+            """, (name, percentage, new_qr_path, discount_id))
+            conn.commit()
+            return True, "Discount updated successfully"
+        return False, "Discount not found"
+    except sqlite3.IntegrityError:
+        return False, "A discount with this name already exists"
+    except Exception as e:
+        return False, f"Error updating discount: {str(e)}"
+    finally:
+        conn.close()
+
+def toggle_discount_status(discount_id):
+    """Toggle discount active status"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE Discounts SET active = NOT active WHERE id = ?", (discount_id,))
+        conn.commit()
+        return True, "Discount status updated successfully"
+    except Exception as e:
+        return False, f"Error updating discount status: {str(e)}"
+    finally:
+        conn.close()
+
+def delete_discount(discount_id):
+    """Delete discount and its QR code"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        # Get QR code path before deletion
+        cursor.execute("SELECT qr_code_path FROM Discounts WHERE id = ?", (discount_id,))
+        result = cursor.fetchone()
+        if result:
+            qr_path = result[0]
+            # Delete QR code file
+            cleanup_old_discount_qr(qr_path)
+            
+            # Delete from database
+            cursor.execute("DELETE FROM Discounts WHERE id = ?", (discount_id,))
+            conn.commit()
+            return True, "Discount deleted successfully"
+        return False, "Discount not found"
+    except Exception as e:
+        return False, f"Error deleting discount: {str(e)}"
+    finally:
+        conn.close()
+
+def get_all_discounts():
+    """Get all discounts"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Discounts")  # Remove the WHERE clause
+    discounts = cursor.fetchall()
+    conn.close()
+    return discounts
+
+def increment_discount_uses(discount_id):
+    """Increment the number of times a discount has been used"""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE Discounts SET uses = uses + 1 WHERE id = ? AND active = 1", (discount_id,))
+        conn.commit()
+        return True, "Discount use recorded"
+    except Exception as e:
+        return False, f"Error recording discount use: {str(e)}"
+    finally:
+        conn.close()
+
+def verify_discount_qr(qr_data):
+    """Verify QR code data and return discount if valid"""
+    if not qr_data.startswith("DISCOUNT:"):
+        return None
+    
+    try:
+        _, name, percentage = qr_data.split(":")
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT id, percentage 
+            FROM Discounts 
+            WHERE name = ? AND percentage = ? AND active = 1
+        """, (name, int(percentage)))
+        result = cursor.fetchone()
+        conn.close()
+        return result if result else None
+    except:
+        return None

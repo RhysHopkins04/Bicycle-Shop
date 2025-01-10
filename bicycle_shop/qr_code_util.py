@@ -27,3 +27,16 @@ def scan_qr_code():
     cap.release()
     cv2.destroyAllWindows()
     return scanned_data
+
+def scan_qr_code_from_file(file_path):
+    """Scan QR code from an image file"""
+    try:
+        image = cv2.imread(file_path)
+        detector = cv2.QRCodeDetector()
+        data, _, _ = detector.detectAndDecode(image)
+        if data:
+            return data
+        return None
+    except Exception as e:
+        print(f"Error scanning QR code: {e}")
+        return None
