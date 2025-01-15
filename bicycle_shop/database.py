@@ -70,6 +70,7 @@ def create_tables():
             percentage INTEGER NOT NULL,
             qr_code_path TEXT,
             uses INTEGER DEFAULT 0,
+            last_used DATETIME DEFAULT NULL,
             active INTEGER DEFAULT 1
         )
     """)
@@ -687,7 +688,12 @@ def increment_discount_uses(discount_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("UPDATE Discounts SET uses = uses + 1 WHERE id = ? AND active = 1", (discount_id,))
+        cursor.execute("""
+            UPDATE Discounts 
+            SET uses = uses + 1,
+                last_used = datetime('now') 
+            WHERE id = ? AND active = 1
+        """, (discount_id,))
         conn.commit()
         return True, "Discount use recorded"
     except Exception as e:
@@ -725,7 +731,7 @@ def log_user_action(user_id, action_type, details, status="success"):
         INSERT INTO UserActions (user_id, action_type, details, status)
         VALUES (?, ?, ?, ?)
     """, (user_id, action_type, details, status))
-    print("TEMP PRINT: Logging action to DB User")
+    # print("TEMP PRINT: Logging action to DB User") # Debugging Print
     conn.commit()
     conn.close()
 
@@ -737,7 +743,7 @@ def log_admin_action(admin_id, action_type, target_type, target_id, details, sta
         INSERT INTO AdminActions (admin_id, action_type, target_type, target_id, details, status)
         VALUES (?, ?, ?, ?, ?, ?)
     """, (admin_id, action_type, target_type, target_id, details, status))
-    print("TEMP PRINT: Logging action to DB Admin")
+    # print("TEMP PRINT: Logging action to DB Admin") # Debugging Print
     conn.commit()
     conn.close()
 
@@ -822,3 +828,53 @@ def get_dashboard_stats():
     
     conn.close()
     return stats
+
+# Dashboard Alerts
+def get_dashboard_alerts():
+    """Get current system alerts for admin dashboard."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    alerts = []
+    
+    # Check for failed admin logins in last hour
+    cursor.execute("""
+        SELECT COUNT(*) FROM AdminActions 
+        WHERE action_type = 'admin_login' 
+        AND status = 'failed'
+        AND timestamp >= datetime('now', '-1 hour')
+    """)
+    admin_failed_logins = cursor.fetchone()[0]
+    if admin_failed_logins >= 2:
+        alerts.append(("Warning", f"{admin_failed_logins} failed admin login attempts in last hour"))
+
+    # Check for failed user logins in last 30 minutes
+    cursor.execute("""
+        SELECT COUNT(*) FROM UserActions 
+        WHERE action_type = 'login' 
+        AND status = 'failure'
+        AND timestamp >= datetime('now', '-30 minutes')
+    """)
+    user_failed_logins = cursor.fetchone()[0]
+    if user_failed_logins >= 3:
+        alerts.append(("Warning", f"{user_failed_logins} failed user login attempts in last 30 minutes"))
+
+    # Check for low stock products (less than 5)
+    cursor.execute("""
+        SELECT COUNT(*) FROM Products 
+        WHERE stock < 5 AND listed = 1
+    """)
+    low_stock = cursor.fetchone()[0]
+    if low_stock > 0:
+        alerts.append(("Warning", f"{low_stock} products low on stock"))
+
+    # Check for inactive discounts
+    cursor.execute("""
+        SELECT SUM(uses) FROM Discounts 
+        WHERE last_used >= datetime('now', '-1 hour')
+    """)
+    recent_discount_uses = cursor.fetchone()[0] or 0  # Use 0 if None
+    if recent_discount_uses >= 10:
+        alerts.append(("Warning", f"High discount usage: {recent_discount_uses} uses in last hour"))
+
+    conn.close()
+    return alerts

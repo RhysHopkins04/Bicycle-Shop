@@ -385,7 +385,12 @@ def get_style_config():
                     'font': ("Arial", 14, "bold"),
                     'bg': theme['dark_primary'],
                     'fg': theme['light_text']
-                }
+                },
+                'alert_text': {
+                    'font': ("Arial", 12),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
+                },
             }
         },
         'add_product': {
@@ -1190,7 +1195,7 @@ def log_action(action_type, is_admin=False, **kwargs):
         is_admin (bool): Whether this is an admin action
         **kwargs: Additional arguments based on action type
     """
-    print("TEMP PRINT: Logging action")
+    # print("TEMP PRINT: Logging action") # Debugging print
     # Get the correct action type string from dictionary
     type_group = 'admin' if is_admin else 'user'
     action_string = get_action_type(type_group, action_type)

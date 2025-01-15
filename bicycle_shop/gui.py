@@ -13,7 +13,7 @@ from database import (create_tables, initialize_admin, get_products, get_product
                       promote_user_to_admin, demote_user_from_admin, get_all_discounts, add_discount, 
                       delete_discount, update_discount, toggle_discount_status, increment_discount_uses,
                       verify_discount_qr, export_logs_to_temp_file, get_username_by_id,
-                      get_user_id_by_username, get_dashboard_stats
+                      get_user_id_by_username, get_dashboard_stats, get_dashboard_alerts
                       )
 from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
                         validate_user_fields, validate_username_uniqueness, validate_product_fields, 
@@ -138,6 +138,7 @@ def start_app():
                 if is_admin_account:
                     # Log failed admin login attempt
                     log_action('ADMIN_LOGIN', is_admin=True, admin_id=None, target_type='user', target_id=None, details=f"Failed admin login attempt for admin account: {username}", status='failed') # Logging Statement
+                    log_action('LOGIN', user_id=None, details=f"Failed admin login attempt for admin account: {username}", status='failed') # Logging Statement
                 else:
                     # Log normal failed login attempt
                     log_action('LOGIN', user_id=None, details=f"Failed login attempt for username: {username}", status='failed') # Logging Statement
@@ -1342,6 +1343,34 @@ def start_app():
             tk.Label(stats_container, text=f"{label}:", anchor="w", **styles['dashboard']['stats_label']).grid(row=row, column=0, sticky="w", padx=10, pady=5)
             # Value 
             tk.Label(stats_container, text=str(value), anchor="e", **styles['dashboard']['stats_value']).grid(row=row, column=1, sticky="e", padx=10, pady=5)
+
+        # Create the alerts widget on the top right of the dashboard page
+        alerts_title = tk.Label(top_right_frame, text="System Alerts", **styles['dashboard']['stats_title'])
+        alerts_title.pack(pady=(10, 20), padx=10)
+
+        # Create alerts container
+        alerts_container = tk.Frame(top_right_frame, **styles['dashboard']['section_frame'])
+        alerts_container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Get alerts
+        alerts = get_dashboard_alerts()
+
+        if alerts:
+            for alert_type, message in alerts:
+                alert_frame = tk.Frame(alerts_container, **styles['dashboard']['section_frame'])
+                alert_frame.pack(fill="x", padx=5, pady=2)
+                
+                tk.Label(
+                    alert_frame,
+                    text=message,
+                    **styles['dashboard']['alert_text']
+                ).pack(fill="x", padx=5, pady=2)
+        else:
+            tk.Label(
+                alerts_container,
+                text="No current alerts",
+                **styles['dashboard']['alert_text']
+            ).pack(fill="x", padx=10, pady=10)
 
         # Create the logs widget on the bottom of the dashboard page.
         log_frame = tk.Frame(bottom_frame, bg=styles['content']['inner_frame']['bg'])
