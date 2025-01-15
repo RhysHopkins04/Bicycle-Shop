@@ -1300,6 +1300,42 @@ def start_app():
         ]
         create_nav_buttons(left_nav, button_configs)
 
+        # Setup grid layout for dashboard
+        content_inner_frame.grid_columnconfigure(0, weight=1)
+        content_inner_frame.grid_columnconfigure(1, weight=1)
+        content_inner_frame.grid_rowconfigure(0, weight=3)  # Top section
+        content_inner_frame.grid_rowconfigure(1, weight=1)  # Bottom log section
+
+        # Create main sections using grid
+        top_left_frame = tk.Frame(content_inner_frame, **styles['dashboard']['section_frame'])
+        top_right_frame = tk.Frame(content_inner_frame, **styles['dashboard']['section_frame'])
+        bottom_frame = tk.Frame(content_inner_frame, **styles['dashboard']['section_frame'])
+
+        # Place frames in grid
+        top_left_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        top_right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+        bottom_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
+
+        # Create scrolled text widget for logs
+        log_frame = tk.Frame(bottom_frame, bg=styles['content']['inner_frame']['bg'])
+        log_frame.pack(fill="both", expand=True)
+
+        log_label = tk.Label(log_frame, text="Recent Admin Actions", 
+                            **styles['dashboard']['log_title'])
+        log_label.pack(pady=(0, 5))
+
+        # Create scrolled text area for logs
+        global admin_log_text
+        admin_log_text = scrolledtext.ScrolledText(log_frame, height=10, width=50, **styles['dashboard']['log_text'])
+        admin_log_text.pack(fill="both", expand=True)
+
+        # Load initial log data
+        log_file = export_logs_to_temp_file(admin_only=True)
+        with open(log_file, 'r') as f:
+            admin_log_text.delete('1.0', tk.END)
+            admin_log_text.insert(tk.END, f.read())
+        os.remove(log_file)  # Clean up temp file
+
     def show_add_product_screen():
         """Display the add product screen."""
         clear_frame(content_inner_frame)

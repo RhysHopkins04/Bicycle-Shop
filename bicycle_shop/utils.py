@@ -337,6 +337,40 @@ def get_style_config():
                 'inner_frame': {
                     'bg': theme['dark_primary'],
                 }
+            },
+            'dashboard': {
+                'section_frame': {
+                    'bg': theme['dark_primary'],
+                    'bd': 1,
+                    'relief': "solid",
+                    'padx': 10,
+                    'pady': 10
+                },
+                'section_title': {
+                    'font': ("Arial", 16, "bold"),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
+                },
+                'text': {
+                    'font': ("Arial", 12),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
+                },
+                'log_frame': {
+                    'bg': theme['dark_primary'],
+                    'relief': "solid",
+                    'bd': 1
+                },
+                'log_title': {
+                    'font': ("Arial", 14, "bold"),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
+                },
+                'log_text': {
+                    'bg': theme['light_primary'],
+                    'fg': theme['dark_text'],
+                    'font': ("Arial", 10)
+                }
             }
         },
         'add_product': {
