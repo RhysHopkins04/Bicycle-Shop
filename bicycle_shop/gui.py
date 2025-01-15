@@ -13,7 +13,7 @@ from database import (create_tables, initialize_admin, get_products, get_product
                       promote_user_to_admin, demote_user_from_admin, get_all_discounts, add_discount, 
                       delete_discount, update_discount, toggle_discount_status, increment_discount_uses,
                       verify_discount_qr, export_logs_to_temp_file, get_username_by_id,
-                      get_user_id_by_username
+                      get_user_id_by_username, get_dashboard_stats
                       )
 from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
                         validate_user_fields, validate_username_uniqueness, validate_product_fields, 
@@ -1300,7 +1300,7 @@ def start_app():
         ]
         create_nav_buttons(left_nav, button_configs)
 
-        # Setup grid layout for dashboard
+        # Setup grid layout for dashboard main sections
         content_inner_frame.grid_columnconfigure(0, weight=1)
         content_inner_frame.grid_columnconfigure(1, weight=1)
         content_inner_frame.grid_rowconfigure(0, weight=3)  # Top section
@@ -1316,12 +1316,38 @@ def start_app():
         top_right_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         bottom_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
 
-        # Create scrolled text widget for logs
+        # Create the Stats widget on the top left of the dashboard page.
+        # Add Stats Title
+        stats_title = tk.Label(top_left_frame, text="System Statistics", **styles['dashboard']['stats_title'])
+        stats_title.pack(pady=(10, 20), padx=10)
+
+        # Get stats from database
+        stats = get_dashboard_stats()
+
+        # Create stats container with grid layout
+        stats_container = tk.Frame(top_left_frame, **styles['dashboard']['section_frame'])
+        stats_container.pack(fill="both", expand=True, padx=10, pady=10)
+        stats_container.grid_columnconfigure(0, weight=1)
+
+        # Stats items with labels and values
+        stats_items = [
+            ("Total Products", stats['total_products']),
+            ("Listed Products", stats['listed_products']),
+            ("Total Users", stats['total_users']),
+            ("Active Discounts", stats['active_discounts'])
+        ]
+
+        for row, (label, value) in enumerate(stats_items):
+            # Label
+            tk.Label(stats_container, text=f"{label}:", anchor="w", **styles['dashboard']['stats_label']).grid(row=row, column=0, sticky="w", padx=10, pady=5)
+            # Value 
+            tk.Label(stats_container, text=str(value), anchor="e", **styles['dashboard']['stats_value']).grid(row=row, column=1, sticky="e", padx=10, pady=5)
+
+        # Create the logs widget on the bottom of the dashboard page.
         log_frame = tk.Frame(bottom_frame, bg=styles['content']['inner_frame']['bg'])
         log_frame.pack(fill="both", expand=True)
 
-        log_label = tk.Label(log_frame, text="Recent Admin Actions", 
-                            **styles['dashboard']['log_title'])
+        log_label = tk.Label(log_frame, text="Recent Admin Actions", **styles['dashboard']['log_title'])
         log_label.pack(pady=(0, 5))
 
         # Create scrolled text area for logs

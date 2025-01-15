@@ -370,6 +370,21 @@ def get_style_config():
                     'bg': theme['light_primary'],
                     'fg': theme['dark_text'],
                     'font': ("Arial", 10)
+                },
+                'stats_title': {
+                    'font': ("Arial", 16, "bold"),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
+                },
+                'stats_label': {
+                    'font': ("Arial", 12),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['med_text']
+                },
+                'stats_value': {
+                    'font': ("Arial", 14, "bold"),
+                    'bg': theme['dark_primary'],
+                    'fg': theme['light_text']
                 }
             }
         },

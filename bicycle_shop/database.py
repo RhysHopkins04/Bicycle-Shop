@@ -796,3 +796,29 @@ def export_logs_to_temp_file(admin_only=False):
         
     finally:
         conn.close()
+
+# Dashboard Statistics
+def get_dashboard_stats():
+    """Get statistics for admin dashboard."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    stats = {}
+    
+    # Total products
+    cursor.execute("SELECT COUNT(*) FROM Products")
+    stats['total_products'] = cursor.fetchone()[0]
+    
+    # Listed products
+    cursor.execute("SELECT COUNT(*) FROM Products WHERE listed = 1")
+    stats['listed_products'] = cursor.fetchone()[0]
+    
+    # Total users
+    cursor.execute("SELECT COUNT(*) FROM Users WHERE is_admin = 0")
+    stats['total_users'] = cursor.fetchone()[0]
+    
+    # Active discounts
+    cursor.execute("SELECT COUNT(*) FROM Discounts WHERE active = 1")
+    stats['active_discounts'] = cursor.fetchone()[0]
+    
+    conn.close()
+    return stats
