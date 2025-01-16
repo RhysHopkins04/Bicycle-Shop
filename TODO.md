@@ -1,46 +1,51 @@
 # **TODO:**
 ## **Incomplete:**
-- Create Dashboard page with likely to be common use parts.
-- Improve my documentation as a whole, comments and docustrings.
-
-## **Potential:**
-? Global Search bar to find functions for admin usage. ?
-? qr code scanning/ link to global search on main page + find the product page on admin. ?
-? Test all logging both user and admin(success and failure), to ensure there are no broken parts. ?
-? issue with stock not being checked to ensure it is an integer when editing a product ?
-? Potentially an issue with the old qr codes for products not being removed againn... ?
-? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product)
-? Update the adding of categories and management of categories screen since it is primitive and not user friendly for first time useage. ?
-? Can add product to a category without ability to remove it back to unlisted even without full content on the product (as required for listing a product) ?
-? Switch from globals to state management for shopping card integration if needed ?
-? Make it so that on the store listing the images are the image of the product not the qr code. ?
-? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
-? Could do with updating the color scheme default ?
-? add max pswd length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
-? Remove age from signup ?
-? Potentially add email for signup and require unique ?
-? Ask about use of CTK (custom tkinter) ?
-
-## **Known Issues, unsure how to fix:**
-- TKINTER DOESNT SUPPORT % BASED PADDING AHHHHHH, grid may work to resolve issues with weighting
-- Make change of listed/not listed available on main manage products screen cant be done since it would require changes since an unlisted product doesnt require all the details.
-- Sometimes a slight ghosting can be seen of the dropdown box when the screen has been moved since it updates in 1ms.
-- The manage products search bar wont unfocus if you click on the top_bar or the left_nav since they are outside of the manage products and cannot be included in the removal of focus.
-
-# **Completion:**
-## **Partial:**
-- Redesign the normal user interface.
-    - Somewhat, but not final.
 - Ensure that I do not have any reduntant functions.
-    - Changed all field validation for registration and password change is done through validation.py.
-- Go through my code and ensure that functions from gui.py are split into their correct files.
-    - Removed the Validation from gui.py to validation.py, Still more to be checked (Recursive on feature creation).
-- Document all of Code.
+- Ensure that all functions are in the correct files, possibly separate into more modules due to size of project
+
+- Improve my documentation as a whole, comments and docustrings.
     - gui.py up to date as of 27/11/24.
     - docstrings throughout should be up to date always across all files.
-- start_fullscreen does not seem to function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense.
 
+- Complete all tests and log in excel document for the assignment writeup. (also learn about proper automated pipeline testing CI/CD ETC)
+    - Test all logging both user and admin(success and failure), to ensure there are no broken parts.
+    - Potentially an issue with the old qr codes for products not being removed againn...
+    - Able to keep product listed even after removing content from it, doesnt go back to being unlisted automatically if info is removed (bug but maybe a feature? depends who sees it)
+
+
+## **Potential:**
+### **Features Additions:**
+- ? add max password length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
+- ? Reduce password requirements for a standard users password, keep complexity requirements for accounts with admin access, on account update to admin have them meet the requirements if password does not already ?
+
+- ? Global Search bar to find functions for admin usage. ?
+- ? qr code scanning/ link to global search on main page + find the product page on admin. ?
+
+- ? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product) ?
+
+### **Changes:**
+- ? Issue with stock not being checked to ensure it is an integer when editing a product ?
+- ? Can add product to a category without ability to remove it without changing it to a new category (cannot go back to unlisted category)
+- ? Swap age from signup for email and require unique ?
+
+- ? **!MAJOR CHANGE!** Update the adding of categories and management of categories screen since it is primitive and not user friendly for first time useage. ?
+- ? **!MAJOR CHANGE!** Swap all scrollable frames over to scrollable grid and update the product boxes to match (much neater code, however means changing over entire screens to use a different geometry method)
+
+- ? Could do with updating the color scheme default ?
+- ? Make it so that on the store listing the images are the image of the product not the qr code. ?
+- ? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
+
+
+## **Known Issues, unsure how to fix:**
+- ! Issues with checkboxes and radioboxes, Ask about use of CTK (custom tkinter) might fix it !
+- ! Have had issues trying to use grid layounds inside of a packed scrollable doesnt work obviously, used long workarounds until grid version was created and works, switch to it... !
+- ! start_fullscreen does not function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense. !
+- ! Sometimes a slight ghosting can be seen of the dropdown box when the screen has been moved since it updates in 1ms, it also stays up if the mouse is moved off the entire window (not really an issue but noted) !
+
+
+# **Completion:**
 ## **Done:**
+- Create Dashboard page 3 sections, admin logs readout, Statistics of the application/Store and alerts for certain issues. Can be adjusted later if required to contain more specific information.
 - Logging files are located in the /temp/ folder in the application directory and get cleaned up automatically to avoid dataleaks (somewhat unnsessary but good practice encase adjusments are made which reveal sensitive data).
 - Created logging for attempted logins to admin accounts that fail to allow admins to stop these before progressing to an attack.
 - Created admin logging for success and failure operations to stop malicious use and ensure that tracking for training recaps can be done.
