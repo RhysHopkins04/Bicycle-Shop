@@ -41,11 +41,26 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
         needs_name_update = name != current_product[1]
         needs_price_update = abs(float(price) - float(current_product[2])) > 0.001
         needs_new_qr = (needs_name_update or needs_price_update) and not keep_qr
-        needs_image_update = image and image != current_product[7] and not keep_image
 
         product_dir = os.path.join(get_paths()['products_dir'], name if needs_name_update else current_product[1])
         if needs_name_update:
             os.makedirs(product_dir, exist_ok=True)
+
+        # Handle QR code update
+        new_qr_path = current_product[3]
+        if needs_new_qr:
+            # Remove old QR code first
+            if current_product[3] and os.path.exists(current_product[3]):
+                try:
+                    os.remove(current_product[3])
+                except OSError as e:
+                    print(f"Error removing old QR code: {e}")
+            # Generate new QR code
+            new_qr_path = handle_qr_code(name, price, product_dir)
+        elif not os.path.exists(current_product[3]):
+            new_qr_path = handle_qr_code(name, price, product_dir)
+
+        needs_image_update = image and image != current_product[7] and not keep_image
 
         new_image_path = current_product[7]
         if needs_image_update:
@@ -65,6 +80,18 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
         if needs_new_qr or not os.path.exists(current_product[3]):
             new_qr_path = handle_qr_code(name, price, product_dir)
 
+        # If image is None/empty and we have an old image, we need to clean it up
+        if not image and current_product[7]:
+            try:
+                if os.path.exists(current_product[7]):
+                    os.remove(current_product[7])
+            except OSError as e:
+                print(f"Error removing old image: {e}")
+            new_image_path = None
+        else:
+            new_image_path = handle_product_image(image, product_dir) if image else None
+
+        # Update database with possibly NULL image path
         cursor.execute("""
             UPDATE Products 
             SET name = ?, price = ?, qr_code = ?, description = ?, 

@@ -55,7 +55,7 @@ def show_add_product_screen(global_state):
     name_inner_container = tk.Frame(name_container, **styles['frame'])
     name_inner_container.pack(expand=True)
 
-    tk.Label(name_inner_container, text="Product Name:", **styles['labels'], pady=(0,5)).pack(side="left")
+    tk.Label(name_inner_container, text="Product Name:", **styles['labels']).pack(side="left", pady=(0, 5))
     name_entry = tk.Entry(name_inner_container, width=30, **styles['entries'])  # Fixed width of 50 characters
     name_entry.pack(side="left")
 
@@ -104,19 +104,34 @@ def show_add_product_screen(global_state):
             image_path.set(file_path)
             resize_content()
 
+    def clear_image():
+        """Clear the current image selection"""
+        image_path.set("")
+        resize_content()
+
     # Add placeholder for image
     image_path = tk.StringVar()
     image_frame = tk.Frame(left_frame, **styles['frame'])
     image_frame.pack(fill="both", expand=True, pady=(0, 5))
 
-    # Larger placeholder text
+    # Placeholder text
     placeholder_text = "No Image Selected\n\nClick 'Select Image'\nto add a product image"
     placeholder_label = tk.Label(image_frame, text=placeholder_text, **styles['placeholder'])
     placeholder_label.pack(expand=True, fill="both", pady=10)
 
+    # Create button container frame
+    button_container = tk.Frame(left_frame, **styles['frame'])
+    button_container.pack()
+
     # Add select image button
-    select_image_button = tk.Button(left_frame, text="Select Image", command=select_image, **styles['buttons'])
-    select_image_button.pack()
+    select_image_button = tk.Button(button_container, text="Select Image", command=select_image, **styles['buttons'])
+    select_image_button.pack(side="left", padx=2)
+
+    # Add remove image button
+    button_style = dict(styles['buttons']) # Create a copy so it doesnt affect other buttons
+    button_style['fg'] = "red" # Override fg color for button to be red.
+    remove_image_button = tk.Button(button_container, text="X", command=lambda: clear_image(), width=2, **button_style)
+    remove_image_button.pack(side="left", padx=2)
 
     # Bottom section
     bottom_frame = tk.Frame(content_frame, **styles['frame'])
@@ -701,14 +716,29 @@ def show_edit_product_screen(global_state, product_id):
                 image_path.set(file_path)
                 resize_content()
 
+        def clear_image():
+            """Clear the current image selection"""
+            image_path.set("")
+            resize_content()
+
         # Modify existing image handling:
         image_path = tk.StringVar(value=product[7])
         image_frame = tk.Frame(left_frame, **styles['frame'])
         image_frame.pack(pady=(0, 5))
 
+        # Create button container frame
+        button_container = tk.Frame(left_frame, **styles['frame'])
+        button_container.pack()
+
         # Add select image button
-        select_image_button = tk.Button(left_frame, text="Change Image", command=select_image, **styles['buttons'])
-        select_image_button.pack(pady=5)
+        select_image_button = tk.Button(button_container, text="Change Image", command=select_image, **styles['buttons'])
+        select_image_button.pack(side="left", padx=2)
+
+        # Add remove image button
+        button_style = dict(styles['buttons']) # Create a copy so it doesnt affect other buttons
+        button_style['fg'] = "red" # Override fg color for button to be red.
+        remove_image_button = tk.Button(button_container, text="X", command=lambda: clear_image(), width=2, **button_style)
+        remove_image_button.pack(side="left", padx=2)
 
         resize_timer = None
 
@@ -722,14 +752,6 @@ def show_edit_product_screen(global_state, product_id):
         def resize_content(event=None):
             """Handle responsive resizing of images"""
             if not left_frame.winfo_exists():
-                return
-
-            image_to_resize = image_path.get() or product[7]
-        
-            # Use placeholder if no image exists
-            if not image_to_resize:
-                placeholder_text = "No Image\nClick 'Change Image'\nto add one"
-                tk.Label(image_frame, text=placeholder_text, **styles['placeholder']).pack(expand=True)
                 return
             
             # Get window dimensions first
@@ -823,6 +845,22 @@ def show_edit_product_screen(global_state, product_id):
             qr_base_size = min(int(window_width * qr_factor), qr_max_size)
             qr_size = max(qr_min_size, min(qr_base_size, qr_max_size))
 
+            image_to_resize = image_path.get()# or product[7]
+        
+            # Use placeholder if no image exists
+            if not image_to_resize:
+                # Clear existing content
+                for widget in image_frame.winfo_children():
+                    widget.destroy()
+                # Create placeholder frame with minimum size constraints
+                placeholder_frame = tk.Frame(image_frame, width=min_img_width, height=min_img_height, **styles['frame'])
+                placeholder_frame.pack(expand=True, fill="both", pady=10)
+                placeholder_frame.pack_propagate(False)
+                # Add placeholder text
+                placeholder_text = "No Image\nClick 'Change Image'\nto add one"
+                tk.Label(placeholder_frame, text=placeholder_text, **styles['placeholder']).pack(expand=True)
+                return
+
             # Resize product image
             resized_image = resize_product_image(
                 image_to_resize,
@@ -872,7 +910,29 @@ def show_edit_product_screen(global_state, product_id):
                 'listed': 1 if listed_var.get() == "Yes" else 0
             }
 
-            # Validate inputs
+            # If product is marked as listed, validate all required fields
+            if new_values['listed']:
+                missing_requirements = []
+                if not new_values['category'] or new_values['category'] == "No Category":
+                    missing_requirements.append("category")
+                if not new_values['description']:
+                    missing_requirements.append("description")
+                if not new_values['image']:
+                    missing_requirements.append("image")
+                if new_values['stock'] <= 0:
+                    missing_requirements.append("stock")
+
+                if missing_requirements:
+                    # Force product to unlisted and show warning
+                    new_values['listed'] = 0
+                    listed_var.set("No")
+                    requirements_list = ", ".join(missing_requirements)
+                    messagebox.showwarning(
+                        "Product Unlisted",
+                        f"The product has been automatically unlisted because the following required content was removed: {requirements_list}"
+                    )
+
+            # Continue with regular validation
             is_valid, message = validate_product_fields(
                 new_values['name'], 
                 new_values['price'],
@@ -886,16 +946,25 @@ def show_edit_product_screen(global_state, product_id):
             if not is_valid:
                 display_error(message_label, message)
                 return
-
-            category_id = get_category_id(new_values['category']) if new_values['category'] else None
+            
             current_product = get_product_by_id(product_id)
+            category_id = get_category_id(new_values['category']) if new_values['category'] else None
             
             # Check what needs updating
             needs_name_price_update = (
                 new_values['name'] != current_product[1] or 
                 abs(float(new_values['price']) - float(current_product[2])) > 0.001
             )
-            needs_image_update = (new_values['image'] and new_values['image'] != current_product[7])
+            needs_image_update = (
+                (new_values['image'] and new_values['image'] != current_product[7]) or
+                (not new_values['image'] and current_product[7]) # Image was removed
+            )
+
+            # If image was removed (new_values['image'] is empty), force it to None
+            if not new_values['image']:
+                new_values['image'] = None
+                needs_image_update = True  # Force update when image is removed
+
 
             # Update product with appropriate file handling
             try:

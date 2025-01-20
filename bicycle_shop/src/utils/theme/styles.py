@@ -294,7 +294,7 @@ def get_style_config():
             },
             'placeholder': {
                 'bg': theme['dark_primary'],
-                'fg': '#666666',
+                'fg': theme['light_text'],
                 'font': ('Arial', 14),
                 'justify': 'center'
             }
@@ -370,6 +370,12 @@ def get_style_config():
             },
             'message': {
                 'bg': theme['dark_primary']
+            },
+            'placeholder': {
+                'bg': theme['dark_primary'],
+                'fg': theme['light_text'],
+                'font': ('Arial', 14),
+                'justify': 'center'
             }
         },
         'manage_categories': {

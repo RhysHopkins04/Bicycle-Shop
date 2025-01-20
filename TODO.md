@@ -1,17 +1,13 @@
 # **TODO:**
 ## **Incomplete:**
-- Ensure that I do not have any reduntant functions.
-- Ensure that all functions are in the correct files, possibly separate into more modules due to size of project
-
 - Improve my documentation as a whole, comments and docustrings.
     - gui.py up to date as of 27/11/24.
     - docstrings throughout should be up to date always across all files.
 
+- Ensure that I do not have any reduntant functions.
+
 - Complete all tests and log in excel document for the assignment writeup. (also learn about proper automated pipeline testing CI/CD ETC)
     - Test all logging both user and admin(success and failure), to ensure there are no broken parts.
-    - Potentially an issue with the old qr codes for products not being removed againn...
-    - Able to keep product listed even after removing content from it, doesnt go back to being unlisted automatically if info is removed (bug but maybe a feature? depends who sees it)
-
 
 ## **Potential:**
 ### **Features Additions:**
@@ -49,6 +45,11 @@
 
 # **Completion:**
 ## **Done:**
+- Resolved issue with the old qr code not being removed even though a new one had been added to the directory.
+- Adjusted the validation logic on a product update so that if it does not meet the requirements for listing it will be removed from listed and the admin informed of the errors as to why it has been removed from listed.
+- Adjusted the way products are handled to accept a product being set to having no image again
+- Allowed ability to set the selected image back to null (placeholder display)
+- Refactored code from monolithic structure to modular all placed under /src/ apart from entrypoint into the programs 
 - Create Dashboard page 3 sections, admin logs readout, Statistics of the application/Store and alerts for certain issues. Can be adjusted later if required to contain more specific information.
 - Logging files are located in the /temp/ folder in the application directory and get cleaned up automatically to avoid dataleaks (somewhat unnsessary but good practice encase adjusments are made which reveal sensitive data).
 - Created logging for attempted logins to admin accounts that fail to allow admins to stop these before progressing to an attack.
