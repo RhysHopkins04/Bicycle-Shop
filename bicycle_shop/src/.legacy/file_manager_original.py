@@ -1,7 +1,7 @@
 import configparser
 import os
 import shutil
-import qr_code_util
+import qr_code_util # type: ignore
 import tkinter as tk
 from tkinter import messagebox
 

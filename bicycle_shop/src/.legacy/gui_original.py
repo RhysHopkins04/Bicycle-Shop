@@ -15,7 +15,7 @@ from database import (create_tables, initialize_admin, get_products, get_product
                       verify_discount_qr, export_logs_to_temp_file, get_username_by_id,
                       get_user_id_by_username, get_dashboard_stats, get_dashboard_alerts
                       )
-from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age, 
+from validation import (validate_password, validate_empty_fields, validate_password_match, validate_age,  # type: ignore
                         validate_user_fields, validate_username_uniqueness, validate_product_fields, 
                         validate_category_name
                         )
@@ -25,9 +25,9 @@ from utils import (display_error, display_success, clear_frame, show_dropdown, h
                    get_style_config, center_window, create_fullscreen_handler, resize_product_image, resize_qr_code,
                    create_scrollable_grid_frame, log_action, get_action_type
                    )
-from file_manager import (get_application_settings, get_icon_paths, get_paths, get_user_logging_status, set_user_logging_status)
+from file_manager import (get_application_settings, get_icon_paths, get_paths, get_user_logging_status, set_user_logging_status) # type: ignore
 
-from qr_code_util import (scan_qr_code, scan_qr_code_from_file)
+from qr_code_util import (scan_qr_code, scan_qr_code_from_file) # type: ignore
 
 # Start GUI Function to be called in the main.py file post further checks for the tables and admin user.
 def start_app():

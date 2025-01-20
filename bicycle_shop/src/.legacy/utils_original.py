@@ -1,6 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk # To allow for image resizing and displaying in the product_page
-from file_manager import get_theme, get_logging_settings
+from file_manager import get_theme, get_logging_settings # type: ignore
 from database import log_user_action, log_admin_action
 
 

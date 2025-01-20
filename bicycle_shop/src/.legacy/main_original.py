@@ -1,7 +1,6 @@
-from src.file_system.directory.directory_manager import initialize
-from src.database.core.schema import create_tables
-from src.database.users.user_manager import initialize_admin
-from src.gui.core import start_app
+from gui import start_app
+from database import create_tables, initialize_admin
+from file_manager import initialize # type: ignore
 
 def main():
     # Check if first run

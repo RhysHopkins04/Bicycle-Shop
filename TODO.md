@@ -15,6 +15,7 @@
 
 ## **Potential:**
 ### **Features Additions:**
+- ? Switch to using loging instead of show_login_screen for all functions. ?
 - ? add max password length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
 - ? Reduce password requirements for a standard users password, keep complexity requirements for accounts with admin access, on account update to admin have them meet the requirements if password does not already ?
 
@@ -35,8 +36,11 @@
 - ? Make it so that on the store listing the images are the image of the product not the qr code. ?
 - ? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
 
+- ? **!MAJOR CHANGE!** Impliment state management for transfers bvetween screens of the gui since it is more elegant and robust and avoids passing the parameters every transfer. ?
+
 
 ## **Known Issues, unsure how to fix:**
+- ! Issues with refreshing the header section with username and first & last names after changing in manage user (self change), can be done with refresh users but will only work on the dashboard/ listing page since that is where it is setup and hence needs to be refreshed there on that page. Unimplimented and cleared for now till could be possibly fixed with rewrite of codebase !
 - ! Issues with checkboxes and radioboxes, Ask about use of CTK (custom tkinter) might fix it !
 - ! Have had issues trying to use grid layounds inside of a packed scrollable doesnt work obviously, used long workarounds until grid version was created and works, switch to it... !
 - ! start_fullscreen does not function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense. !

@@ -2,7 +2,7 @@ import sqlite3
 import os
 import shutil
 
-from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths, get_absolute_path, handle_discount_qr_code, cleanup_old_discount_qr
+from file_manager import handle_product_directory, handle_product_image, handle_qr_code, cleanup_old_product_files, rename_product_directory, get_paths, get_absolute_path, handle_discount_qr_code, cleanup_old_discount_qr # type: ignore
 
 DB_PATH = get_absolute_path('./bicycle_shop.db')
 
@@ -107,7 +107,7 @@ def create_tables():
 # User Managemnt Functions:
 def initialize_admin():
     """Create a default admin user if none exists."""
-    from file_manager import is_first_run
+    from file_manager import is_first_run # type: ignore
 
     # Only create admin if initialization is complete (second layer of checks to ensure it doesnt generate without config.ini being reviewed)
     if is_first_run():
@@ -119,7 +119,7 @@ def initialize_admin():
     cursor.execute("SELECT * FROM Users WHERE is_admin = 1")
     if not cursor.fetchone():  # No admin user exists
         from auth import hash_password
-        from file_manager import get_default_admin
+        from file_manager import get_default_admin # type: ignore
 
         # Get default admin settings from config.ini
         admin_settings = get_default_admin()
@@ -751,7 +751,7 @@ def export_logs_to_temp_file(admin_only=False):
     """Export logs to temporary file for viewing"""
     import tempfile
     import os
-    from file_manager import get_paths
+    from file_manager import get_paths # type: ignore
     
     # Create temp directory in our application directory
     app_dir = os.path.dirname(__file__)

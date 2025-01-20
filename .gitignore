@@ -1,17 +1,21 @@
 # Project specific
+# Ignoring the databases (had issues with tracking being persistent to these are mostly irrelevant now)
 *.db
 bicycle_shop.db
 /bicycle_shop.db
 bicycle_shop\bicycle_shop.db
 bicycle_shop/bicycle_shop.db
-Icons/
-Products/
-Discounts/
-/bicycle_shop/Discounts
+
+# Ignoring the file locations for actively used program
+/bicycle_shop/Icons/
+/bicycle_shop/Products/
+/bicycle_shop/Discounts/
 *.ini
 bicycle_shop/.initialized
 bicycle_shop/temp/*.log
 
+# Ensure that the information in src (where the code is stored is always tracked)
+!/bicycle_shop/src/**
 
 
 # Python gitignore template below:
