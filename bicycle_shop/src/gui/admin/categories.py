@@ -16,7 +16,25 @@ from src.utils.validation import validate_category_name
 
 
 def show_manage_categories_screen(global_state):
-    """Display the manage categories screen."""
+    """Display the manage categories screen.
+    
+    Provides interface for managing product categories including:
+    - Adding new categories
+    - Editing existing categories
+    - Deleting categories
+    - Viewing all categories in a grid layout
+    
+    Args:
+        global_state: Global application state containing:
+            - window: Main window instance
+            - content_inner_frame: Main content frame
+            - current_username: Current user's username
+            - current_admin_id: Current admin's ID
+            
+    Note:
+        Only accessible by admin users
+        Non-admin users are redirected to store listing
+    """
     global_state['current_screen'] = show_manage_categories_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -78,7 +96,12 @@ def show_manage_categories_screen(global_state):
     category_entry.grid(row=0, column=1)
 
     def handle_add_category():
-        """Handle adding new category"""
+        """Handle adding new category.
+        
+        Validates input and creates new category.
+        Displays success/error messages and logs action.
+        Refreshes category list on success.
+        """
         name = category_entry.get().strip()
         if not name:
             display_error(message_label, "Category name is required")
@@ -126,7 +149,11 @@ def show_manage_categories_screen(global_state):
     content_inner_frame.resize_timer = None
 
     def handle_resize(event=None):
-        """Handle window resize events with debouncing"""
+        """Handle window resize events with debouncing.
+        
+        Delays category list refresh on resize to prevent
+        excessive redraws during continuous resize events.
+        """
         if hasattr(content_inner_frame, 'resize_timer') and content_inner_frame.resize_timer is not None:
             window.after_cancel(content_inner_frame.resize_timer)
         content_inner_frame.resize_timer = window.after(150, display_categories)
@@ -170,7 +197,15 @@ def show_manage_categories_screen(global_state):
     wrapper.grid_rowconfigure(0, weight=1)
 
     def display_categories():
-        """Display categories in scrollable grid layout"""
+        """Display categories in scrollable grid layout.
+        
+        Shows all categories with:
+        - ID column
+        - Name column 
+        - Action buttons (Edit/Delete)
+        
+        Updates scroll region after displaying categories.
+        """
         # Clear existing content
         for widget in scrollable_frame.winfo_children():
             widget.destroy()
@@ -236,7 +271,17 @@ def show_manage_categories_screen(global_state):
         canvas.configure(scrollregion=canvas.bbox("all"))
 
     def handle_edit_category(category_id, old_name):
-        """Handle editing of a category in a popup dialog"""
+        """Handle editing of a category in a popup dialog.
+        
+        Args:
+            category_id: ID of category to edit
+            old_name: Current name of category
+            
+        Creates modal dialog with:
+        - Name entry field
+        - Save/Cancel buttons
+        - Validation and error handling
+        """
         dialog = tk.Toplevel(window)
         dialog.title("Edit Category")
         dialog.configure(**styles['frame'])
@@ -282,7 +327,12 @@ def show_manage_categories_screen(global_state):
         name_entry.pack(side='left', padx=5, expand=True, fill='x')
 
         def save_changes():
-            """Save category changes"""
+            """Save category changes.
+            
+            Validates new name and updates category.
+            Displays success/error messages and logs action.
+            Refreshes category list on success.
+            """
             new_name = name_entry.get().strip()
             
             if not new_name:
@@ -331,7 +381,16 @@ def show_manage_categories_screen(global_state):
         ).pack(side='left', padx=5)
 
     def handle_delete_category(category_id):
-        """Handle deletion of a category"""
+        """Handle deletion of a category.
+        
+        Args:
+            category_id: ID of category to delete
+            
+        Shows confirmation dialog.
+        Deletes category and unlists associated products.
+        Displays success/error messages and logs action.
+        Refreshes category list on success.
+        """
         category_name = get_category_name(category_id)
         if messagebox.askyesno("Confirm Delete",
                             f"Are you sure you want to delete the category '{category_name}'?\n\nNote: All products in this category will be unlisted."):

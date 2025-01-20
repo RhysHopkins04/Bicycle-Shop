@@ -2,7 +2,26 @@ import tkinter as tk
 from ..theme import get_style_config
 
 def create_scrollable_frame(parent):
-    """Create scrollable frame with canvas"""
+    """Create scrollable frame with canvas.
+    
+    Creates a frame with vertical scrolling capability:
+    - Styled wrapper with border
+    - Canvas for smooth scrolling
+    - Automatic scrollbar visibility
+    - Mouse wheel support
+    
+    Args:
+        parent: Parent widget to place scrollable frame in
+        
+    Returns:
+        tuple: (wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel)
+            - wrapper: Outer frame containing everything
+            - canvas: Scrollable canvas widget
+            - scrollbar: Vertical scrollbar widget
+            - scrollable_frame: Frame for content
+            - bind_wheel: Function to enable mouse wheel
+            - unbind_wheel: Function to disable mouse wheel
+    """
     style = get_style_config()['scrollable']
     
     wrapper = tk.Frame(parent, bg=style['wrapper_bg'], padx=2, pady=2)
@@ -27,6 +46,12 @@ def create_scrollable_frame(parent):
     scrollable_frame = tk.Frame(canvas, bg=style['frame_bg'])
     
     def on_mouse_wheel(event):
+        """Handle mouse wheel scrolling.
+        
+        Only scrolls if:
+        - Canvas still exists
+        - Content height exceeds visible area
+        """
         if canvas.winfo_exists():
             bbox = canvas.bbox("all")
             if bbox:
@@ -36,12 +61,19 @@ def create_scrollable_frame(parent):
                     canvas.yview_scroll(-1 * (event.delta // 120), "units")
     
     def bind_mouse_wheel():
+        """Enable mouse wheel scrolling."""
         canvas.bind_all("<MouseWheel>", on_mouse_wheel)
     
     def unbind_mouse_wheel():
+        """Disable mouse wheel scrolling."""
         canvas.unbind_all("<MouseWheel>")
     
     def on_frame_configure(event):
+        """Update scrollbar and scroll region when frame changes.
+        
+        Shows scrollbar only when content exceeds visible area
+        Updates scroll region to match content size
+        """
         bbox = canvas.bbox("all")
         if bbox:
             scroll_height = bbox[3] - bbox[1]
@@ -60,7 +92,27 @@ def create_scrollable_frame(parent):
     return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel
 
 def create_scrollable_grid_frame(parent):
-    """Create scrollable frame with canvas using grid geometry"""
+    """Create scrollable frame using grid geometry manager.
+    
+    Creates a frame with vertical scrolling capability using grid:
+    - Grid-based layout for better control
+    - Styled wrapper with border
+    - Canvas for smooth scrolling
+    - Always visible scrollbar
+    - Mouse wheel support
+    
+    Args:
+        parent: Parent widget to place scrollable frame in
+        
+    Returns:
+        tuple: (wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel)
+            - wrapper: Outer frame containing everything
+            - canvas: Scrollable canvas widget
+            - scrollbar: Vertical scrollbar widget
+            - scrollable_frame: Frame for content
+            - bind_wheel: Function to enable mouse wheel
+            - unbind_wheel: Function to disable mouse wheel
+    """
     style = get_style_config()['scrollable']
     
     wrapper = tk.Frame(parent, bg=style['wrapper_bg'])
@@ -89,6 +141,7 @@ def create_scrollable_grid_frame(parent):
     scrollable_frame = tk.Frame(canvas, bg=style['frame_bg'])
     
     def on_canvas_configure(event):
+        """Update canvas window width when canvas is resized."""
         canvas.itemconfig("frame", width=event.width)
         
     canvas.bind("<Configure>", on_canvas_configure)
@@ -98,13 +151,19 @@ def create_scrollable_grid_frame(parent):
     canvas.configure(yscrollcommand=scrollbar.set)
     
     def on_mouse_wheel(event):
+        """Handle mouse wheel scrolling.
+        
+        Only scrolls if canvas still exists
+        """
         if canvas.winfo_exists():
             canvas.yview_scroll(-1 * (event.delta // 120), "units")
     
     def bind_mouse_wheel():
+        """Enable mouse wheel scrolling."""
         canvas.bind_all("<MouseWheel>", on_mouse_wheel)
     
     def unbind_mouse_wheel():
+        """Disable mouse wheel scrolling."""
         canvas.unbind_all("<MouseWheel>")
 
     return wrapper, canvas, scrollbar, scrollable_frame, bind_mouse_wheel, unbind_mouse_wheel

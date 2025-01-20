@@ -13,7 +13,26 @@ from src.gui.auth.register import show_register_screen
 from src.gui.auth.profile import switch_to_change_password
 
 def show_login_screen(global_state):
-    """Display the login screen."""
+    """Display the login screen.
+    
+    Creates the initial login interface with:
+    - Username entry
+    - Password entry with visibility toggle
+    - Login/Register buttons
+    - Error message display
+    
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - main_frame: Main content frame
+            - icons: Application icons
+            
+    Note:
+        Cleans up previous screen state
+        Centers window on screen
+        Sets initial focus to username field
+        Binds enter key for login
+    """
     global_state['current_screen'] = show_login_screen
     window = global_state['window']
     main_frame = global_state['main_frame']
@@ -53,6 +72,21 @@ def show_login_screen(global_state):
     )
 
     def login(event=None):
+        """Handle login attempt and navigation.
+        
+        Validates credentials and navigates to appropriate screen:
+        - Admin dashboard for admin users
+        - Password change for first-time admin login
+        - Store listing for regular users
+        
+        Args:
+            event: Key event when triggered by enter key (optional)
+            
+        Note:
+            Updates global state with user information
+            Logs login attempts and results
+            Handles cleanup of login screen elements
+        """
         try:
             # Store values before potentially destroying widgets
             username = username_entry.get()
@@ -120,8 +154,6 @@ def show_login_screen(global_state):
         **styles['buttons']
     )
     register_button.pack()
-
-
 
     # Bind enter key
     window.bind('<Return>', login)

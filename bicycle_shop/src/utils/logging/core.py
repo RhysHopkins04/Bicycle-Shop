@@ -33,22 +33,51 @@ ACTION_TYPES = {
 }
 
 def log_event(event):
-    """Log an event to a file."""
+    """Log an event to a file.
+    
+    Args:
+        event: Event text to log
+        
+    Note:
+        Logs to app.log in application directory
+        Creates file if it doesn't exist
+    """
     with open("app.log", "a") as f:
         f.write(f"{event}\n")
 
 def get_action_type(type_group, action):
-    """Get action type string from dictionary"""
+    """Get action type string from dictionary.
+    
+    Args:
+        type_group: Group of actions ('user' or 'admin')
+        action: Action key to look up
+        
+    Returns:
+        String representation of action type
+        
+    Note:
+        Used to maintain consistent action naming in logs
+    """
     return ACTION_TYPES[type_group][action]
 
 def log_action(action_type, is_admin=False, **kwargs):
-    """
-    Generic logging function following DRY principles
+    """Generic logging function following DRY principles.
     
     Args:
-        action_type (str): Type of action being performed (use ACTION_TYPES keys)
-        is_admin (bool): Whether this is an admin action
-        **kwargs: Additional arguments based on action type
+        action_type: Type of action being performed (use ACTION_TYPES keys)
+        is_admin: Whether this is an admin action
+        **kwargs: Additional arguments based on action type:
+            - user_id: ID of user performing action
+            - admin_id: ID of admin performing action
+            - target_type: Type of entity being acted upon
+            - target_id: ID of target entity
+            - details: Additional action details
+            - status: Action status (default: 'success')
+            
+    Note:
+        Only logs user actions if user logging is enabled
+        Admin actions are always logged
+        Uses consistent action types from ACTION_TYPES dict
     """
     type_group = 'admin' if is_admin else 'user'
     action_string = get_action_type(type_group, action_type)

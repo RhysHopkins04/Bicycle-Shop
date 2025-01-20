@@ -3,7 +3,14 @@ import os
 from src.database.core.connection import get_connection
 
 def log_user_action(user_id, action_type, details, status="success"):
-    """Log user action to database"""
+    """Log user action to database.
+    
+    Args:
+        user_id: ID of the user performing the action
+        action_type: Type of action being performed
+        details: Additional details about the action
+        status: Action status (default: "success")
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -14,7 +21,16 @@ def log_user_action(user_id, action_type, details, status="success"):
     conn.close()
 
 def log_admin_action(admin_id, action_type, target_type, target_id, details, status="success"):
-    """Log admin action to database"""
+    """Log admin action to database.
+    
+    Args:
+        admin_id: ID of the admin performing the action
+        action_type: Type of action being performed
+        target_type: Type of entity being acted upon
+        target_id: ID of the target entity
+        details: Additional details about the action
+        status: Action status (default: "success")
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -25,13 +41,24 @@ def log_admin_action(admin_id, action_type, target_type, target_id, details, sta
     conn.close()
 
 def export_logs_to_temp_file(admin_only=False):
-    """Export logs to temporary file for viewing"""
+    """Export logs to temporary file for viewing.
+    
+    Args:
+        admin_only: If True, export only admin actions; if False, export user actions
+        
+    Returns:
+        str: Path to the temporary log file
+        
+    Note:
+        Creates temporary file in application's temp directory.
+        File should be deleted after use.
+    """
+    from src.file_system.config.config_manager import get_absolute_path
+
     # Create temp directory in our application directory
-    app_dir = os.path.dirname(__file__)
-    temp_dir = os.path.join(app_dir, 'temp')
+    temp_dir = get_absolute_path('temp')
     os.makedirs(temp_dir, exist_ok=True)
     
-    # Create temp file with auto-cleanup
     temp_file = tempfile.NamedTemporaryFile(
         mode='w',
         delete=False,
@@ -76,7 +103,17 @@ def export_logs_to_temp_file(admin_only=False):
         conn.close()
 
 def get_dashboard_stats():
-    """Get statistics for admin dashboard."""
+    """Get statistics for admin dashboard.
+    
+    Returns:
+        dict: Dashboard statistics containing:
+            - total_users: Total number of users
+            - total_admins: Total number of admin users
+            - total_products: Total number of products
+            - listed_products: Number of listed products
+            - total_categories: Total number of categories
+            - active_discounts: Number of active discounts
+    """
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -111,7 +148,20 @@ def get_dashboard_stats():
         conn.close()
 
 def get_dashboard_alerts():
-    """Get current system alerts for admin dashboard."""
+    """Get current system alerts for admin dashboard.
+    
+    Returns:
+        list: List of (alert_type, message) tuples where:
+            - alert_type: Type of alert (e.g., "Warning")
+            - message: Alert message details
+            
+    Note:
+        Checks for:
+        - Failed admin logins in last hour
+        - Failed user logins in last 30 minutes
+        - Low stock products (less than 5)
+        - High discount usage in last hour
+    """
     conn = get_connection()
     cursor = conn.cursor()
     alerts = []

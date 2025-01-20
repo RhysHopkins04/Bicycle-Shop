@@ -23,7 +23,27 @@ from ..auth.logout import logout
 from .cart import show_cart
 
 def switch_to_store_listing(global_state):
-    """Navigate to the store listing."""
+    """Navigate to the store listing.
+    
+    Creates main store interface with:
+    - Header with store title
+    - User info display with dropdown
+    - Search functionality
+    - Categorized product grid
+    - Responsive layout
+    
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - main_frame: Main application frame
+            - window_state: Window state tracking
+            - icons: Application icons
+            - current_username: Current user's username
+            - current_first_name: User's first name
+            - current_last_name: User's last name
+            - current_user_id: User's ID
+            - switch_to_admin_panel: Admin panel callback
+    """
     global_state['current_screen'] = switch_to_store_listing
     window = global_state['window']
     main_frame = global_state['main_frame']
@@ -84,7 +104,7 @@ def switch_to_store_listing(global_state):
     )
     user_info_frame.pack(side="left", padx=20, pady=10)
 
-        # Create dropdown frame
+    # Create dropdown frame
     dropdown_frame = tk.Frame(main_frame, **styles['dropdown']['frame'])
     dropdown_frame.place_forget()  # Initially hide the dropdown frame
 
@@ -106,10 +126,19 @@ def switch_to_store_listing(global_state):
              **styles['dropdown']['buttons'], width=20).pack(fill="x", padx=10, pady=5)
 
     def update_dropdown_position_handler(event=None):
+        """Update dropdown menu position when window changes.
+        
+        Ensures dropdown stays properly aligned with user info display
+        during window resize/move events.
+        """
         update_dropdown_position(window, user_info_frame, dropdown_frame)
 
     def show_dropdown_handler(event):
-        """Show dropdown and update its position"""
+        """Show dropdown menu and update its position.
+        
+        Shows dropdown when hovering over user info elements
+        Updates position after showing to ensure proper alignment.
+        """
         show_dropdown(event, user_info_frame, dropdown_frame)
         window.after(1, update_dropdown_position_handler)
 
@@ -162,7 +191,14 @@ def switch_to_store_listing(global_state):
     })
 
     def remove_focus(event):
-        """Remove focus from search entry when clicking anywhere else"""
+        """Remove focus from search when clicking elsewhere.
+        
+        Args:
+            event: Click event to check widget clicked
+            
+        Returns:
+            str: "break" to prevent event propagation if focus removed
+        """
         if (event.widget != search_entry and 
             event.widget not in dropdown_frame.winfo_children() and
             event.widget != dropdown_frame):
@@ -187,6 +223,12 @@ def switch_to_store_listing(global_state):
     scrollable_frame.bind('<Button-1>', remove_focus)
 
     def filter_products():
+        """Filter products based on search input.
+        
+        Filters by product name or price matching search text
+        Updates display with filtered results
+        Handles widget destruction gracefully
+        """
         try:
             search_query = search_entry.get().lower()
             filtered_products = [
@@ -199,7 +241,17 @@ def switch_to_store_listing(global_state):
             pass
 
     def display_products(products):
-        """Display products grouped by category in store listing."""
+        """Display products grouped by category in store listing.
+        
+        Creates responsive grid layout:
+        - Products grouped by category
+        - Category headers with separators
+        - Dynamic number of columns
+        - Scrolling for overflow
+        
+        Args:
+            products: List of product tuples to display
+        """
         unbind_wheel()
         clear_frame(scrollable_frame)
 
@@ -282,7 +334,23 @@ def switch_to_store_listing(global_state):
             pass  # Handle case where widgets are destroyed
 
 def show_product_page(product_id, global_state):
-    """Display the product page for the given product ID."""
+    """Display the product page for the given product ID.
+    
+    Shows detailed product view with:
+    - Product image
+    - Title and price
+    - Description
+    - Stock level
+    - Add to cart functionality
+    - Responsive layout
+    
+    Args:
+        product_id: ID of product to display
+        global_state: Application state containing:
+            - window: Main window instance
+            - content_inner_frame: Content frame
+            - current_user_id: Current user's ID
+    """
     # Extract needed values from global_state
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -367,21 +435,37 @@ def show_product_page(product_id, global_state):
         wraplength_timer = None
 
         def debounced_resize(event=None):
-            """Debounced version of resize_content"""
+            """Debounced version of resize_content.
+            
+            Prevents excessive updates during continuous resize
+            by delaying resize_content call.
+            """
             nonlocal resize_timer
             if resize_timer is not None:
                 window.after_cancel(resize_timer)
             resize_timer = window.after(150, lambda: resize_content(event))
 
         def debounced_wraplength(event=None):
-            """Debounced version of update_wraplength"""
+            """Debounced version of update_wraplength.
+            
+            Prevents excessive updates during continuous resize
+            by delaying update_wraplength call.
+            """
             nonlocal wraplength_timer
             if wraplength_timer is not None:
                 window.after_cancel(wraplength_timer)
             wraplength_timer = window.after(150, lambda: update_wraplength(event))
 
         def resize_content(event=None):
-            """Handle responsive resizing of images"""
+            """Handle responsive resizing of product image.
+            
+            Calculates appropriate image dimensions based on:
+            - Window width/height
+            - Minimum/maximum size constraints
+            - Screen resolution breakpoints
+            
+            Updates image maintaining aspect ratio
+            """
             if not product[7] or not left_frame.winfo_exists():
                 return
                 
@@ -413,6 +497,11 @@ def show_product_page(product_id, global_state):
                 image_label.pack()
 
         def update_wraplength(event=None):
+            """Update description text wrapping based on container width.
+            
+            Adjusts description text wrapping to fit container
+            while maintaining readability.
+            """
             # Update description wraplength based on frame width
             new_width = right_frame.winfo_width() - 40
             description_label.configure(wraplength=new_width)
@@ -421,6 +510,14 @@ def show_product_page(product_id, global_state):
         resize_content()
 
         def add_to_cart_handler():
+            """Handle adding product to cart.
+            
+            Validates user is logged in
+            Adds product to cart
+            Shows success/error message
+            Logs action result
+            Shows dropdown notification
+            """
             if not global_state['current_user_id']:
                 display_error(message_label, "Please log in to add items to cart")
                 return
@@ -442,6 +539,11 @@ def show_product_page(product_id, global_state):
                         status='failed')
 
         def safe_hide_dropdown():
+            """Safely hide dropdown menu handling widget destruction.
+            
+            Attempts to hide dropdown, catches and handles any
+            widget destruction errors.
+            """
             try:
                 hide_dropdown(None, global_state['user_info_frame'], global_state['dropdown_frame'])
             except tk.TclError:

@@ -1,7 +1,22 @@
 from src.database.core.connection import get_connection
 
 def add_to_cart(user_id, product_id, quantity=1):
-    """Add or update product quantity in user's cart"""
+    """Add or update product quantity in user's cart.
+    
+    Args:
+        user_id: ID of the user adding to cart
+        product_id: ID of the product to add
+        quantity: Amount to add (default: 1)
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+            
+    Note:
+        Will update quantity if product already exists in cart.
+        Validates against available product stock.
+    """
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -42,7 +57,15 @@ def add_to_cart(user_id, product_id, quantity=1):
     return True, "Product added to cart"
 
 def get_cart_items(user_id):
-    """Get all items in user's cart with product details"""
+    """Get all items in user's cart with product details.
+    
+    Args:
+        user_id: ID of the user whose cart to retrieve
+        
+    Returns:
+        list: Cart items with full product details and quantities
+            Each item contains product fields plus quantity
+    """
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -58,7 +81,22 @@ def get_cart_items(user_id):
     return items
 
 def update_cart_quantity(user_id, product_id, quantity):
-    """Update quantity of item in cart"""
+    """Update quantity of item in cart.
+    
+    Args:
+        user_id: ID of the user whose cart to update 
+        product_id: ID of the product to update
+        quantity: New quantity (0 removes item)
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+            
+    Note:
+        Quantity of 0 removes item from cart.
+        Validates against available product stock.
+    """
     conn = get_connection()
     cursor = conn.cursor()
     

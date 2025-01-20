@@ -9,7 +9,25 @@ from src.utils.display import create_fullscreen_handler
 from .auth import show_login_screen
 
 def start_app():
-    """Start the Tkinter GUI application."""
+    """Start the Tkinter GUI application.
+    
+    Initializes the main application window and state, loads configuration,
+    sets up the database, and starts the GUI. This is the main entry point
+    for the application.
+    
+    The application uses a global state object to manage:
+        - Window and frame references
+        - Current user information
+        - UI state (fullscreen, maximized)
+        - Search functionality state
+        - Icon resources
+        - Admin screen references
+        
+    Note:
+        Creates database tables if they don't exist
+        Ensures default admin account exists
+        Shows login screen on startup
+    """
     # Get configuration settings
     app_settings = get_application_settings()
     icon_paths = get_icon_paths()

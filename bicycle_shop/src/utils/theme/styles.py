@@ -1,7 +1,37 @@
 from src.file_system.config.config_manager import get_theme
 
 def get_style_config():
-    """Get application-wide style configuration."""
+    """Get application-wide style configuration.
+    
+    Returns:
+        dict: Nested dictionary containing all UI style configurations:
+            - login_register_screen: Styles for login/register pages
+            - store_listing: Styles for main store view
+            - product_page: Styles for product details
+            - cart: Styles for shopping cart
+            - manage_user: Styles for user management
+            - admin_panel: Styles for admin dashboard
+            - add_product: Styles for product creation
+            - manage_products: Styles for product management
+            - edit_product: Styles for product editing
+            - manage_categories: Styles for category management
+            - manage_users: Styles for user list
+            - edit_user_dialog: Styles for user editing
+            - manage_discounts: Styles for discount management
+            - logging: Styles for log viewer
+            - change_password: Styles for password change screens
+            - password_field: Styles for password input components
+            - user_info: Styles for user info display
+            - search: Styles for search components
+            - scrollable: Styles for scrollable containers
+            - product_grid: Styles for product grid layout
+            
+    Note:
+        Uses theme colors from config.ini
+        Each section contains specific style attributes
+        Created unique per screen for further customization when required
+        Supports both light and dark variants for some components
+    """
     theme = get_theme()
     return {
         'login_register_screen': {
@@ -681,7 +711,19 @@ def get_style_config():
     }
 
 def get_default_button_style():
-    """Return the default button style dictionary."""
+    """Return the default button style dictionary.
+    
+    Returns:
+        dict: Default button styling containing:
+            - font: Arial 20pt
+            - colors: Background, foreground, highlights
+            - borders: Width and colors
+            - active states: Hover/click colors
+            
+    Note:
+        Used as base style for navigation buttons
+        Uses theme colors from config.ini
+    """
     theme = get_theme()
     return {
         "font": ("Arial", 20),

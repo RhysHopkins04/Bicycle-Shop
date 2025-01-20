@@ -2,7 +2,14 @@ import configparser
 import os
 
 def get_absolute_path(relative_path):
-    """Convert relative path to absolute path."""
+    """Convert relative path to absolute path.
+    
+    Args:
+        relative_path: Path to convert to absolute path
+        
+    Returns:
+        Absolute path based on project root directory
+    """
     if os.path.isabs(relative_path):
         return relative_path
     
@@ -84,7 +91,13 @@ DEFAULT_CONFIG = {
 config = configparser.ConfigParser()
 
 def get_paths():
-    """Get directory paths from config."""
+    """Get directory paths from config.
+    
+    Returns:
+        dict: Directory paths with keys:
+            - products_dir: Path to products directory
+            - icons_dir: Path to icons directory
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
@@ -94,7 +107,16 @@ def get_paths():
     }
 
 def get_icon_paths():
-    """Get icon file paths from config."""
+    """Get icon file paths from config.
+    
+    Returns:
+        dict: Full paths to icon files with keys:
+            - password_show: Path to password show icon
+            - password_hide: Path to password hide icon 
+            - user_icon: Path to user icon
+            - admin_icon: Path to admin icon
+            - placeholder: Path to placeholder image
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
@@ -108,7 +130,15 @@ def get_icon_paths():
     }
 
 def create_initial_config():
-    """Create initial config.ini file."""
+    """Create initial config.ini file.
+    
+    Returns:
+        bool: True if config created successfully, False otherwise
+        
+    Note:
+        Creates config with default values if it doesn't exist.
+        Will not overwrite existing config file.
+    """
     try:
         if os.path.exists(CONFIG_PATH):
             return False
@@ -143,7 +173,19 @@ def create_initial_config():
         return False
 
 def verify_config():
-    """Verify config has all required sections and values."""
+    """Verify config has all required sections and values.
+    
+    Returns:
+        bool: True if config is valid, False otherwise
+        
+    Note:
+        Checks for required sections:
+        - Application
+        - Theme
+        - DefaultAdmin  
+        - Paths
+        - Icons
+    """
     required_sections = ['Application', 'Theme', 'DefaultAdmin', 'Paths', 'Icons']
     if not os.path.exists(CONFIG_PATH):
         return False
@@ -151,7 +193,16 @@ def verify_config():
     return all(section in config.sections() for section in required_sections)
 
 def get_application_settings():
-    """Get application window and title settings."""
+    """Get application window and title settings.
+    
+    Returns:
+        dict: Application settings with keys:
+            - window_title: Main window title
+            - store_title: Store page title
+            - admin_title: Admin dashboard title 
+            - use_maximized: Whether to start maximized
+            - window_state: Initial window state
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
@@ -164,7 +215,12 @@ def get_application_settings():
     }
 
 def get_logging_settings():
-    """Get logging configuration settings"""
+    """Get logging configuration settings.
+    
+    Returns:
+        dict: Logging settings with keys:
+            - user_logging_enabled: Whether user logging is enabled
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
@@ -173,14 +229,22 @@ def get_logging_settings():
     }
 
 def get_user_logging_status():
-    """Get user logging status from config"""
+    """Get user logging status from config.
+    
+    Returns:
+        bool: True if user logging enabled, False otherwise
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
     return config['Logging'].getboolean('user_logging_enabled', fallback=True)
 
 def set_user_logging_status(enabled):
-    """Set user logging status in config"""
+    """Set user logging status in config.
+    
+    Args:
+        enabled: True to enable logging, False to disable
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
@@ -189,7 +253,19 @@ def set_user_logging_status(enabled):
         config.write(configfile)
 
 def get_theme():
-    """Get theme color settings."""
+    """Get theme color settings.
+    
+    Returns:
+        dict: Theme colors with keys:
+            - dark_primary: Primary dark theme color
+            - dark_secondary: Secondary dark theme color 
+            - dark_surface: Background color
+            - light_text: Light text color
+            - med_text: Medium text color
+            - med_primary: Medium primary color
+            - light_primary: Light primary color
+            - dark_text: Dark text color
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)
@@ -205,7 +281,16 @@ def get_theme():
     }
 
 def get_default_admin():
-    """Get default admin user settings."""
+    """Get default admin user settings.
+    
+    Returns:
+        dict: Default admin settings with keys:
+            - username: Admin username
+            - password: Admin password
+            - first_name: Admin first name
+            - last_name: Admin last name 
+            - age: Admin age
+    """
     if not os.path.exists(CONFIG_PATH):
         create_initial_config()
     config.read(CONFIG_PATH)

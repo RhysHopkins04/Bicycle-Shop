@@ -11,7 +11,27 @@ from src.utils import (
 )
 
 def show_manage_discounts_screen(global_state):
-    """Display the discounts management screen"""
+    """Display the discounts management screen.
+    
+    Provides interface for managing discount codes including:
+    - Adding new discounts with name and percentage
+    - Editing existing discounts
+    - Enabling/disabling discounts
+    - Deleting discounts
+    - Viewing all discounts in a grid layout with usage tracking
+    
+    Args:
+        global_state: Global application state containing:
+            - window: Main window instance
+            - content_inner_frame: Main content frame
+            - current_username: Current user's username
+            - current_admin_id: Current admin's ID
+            
+    Note:
+        Only accessible by admin users
+        Non-admin users are redirected to store listing
+        Creates QR codes automatically for discounts
+    """
     global_state['current_screen'] = show_manage_discounts_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -80,7 +100,15 @@ def show_manage_discounts_screen(global_state):
     percentage_entry.grid(row=0, column=1)
 
     def add_new_discount():
-        """Handle adding new discount"""
+        """Handle adding new discount.
+        
+        Validates input fields and creates new discount with QR code.
+        Logs action success/failure and refreshes display.
+        
+        Validation:
+        - Name must not be empty
+        - Percentage must be integer between 1-100
+        """
         name = name_entry.get().strip()
         percentage = percentage_entry.get().strip()
 
@@ -126,7 +154,11 @@ def show_manage_discounts_screen(global_state):
     content_inner_frame.resize_timer = None
 
     def handle_resize(event=None):
-        """Handle window resize events with debouncing"""
+        """Handle window resize events with debouncing.
+        
+        Prevents excessive refreshes during continuous resize
+        by delaying the refresh for 150ms after last resize event.
+        """
         if hasattr(content_inner_frame, 'resize_timer') and content_inner_frame.resize_timer is not None:
             window.after_cancel(content_inner_frame.resize_timer)
         content_inner_frame.resize_timer = window.after(150, display_discounts)
@@ -179,7 +211,16 @@ def show_manage_discounts_screen(global_state):
     # scrollable_frame.configure(bg='orange')  # Content area
 
     def display_discounts():
-        """Display users in a scrollable grid layout."""
+        """Display all discounts in scrollable grid layout.
+        
+        Shows discount information in columns:
+        - ID: Unique identifier
+        - Name: Discount name
+        - Percentage: Discount amount
+        - Uses: Number of times used
+        - Active: Current status
+        - Actions: Edit/Toggle/Delete buttons
+        """
         # Clear existing content
         for widget in scrollable_frame.winfo_children():
             widget.destroy()
@@ -263,7 +304,18 @@ def show_manage_discounts_screen(global_state):
         canvas.configure(scrollregion=canvas.bbox("all"))
 
     def handle_edit_discount(discount):
-        """Handle editing of a discount"""
+        """Handle editing of existing discount in modal dialog.
+        
+        Args:
+            discount: Tuple containing discount details
+                (id, name, percentage, qr_path, uses, active)
+                
+        Creates modal dialog with:
+        - Name and percentage entry fields
+        - Validation of inputs
+        - Success/error messages
+        - Auto-generated QR code update
+        """
         dialog = tk.Toplevel(window)
         dialog.title("Edit Discount")
         dialog.configure(**styles['frame'])
@@ -317,6 +369,20 @@ def show_manage_discounts_screen(global_state):
             entries[label.lower()] = entry
 
         def save_changes():
+            """Save discount changes.
+            
+            Validates new values and updates discount:
+            - Validates name is not empty
+            - Validates percentage is integer between 1-100
+            - Updates discount with new values
+            - Generates new QR code
+            - Logs action success/failure
+            - Refreshes display on success
+            
+            Note:
+                Closes dialog after successful update
+                Shows error messages in dialog for validation failures
+            """
             try:
                 new_name = entries['name'].get().strip()
                 new_percentage = int(entries['percentage'].get().strip())
@@ -364,7 +430,15 @@ def show_manage_discounts_screen(global_state):
         ).pack(side='left', padx=5)
 
     def handle_toggle_discount(discount):
-        """Handle toggling discount active status"""
+        """Toggle active status of discount.
+        
+        Args:
+            discount: Tuple containing discount details
+                (id, name, percentage, qr_path, uses, active)
+                
+        Enables/disables discount and refreshes display.
+        Logs action success/failure.
+        """
         success, msg = toggle_discount_status(discount[0])
         if success:
             display_success(message_label, msg)
@@ -379,7 +453,16 @@ def show_manage_discounts_screen(global_state):
                         details=f"Failed to toggle discount status: {msg}", status='failed')
 
     def handle_delete_discount(discount):
-        """Handle deletion of a discount"""
+        """Handle deletion of discount after confirmation.
+        
+        Args:
+            discount: Tuple containing discount details
+                (id, name, percentage, qr_path, uses, active)
+                
+        Shows confirmation dialog before deletion.
+        Removes QR code file on successful deletion.
+        Logs action success/failure.
+        """
         if messagebox.askyesno("Confirm Delete", 
                                 f"Are you sure you want to delete the discount '{discount[1]}'?"):
             success, msg = delete_discount(discount[0])

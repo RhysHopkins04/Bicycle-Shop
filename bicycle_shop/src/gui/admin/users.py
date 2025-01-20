@@ -16,7 +16,28 @@ from src.gui.auth.profile import switch_to_change_password
 from src.gui.store.listing import switch_to_store_listing
 
 def show_manage_users_screen(global_state):
-    """Switch to user management screen"""
+    """Display the user management screen.
+    
+    Provides interface for managing user accounts including:
+    - Viewing all users in a grid layout
+    - Editing user details
+    - Changing user passwords
+    - Managing admin privileges
+    - Deleting users
+    
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - content_inner_frame: Main content frame
+            - current_username: Current user's username
+            - current_admin_id: Current admin's ID
+            - icons: Application icons
+            
+    Note:
+        Only accessible by admin users
+        Non-admin users are redirected to store listing
+        Cannot delete own account or remove own admin status
+    """
     global_state['current_screen'] = show_manage_users_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -69,7 +90,26 @@ def show_manage_users_screen(global_state):
     content_inner_frame.resize_timer = None
 
     def open_edit_dialog(user_id, username, first_name, last_name, age, is_admin):
-        """Open dialog to edit user details."""
+        """Open dialog to edit user details.
+        
+        Creates modal dialog with form fields for editing user:
+        - First/Last name
+        - Age
+        - Admin status
+        - Password change option
+        
+        Args:
+            user_id: ID of user to edit
+            username: Username (non-editable)
+            first_name: Current first name
+            last_name: Current last name 
+            age: Current age
+            is_admin: Current admin status
+            
+        Note:
+            Cannot change own admin status
+            Changes are validated before saving
+        """
         # Check if dialog already exists for this user
         for child_window in window.winfo_children():
             if isinstance(child_window, tk.Toplevel) and hasattr(child_window, 'editing_user_id'):
@@ -102,7 +142,12 @@ def show_manage_users_screen(global_state):
         dialog.attributes('-topmost', True)
 
         def on_dialog_close():
-            """Handle dialog closure cleanup"""
+            """Handle dialog closure cleanup.
+            
+            Releases modal state
+            Updates user list display
+            Destroys dialog window
+            """
             dialog.grab_release()
             display_users()
             dialog.destroy()
@@ -153,7 +198,14 @@ def show_manage_users_screen(global_state):
         admin_combobox.pack(pady=(0, 10), padx=5)
 
         def save_changes():
-            """Save user changes"""
+            """Save user detail changes.
+            
+            Validates input fields
+            Updates user in database
+            Logs action success/failure
+            Closes dialog on success
+            Shows error message on failure
+            """
             new_first_name = first_name_entry.get()
             new_last_name = last_name_entry.get()
             new_age = age_entry.get()
@@ -224,7 +276,19 @@ def show_manage_users_screen(global_state):
         ).pack(side='left', padx=5)
 
     def handle_delete_user(user_id):
-        """Handle user deletion"""
+        """Handle user deletion with confirmation.
+        
+        Shows confirmation dialog
+        Deletes user if confirmed
+        Logs action success/failure
+        Updates display after successful deletion
+        
+        Args:
+            user_id: ID of user to delete
+            
+        Note:
+            Cannot delete own account
+        """
         if not messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this user?"):
             return
             
@@ -245,7 +309,18 @@ def show_manage_users_screen(global_state):
                         status='failed')
 
     def display_users():
-        """Display users in a scrollable grid layout."""
+        """Display all users in scrollable grid layout.
+        
+        Shows users with columns:
+        - ID
+        - Username
+        - Full Name
+        - Age
+        - Admin Status
+        - Action buttons
+        
+        Updates scroll region after displaying users
+        """
         # Clear existing content
         for widget in scrollable_frame.winfo_children():
             widget.destroy()
@@ -316,7 +391,14 @@ def show_manage_users_screen(global_state):
 
 
     def handle_resize(event=None):
-        """Handle window resize events with debouncing"""
+        """Handle window resize events with debouncing.
+        
+        Delays refresh of user list for 150ms after last resize
+        to prevent excessive updates during continuous resize.
+        
+        Args:
+            event: Window resize event
+        """
         if hasattr(content_inner_frame, 'resize_timer') and content_inner_frame.resize_timer is not None:
             window.after_cancel(content_inner_frame.resize_timer)
         content_inner_frame.resize_timer = window.after(150, display_users)

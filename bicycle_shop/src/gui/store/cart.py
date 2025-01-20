@@ -20,7 +20,23 @@ from src.utils.frames.scrollable import create_scrollable_frame
 from src.utils.images.processors import resize_product_image
 
 def show_cart(global_state):
-    """Display user's shopping cart"""
+    """Display user's shopping cart with product details and checkout options.
+    
+    Creates interface showing:
+    - Cart items with images, prices, and quantities
+    - Quantity adjustment controls
+    - Remove item buttons
+    - Cart summary with subtotal
+    - Discount coupon functionality
+    - Checkout button
+    
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - content_frame: Main content frame
+            - current_user_id: ID of logged in user
+            - disable_search: Function to disable search bar
+    """
     global_state['current_screen'] = show_cart
     window = global_state['window']
     content_frame = global_state.get('content_frame')  
@@ -57,7 +73,11 @@ def show_cart(global_state):
     wrapper.pack(fill="both", expand=True, pady=(20, 0))
 
     def cleanup_cart():
-        """Cleanup function when leaving cart view"""
+        """Cleanup function when leaving cart view.
+        
+        Removes event bindings and wheel scrolling
+        to prevent errors when switching views.
+        """
         unbind_wheel()
         canvas.unbind('<Configure>')
         window.unbind("<Button-1>")
@@ -235,6 +255,19 @@ def show_cart(global_state):
     ).pack(pady=10)
 
     def update_quantity(pid, current_qty, delta):
+        """Update quantity of item in cart.
+        
+        Args:
+            pid: Product ID to update
+            current_qty: Current quantity in cart
+            delta: Amount to change quantity by (+1/-1)
+            
+        Note:
+            Removes item if quantity becomes 0
+            Validates against available stock
+            Logs all cart updates
+            Refreshes cart display after update
+        """
         new_qty = current_qty + delta
         if new_qty <= 0:
             success, message = update_cart_quantity(current_user_id, pid, 0)
@@ -259,7 +292,13 @@ def show_cart(global_state):
         show_cart(global_state)
 
     def handle_webcam_scan():
-        """Handle QR code scanning via webcam"""
+        """Handle QR code scanning via webcam.
+        
+        Opens webcam view to scan discount QR codes
+        Processes detected codes automatically
+        Shows error if no code found or webcam fails
+        Cleans up webcam resources after scan
+        """
         try:
             qr_found = False
             cap = cv2.VideoCapture(0)
@@ -292,7 +331,12 @@ def show_cart(global_state):
             display_error(message_label, f"Error accessing webcam: {str(e)}")
 
     def handle_file_upload():
-        """Handle QR code image upload"""
+        """Handle QR code image upload.
+        
+        Opens file dialog for QR code image
+        Validates and processes uploaded QR code
+        Shows success/error messages
+        """
         file_path = filedialog.askopenfilename(
             filetypes=[("Image files", "*.png *.jpg *.jpeg")]
         )
@@ -311,7 +355,17 @@ def show_cart(global_state):
                 display_error(message_label, "Error processing QR code")
 
     def process_discount(qr_data):
-        """Process the discount from QR data"""
+        """Process scanned discount QR code.
+        
+        Args:
+            qr_data: Data from scanned QR code
+            
+        Note:
+            Validates discount code
+            Updates total price display
+            Shows discount amount
+            Logs discount application
+        """
         discount = verify_discount_qr(qr_data)
         if discount:
             discount_id, percentage = discount
@@ -338,7 +392,14 @@ def show_cart(global_state):
             display_error(message_label, "Invalid or inactive discount code")
 
     def show_coupon_options():
-        """Show dialog for coupon scanning options"""
+        """Show dialog for selecting discount input method.
+        
+        Creates modal window with options:
+        - Scan QR code with webcam
+        - Upload QR code image
+        
+        Clears any existing discount when changing
+        """
         # Clear any existing discount message when changing coupon
         discount_label.pack_forget()
         discount_label.configure(text="")
@@ -372,6 +433,11 @@ def show_cart(global_state):
         ).pack(pady=5)
 
     def check_scroll_needed(event=None):
+        """Check if scrollbar is needed and toggle accordingly.
+        
+        Shows scrollbar only when content exceeds visible area
+        Enables/disables mouse wheel scrolling
+        """
         canvas.update_idletasks()
         bbox = canvas.bbox("all")
         if bbox:

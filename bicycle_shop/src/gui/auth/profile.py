@@ -15,7 +15,23 @@ from src.utils.logging import log_action
 from src.utils.validation.users import validate_user_fields
 
 def show_manage_user_screen(global_state):
-    """Show dialog for users to manage their own profile."""
+    """Show dialog for users to manage their own profile.
+    
+    Creates modal dialog with fields for editing:
+    - First name
+    - Last name
+    - Age
+    Also provides options to:
+    - Change password
+    - Save changes
+    
+    Args:
+        global_state: Application state containing:
+            - window: Main window instance
+            - icons: Application icons
+            - current_username: Current user's username
+            - current_user_id: Current user's ID
+    """
     # Extract needed values from global_state
     window = global_state['window']
     icons = global_state['icons']
@@ -103,7 +119,17 @@ def show_manage_user_screen(global_state):
         entries[label.lower().replace(' ', '_')] = entry
 
     def save_profile_changes():
-        """Save user profile changes"""
+        """Save user profile changes.
+        
+        Validates input fields:
+        - First/Last name not empty
+        - Age is valid number
+        
+        Updates user details in database
+        Logs the action success/failure
+        Closes dialog after successful update
+        Shows error message on validation/update failure
+        """
         first_name = entries['first_name'].get()
         last_name = entries['last_name'].get()
         age = entries['age'].get()
@@ -175,7 +201,31 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                             window=None, eye_open_image=None, eye_closed_image=None,
                             main_frame=None, current_admin_id=None, current_user_id=None,
                             switch_to_admin_panel=None):
-    """Show password change screen based on context."""
+    """Show password change screen based on context.
+    
+    Handles password changes for:
+    - First time admin login
+    - Self-initiated password change
+    - Admin changing other user's password
+    
+    Args:
+        username: Username of account to change password
+        from_source: Source of change request ('login', 'self', 'admin')
+        parent_dialog: Parent dialog if called from another modal
+        window: Main window instance
+        eye_open_image: Password show icon
+        eye_closed_image: Password hide icon
+        main_frame: Main content frame for login context
+        current_admin_id: ID of admin making change
+        current_user_id: ID of user whose password is changing
+        switch_to_admin_panel: Callback to admin panel
+        
+    Note:
+        Different layouts/fields based on context:
+        - Login: Simple two field form
+        - Self: Requires current password verification
+        - Admin: No current password needed
+    """
     if from_source == "login":
         window.geometry("400x300")
         clear_frame(main_frame)
@@ -227,6 +277,11 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
         dialog.attributes('-topmost', True)
 
         def on_close():
+            """Handle dialog closure cleanup.
+            
+            Re-enables parent dialog if exists
+            Destroys current dialog
+            """
             if parent_dialog:
                 parent_dialog.attributes('-disabled', False)
                 parent_dialog.focus_set()
@@ -264,6 +319,18 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
         )
 
         def change_password():
+            """Handle password change validation and update.
+            
+            Validates:
+            - Current password if self-change
+            - Password requirements
+            - Password confirmation match
+            
+            Updates password in database
+            Logs action success/failure
+            Shows success/error message
+            Handles appropriate navigation after success
+            """
             new_password = new_password_entry.get()
             confirm_password = confirm_password_entry.get()
             current_password = current_password_entry.get() if from_source == "self" else None

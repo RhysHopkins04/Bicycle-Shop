@@ -14,11 +14,38 @@ from src.utils import (
 )
 
 def add_no_category_option(categories):
-    """Add 'No Category' option to category list"""
+    """Add 'No Category' option to category list.
+    
+    Args:
+        categories: List of category names
+        
+    Returns:
+        List with "No Category" as first option followed by categories
+    """
     return ["No Category"] + categories
 
 def show_add_product_screen(global_state):
-    """Display the add product screen."""
+    """Display the add product screen.
+    
+    Creates interface for adding new products with:
+    - Name entry
+    - Price entry
+    - Description text box
+    - Image upload/preview
+    - Stock entry
+    - Category selection
+    - Listed status toggle
+    
+    Args:
+        global_state: Application state containing:
+            - window: Main window instance
+            - content_inner_frame: Main content frame
+            - current_admin_id: Current admin's ID
+            
+    Note:
+        Images are resized responsively based on window size
+        Validates all required fields before saving
+    """
     global_state['current_screen'] = show_add_product_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -98,14 +125,14 @@ def show_add_product_screen(global_state):
     stock_entry.pack(side="left")
 
     def select_image():
-        """Handle image selection"""
+        """Handle image selection dialog and update preview."""
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
         if file_path:
             image_path.set(file_path)
             resize_content()
 
     def clear_image():
-        """Clear the current image selection"""
+        """Clear selected image and show placeholder."""
         image_path.set("")
         resize_content()
 
@@ -171,14 +198,22 @@ def show_add_product_screen(global_state):
     resize_timer = None
 
     def debounced_resize(event=None):
-        """Debounced version of resize_content"""
+        """Debounced version of resize_content to prevent excessive updates."""
         nonlocal resize_timer
         if resize_timer is not None:
             window.after_cancel(resize_timer)
         resize_timer = window.after(150, lambda: resize_content(event))
 
     def resize_content(event=None):
-        """Handle responsive resizing of images"""
+        """Handle responsive resizing of images based on window size.
+        
+        Calculates appropriate image dimensions based on:
+        - Window width/height
+        - Minimum/maximum size constraints
+        - Screen resolution breakpoints
+        
+        Updates image preview maintaining aspect ratio
+        """
         if not left_frame.winfo_exists():
             return
 
@@ -306,7 +341,17 @@ def show_add_product_screen(global_state):
     ).pack(side="left", padx=5)
 
     def handle_add_product():
-        """Handle adding a new product"""
+        """Handle adding a new product with validation.
+        
+        Validates:
+        - Required fields are filled
+        - Price is valid number
+        - Stock is valid integer
+        - Category is selected if product is listed
+        
+        Creates product and logs action on success
+        Shows error message on failure
+        """
         name = name_entry.get().strip()
         price = price_entry.get().strip()
         description = description_text.get("1.0", "end-1c").strip()
@@ -365,7 +410,17 @@ def show_add_product_screen(global_state):
     bind_wheel()
 
 def show_manage_products_screen(global_state):
-    """Display the manage products screen."""
+    """Display the manage products screen.
+    
+    Shows grid of all products grouped by category with:
+    - Search functionality
+    - Edit/delete actions per product
+    - Responsive grid layout
+    - Scrolling for overflow
+    
+    Args:
+        global_state: Application state containing window/frame refs
+    """
     global_state['current_screen'] = show_manage_products_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -400,12 +455,17 @@ def show_manage_products_screen(global_state):
     search_entry.bind("<KeyRelease>", lambda event: filter_products())
 
     def remove_focus(event):
-        """Remove focus from search entry when clicking anywhere else"""
+        """Remove focus from search when clicking elsewhere."""
         if event.widget != search_entry:
             window.focus_set()
             return "break"
 
     def filter_products():
+        """Filter products based on search input.
+        
+        Filters by product name or price matching search text
+        Updates display with filtered results
+        """
         search_query = search_entry.get().lower()
         filtered_products = [
             product for product in get_products(listed_only=False)
@@ -437,7 +497,12 @@ def show_manage_products_screen(global_state):
     scrollable_frame.bind('<Button-1>', remove_focus)
 
     def handle_delete_product(product_id):
-        """Handle product deletion and refresh display."""
+        """Handle product deletion with confirmation.
+        
+        Shows confirmation dialog
+        Deletes product and logs action on confirmation
+        Updates display after successful deletion
+        """
         product = get_product_by_id(product_id)
         if product:
             product_name = product[1]
@@ -457,7 +522,13 @@ def show_manage_products_screen(global_state):
                             details=f"Failed to delete product: {msg}", status='failed')
 
     def display_products(products):
-        """Display products grouped by category in manage products view."""
+        """Display products grouped by category in grid layout.
+        
+        Groups products by category
+        Creates category headers with separators
+        Displays products in responsive grid
+        Enables scrolling if content overflows
+        """
         unbind_wheel()
         clear_frame(scrollable_frame)
 
@@ -571,7 +642,18 @@ def show_manage_products_screen(global_state):
     display_products(get_products(listed_only=False))
 
 def show_edit_product_screen(global_state, product_id):
-    """Display the edit product screen with preview layout."""
+    """Display the edit product screen with preview layout.
+    
+    Shows form to edit existing product:
+    - Current values pre-filled
+    - Image/QR preview
+    - Responsive layout
+    - Field validation
+    
+    Args:
+        global_state: Application state dict
+        product_id: ID of product to edit
+    """
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
     current_admin_id = global_state['current_admin_id']
@@ -710,14 +792,14 @@ def show_edit_product_screen(global_state, product_id):
                 **styles['buttons']).pack(side="left", padx=5)
 
         def select_image():
-            """Handle image selection"""
+            """Handle selecting new product image."""
             file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
             if file_path:
                 image_path.set(file_path)
                 resize_content()
 
         def clear_image():
-            """Clear the current image selection"""
+            """Remove current product image."""
             image_path.set("")
             resize_content()
 
@@ -743,14 +825,19 @@ def show_edit_product_screen(global_state, product_id):
         resize_timer = None
 
         def debounced_resize(event=None):
-            """Debounced version of resize_content"""
+            """Debounced resize handler."""
             nonlocal resize_timer
             if resize_timer is not None:
                 window.after_cancel(resize_timer)
             resize_timer = window.after(150, lambda: resize_content(event))
 
         def resize_content(event=None):
-            """Handle responsive resizing of images"""
+            """Handle responsive resizing of image/QR previews.
+            
+            Resizes based on window dimensions
+            Maintains minimum/maximum size constraints
+            Updates both product image and QR code
+            """
             if not left_frame.winfo_exists():
                 return
             
@@ -898,7 +985,13 @@ def show_edit_product_screen(global_state, product_id):
                         inner_right_frame.qr_label.pack(pady=2)
 
         def save_edit_product():
-            """Handle product updates with validation"""
+            """Handle product updates with validation.
+            
+            Validates all fields
+            Checks for changes requiring file updates
+            Updates product and logs changes
+            Shows success/error messages
+            """
             # Collect form values
             new_values = {
                 'name': name_entry.get().strip(),

@@ -2,7 +2,20 @@ import sqlite3
 from src.database.core.connection import get_connection
 
 def add_category(name):
-    """Add a new category to the database."""
+    """Add a new category to the database.
+    
+    Args:
+        name: Name of the category to add
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+            
+    Raises:
+        sqlite3.IntegrityError: If category name already exists
+        sqlite3.Error: If database operation fails
+    """
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -17,7 +30,11 @@ def add_category(name):
         conn.close()
 
 def get_categories():
-    """Retrieve all categories from the database."""
+    """Retrieve all categories from the database.
+    
+    Returns:
+        list: List of category names
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM Categories")
@@ -26,7 +43,14 @@ def get_categories():
     return categories
 
 def get_category_id(name):
-    """Retrieve the ID of a category by its name."""
+    """Retrieve the ID of a category by its name.
+    
+    Args:
+        name: Name of the category to look up
+        
+    Returns:
+        int | None: Category ID if found, None if not found
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM Categories WHERE name = ?", (name,))
@@ -35,7 +59,14 @@ def get_category_id(name):
     return category[0] if category else None
 
 def get_category_name(category_id):
-    """Retrieve the name of a category by its ID."""
+    """"Retrieve the name of a category by its ID.
+    
+    Args:
+        category_id: ID of the category to look up
+        
+    Returns:
+        str | None: Category name if found, None if not found
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM Categories WHERE id = ?", (category_id,))
@@ -44,7 +75,20 @@ def get_category_name(category_id):
     return category[0] if category else None
 
 def update_category(category_id, new_name):
-    """Update category name in database"""
+    """Update category name in database.
+    
+    Args:
+        category_id: ID of category to update
+        new_name: New name for the category
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded  
+            - message: Success/error message
+            
+    Raises:
+        sqlite3.Error: If database operation fails
+    """
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -57,7 +101,23 @@ def update_category(category_id, new_name):
         conn.close()
 
 def delete_category(category_id):
-    """Delete category from database and unlist associated products."""
+    """Delete category from database and unlist associated products.
+    
+    Args:
+        category_id: ID of category to delete
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+            
+    Notes:
+        All products in the deleted category will be unlisted and have their
+        category_id set to NULL
+            
+    Raises:
+        sqlite3.Error: If database operation fails
+    """
     conn = get_connection()
     cursor = conn.cursor()
     try:

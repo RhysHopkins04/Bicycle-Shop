@@ -7,7 +7,29 @@ from src.utils import (
 )
 
 def show_register_screen(global_state):
-    """Display the register screen."""
+    """Display the register screen.
+    
+    Creates registration form interface with:
+    - Username entry
+    - First/Last name entries
+    - Password entry with visibility toggle
+    - Password confirmation entry
+    - Age entry
+    - Register/Back buttons
+    
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - main_frame: Main content frame
+            - icons: Application icons
+            
+    Note:
+        Sets minimum window size
+        Centers window on screen
+        Sets initial focus to username field
+        Configures tab order through fields
+        Binds enter key for registration
+    """
     from .login import show_login_screen
 
     # Extract needed values from global_state
@@ -60,6 +82,22 @@ def show_register_screen(global_state):
     message_label.pack()
 
     def register(event=None):
+        """Handle user registration attempt.
+        
+        Validates all input fields:
+        - Required fields not empty
+        - Username uniqueness
+        - Password requirements
+        - Password confirmation match
+        - Valid age
+        
+        Creates new user account if validation passes
+        Displays success/error messages
+        Logs registration attempt result
+        
+        Args:
+            event: Key event when triggered by enter key (optional)
+        """
         username = username_entry.get()
         first_name = first_name_entry.get()
         last_name = last_name_entry.get()

@@ -21,6 +21,7 @@
 - ? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product) ?
 
 ### **Changes:**
+- ? Clean up __init__.py files since explicit imports are being used to avoid issues with circular importing, and they add bloat to the src files, check all references for imports through the init.py files are cleaned before deletion. ?
 - ? Issue with stock not being checked to ensure it is an integer when editing a product ?
 - ? Can add product to a category without ability to remove it without changing it to a new category (cannot go back to unlisted category)
 - ? Swap age from signup for email and require unique ?

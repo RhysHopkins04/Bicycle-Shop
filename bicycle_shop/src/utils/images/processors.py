@@ -1,7 +1,24 @@
 from PIL import Image, ImageTk
 
 def resize_product_image(image_path, max_width=800, max_height=600, min_width=200, min_height=150):
-    """Resize product image maintaining aspect ratio within constraints"""
+    """Resize product image maintaining aspect ratio within constraints.
+    
+    Args:
+        image_path: Path to image file to resize
+        max_width: Maximum allowed width in pixels
+        max_height: Maximum allowed height in pixels
+        min_width: Minimum allowed width in pixels
+        min_height: Minimum allowed height in pixels
+        
+    Returns:
+        PhotoImage: Resized image ready for Tkinter display
+        None: If error occurs during resizing
+        
+    Note:
+        Uses LANCZOS resampling for high quality
+        Maintains original aspect ratio
+        Ensures image fits within min/max constraints
+    """
     try:
         img = Image.open(image_path)
         orig_width, orig_height = img.size
@@ -29,7 +46,20 @@ def resize_product_image(image_path, max_width=800, max_height=600, min_width=20
         return None
 
 def resize_qr_code(qr_path, size=(150, 150)):
-    """Resize QR code to specified dimensions while maintaining square aspect ratio"""
+    """Resize QR code to specified dimensions while maintaining square aspect ratio.
+    
+    Args:
+        qr_path: Path to QR code image file
+        size: Tuple of (width, height) in pixels
+        
+    Returns:
+        PhotoImage: Resized QR code ready for Tkinter display
+        None: If error occurs during resizing
+        
+    Note:
+        Forces square aspect ratio using smaller dimension
+        Uses LANCZOS resampling for high quality
+    """
     try:
         qr_img = Image.open(qr_path)
         # Force square aspect ratio by using the smaller dimension

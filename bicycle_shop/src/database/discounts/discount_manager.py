@@ -2,7 +2,21 @@ import sqlite3
 from src.database.core.connection import get_connection
 
 def add_discount(name, percentage):
-    """Add new discount with QR code."""
+    """Add new discount with QR code.
+    
+    Args:
+        name: Name of the discount
+        percentage: Discount percentage value
+        
+    Returns:
+        tuple: (success, discount_id, message)
+            - success: True if operation succeeded
+            - discount_id: ID of new discount if successful, None otherwise
+            - message: Success/error message
+            
+    Raises:
+        sqlite3.IntegrityError: If discount name already exists
+    """
     from src.file_system.discounts.discounts_manager import handle_discount_qr_code
     conn = get_connection()
     cursor = conn.cursor()
@@ -23,7 +37,12 @@ def add_discount(name, percentage):
         conn.close()
 
 def get_all_discounts():
-    """Get all discounts from database."""
+    """Get all discounts from database.
+    
+    Returns:
+        list: List of discount tuples containing:
+            (id, name, percentage, qr_code_path, uses, active)
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -35,7 +54,21 @@ def get_all_discounts():
     return discounts
 
 def update_discount(discount_id, name, percentage):
-    """Update discount and regenerate QR code."""
+    """Update discount and regenerate QR code.
+    
+    Args:
+        discount_id: ID of discount to update
+        name: New discount name
+        percentage: New discount percentage
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+            
+    Raises:
+        sqlite3.IntegrityError: If new name already exists
+    """
     from src.file_system.discounts.discounts_manager import handle_discount_qr_code, cleanup_old_discount_qr
     conn = get_connection()
     cursor = conn.cursor()
@@ -71,7 +104,16 @@ def update_discount(discount_id, name, percentage):
         conn.close()
 
 def delete_discount(discount_id):
-    """Delete discount and its QR code."""
+    """Delete discount and its QR code.
+    
+    Args:
+        discount_id: ID of discount to delete
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+    """
     from src.file_system.discounts.discounts_manager import cleanup_old_discount_qr
     conn = get_connection()
     cursor = conn.cursor()
@@ -91,7 +133,16 @@ def delete_discount(discount_id):
         conn.close()
 
 def toggle_discount_status(discount_id):
-    """Toggle active status of discount."""
+    """Toggle active status of discount.
+    
+    Args:
+        discount_id: ID of discount to toggle
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+    """
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -104,7 +155,16 @@ def toggle_discount_status(discount_id):
         conn.close()
 
 def increment_discount_uses(discount_id):
-    """Increment the use count of a discount."""
+    """Increment the use count of a discount.
+    
+    Args:
+        discount_id: ID of discount to increment
+        
+    Returns:
+        tuple: (success, message)
+            - success: True if operation succeeded
+            - message: Success/error message
+    """
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -121,7 +181,17 @@ def increment_discount_uses(discount_id):
         conn.close()
 
 def verify_discount_qr(qr_data):
-    """Verify QR code data and return discount details."""
+    """Verify QR code data and return discount details.
+    
+    Args:
+        qr_data: QR code data to verify
+        
+    Returns:
+        tuple: (success, discount_id, message)
+            - success: True if discount is valid
+            - discount_id: ID of valid discount, None if invalid
+            - message: Success/error message
+    """
     if not qr_data.startswith("DISCOUNT:"):
         return False, None, "Invalid QR code format"
     

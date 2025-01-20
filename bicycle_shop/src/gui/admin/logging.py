@@ -10,7 +10,26 @@ from src.utils.logging import log_action
 from src.file_system.config import get_user_logging_status, set_user_logging_status
 
 def show_logging_screen(global_state):
-    """Display the logging management screen"""
+    """Display the logging management screen.
+    
+    Shows interface for viewing and managing system logs including:
+    - Toggling user action logging
+    - Viewing user/admin action logs
+    - Refreshing log display
+    - Cleaning up temporary log files
+    
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - content_inner_frame: Main content frame 
+            - current_username: Current user's username
+            - current_admin_id: Current admin's ID
+            
+    Note:
+        Only accessible by admin users
+        Non-admin users are redirected to store listing
+        Temporary log files are cleaned up on window destroy
+    """
     global_state['current_screen'] = show_logging_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -63,7 +82,14 @@ def show_logging_screen(global_state):
     user_logging_combo.pack(side="left", padx=5)
 
     def on_logging_change(event):
-        """Handle logging enable/disable"""
+        """Handle enabling/disabling of user action logging.
+        
+        Updates the user logging setting and logs the change.
+        Shows success/error message based on result.
+        
+        Args:
+            event: ComboBox selection event
+        """
         enabled = user_logging_var.get() == "Enabled"
         success = set_user_logging_status(enabled)
         if success:
@@ -114,7 +140,11 @@ def show_logging_screen(global_state):
 
 
     def cleanup_temp_files():
-        """Clean up temporary log files"""
+        """Clean up temporary log files.
+        
+        Removes all .log files from temp directory.
+        Called on window destroy and before refreshing logs.
+        """
         temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
         if os.path.exists(temp_dir):
             for file in os.listdir(temp_dir):
@@ -125,7 +155,12 @@ def show_logging_screen(global_state):
                         pass
 
     def refresh_logs():
-        """Refresh logs based on selected type"""
+        """Refresh the log display.
+        
+        Cleans old temp files, exports new logs based on selected type,
+        updates text display, and cleans up after reading.
+        Shows success/error message based on result.
+        """
         try:
             cleanup_temp_files()  # Clean old files first
             admin_only = log_type_var.get() == "Admin Actions"

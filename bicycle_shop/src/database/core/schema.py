@@ -1,7 +1,21 @@
 from .connection import get_connection
 
 def create_tables():
-    """Create necessary database tables."""
+    """Create necessary database tables.
+    
+    Creates the following tables if they don't exist:
+        - Users: Store user accounts and authentication data
+        - Categories: Product categories
+        - Products: Store products with their details
+        - ShoppingCart: User shopping cart items
+        - Discounts: Store discount codes and their usage
+        - UserActions: Log of user activities
+        - AdminActions: Log of administrative actions
+        
+    Note:
+        Uses SQLite foreign keys for referential integrity between tables.
+        Must be called before any other database operations.
+    """
     conn = get_connection()
     cursor = conn.cursor()
 

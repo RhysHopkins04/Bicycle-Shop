@@ -1,7 +1,33 @@
 from src.database.categories.category_manager import get_category_id
 
 def validate_product_fields(name, price, stock, listed=False, category=None, image=None, description=None):
-    """Validate product fields."""
+    """Validate product fields for creation and updates.
+    
+    Args:
+        name: Product name to validate
+        price: Product price to validate
+        stock: Product stock quantity to validate
+        listed: Whether product will be listed in store (default: False)
+        category: Product category name (optional)
+        image: Path to product image (optional)
+        description: Product description text (optional)
+        
+    Returns:
+        tuple: (is_valid, message)
+            - is_valid: True if all validations pass
+            - message: Error message if invalid, "Valid" if valid
+            
+    Note:
+        Basic validation for all products:
+        - Name cannot be empty
+        - Price must be positive number
+        
+        Additional validation for listed products:
+        - Must have category
+        - Must have description
+        - Must have image
+        - Must have positive stock
+    """
     if not name:
         return False, "Product name is required."
     

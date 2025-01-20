@@ -7,7 +7,24 @@ from src.database.core.connection import get_connection
 
 
 def add_product(name, price, qr_code, listed, description, category_id, image, stock):
-    """Add a new product to the database."""
+    """Add a new product to the database.
+
+    Args:
+        name: Name of the product
+        price: Price of the product
+        qr_code: Whether to generate QR code
+        listed: Whether product should be listed (1) or unlisted (0)
+        description: Product description
+        category_id: ID of product category, None if uncategorized
+        image: Path to product image, None if no image
+        stock: Amount of product in stock
+
+    Returns:
+        tuple: (success, product_id, message)
+            - success: True if operation succeeded
+            - product_id: ID of new product if successful, None otherwise
+            - message: Success/error message
+    """
     try:
         product_dir = handle_product_directory(name)
         qr_code_path = handle_qr_code(name, price, product_dir)
@@ -27,7 +44,28 @@ def add_product(name, price, qr_code, listed, description, category_id, image, s
         return False, None, f"Error adding product: {str(e)}"
 
 def update_product(product_id, name, price, qr_code, description, category_id, image, stock, listed, keep_image=False, keep_qr=False):
-    """Update product with enhanced error handling and file management"""
+    """Update product with enhanced error handling and file management.
+
+    Args:
+        product_id: ID of product to update
+        name: New product name
+        price: New product price
+        qr_code: Whether to update QR code
+        description: New product description
+        category_id: New category ID, None if uncategorized
+        image: New image path, None to remove image
+        stock: New stock amount
+        listed: New listed status (1 for listed, 0 for unlisted)
+        keep_image: If True, keep existing image
+        keep_qr: If True, keep existing QR code
+
+    Returns:
+        bool: True if update successful
+
+    Raises:
+        ValueError: If product not found
+        Exception: If database operation fails
+    """
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -118,7 +156,14 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
         conn.close()
 
 def delete_product(product_id):
-    """Delete a product from the database."""
+    """Delete a product from the database.
+
+    Args:
+        product_id: ID of product to delete
+
+    Returns:
+        bool: True if deletion successful
+    """
     conn = get_connection()
     cursor = conn.cursor()
     
@@ -135,7 +180,12 @@ def delete_product(product_id):
         shutil.rmtree(product_dir)
 
 def list_product(product_id, listed):
-    """List or delist a product."""
+    """List or delist a product.
+
+    Args:
+        product_id: ID of product to update
+        listed: New listed status (1 for listed, 0 for unlisted)
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE Products SET listed = ? WHERE id = ?", (listed, product_id))
@@ -143,7 +193,14 @@ def list_product(product_id, listed):
     conn.close()
 
 def get_products(listed_only=True):
-    """Retrieve all products from the database."""
+    """Retrieve all products from the database.
+
+    Args:
+        listed_only: If True, return only listed products
+
+    Returns:
+        list: List of product tuples containing all product fields
+    """
     conn = get_connection()
     cursor = conn.cursor()
     if listed_only:
@@ -155,7 +212,14 @@ def get_products(listed_only=True):
     return products
 
 def get_product_by_id(product_id):
-    """Retrieve a product by its ID from the database."""
+    """Retrieve a product by its ID from the database.
+
+    Args:
+        product_id: ID of product to retrieve
+
+    Returns:
+        tuple | None: Product tuple if found, None otherwise
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Products WHERE id = ?", (product_id,))

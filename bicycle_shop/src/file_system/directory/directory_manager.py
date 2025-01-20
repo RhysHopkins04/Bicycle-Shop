@@ -11,20 +11,37 @@ from src.file_system.config.config_manager import (
     CONFIG_PATH
 )
 
-# Constants
 INIT_MARKER_PATH = get_absolute_path('.initialized')
 
 def mark_initialized():
-    """Create initialization marker file."""
+    """Create initialization marker file.
+    
+    Creates a file that indicates the application has been initialized.
+    This prevents the first-time setup from running again.
+    """
     with open(INIT_MARKER_PATH, 'w') as f:
         f.write('initialized')
 
 def is_first_run():
-    """Check if this is first application run."""
+    """Check if this is first application run.
+    
+    Returns:
+        bool: True if application has never been run, False otherwise
+    """
     return not os.path.exists(INIT_MARKER_PATH)
 
 def initialize():
-    """Handle first-time setup and configuration."""
+    """Handle first-time setup and configuration.
+    
+    Handles initial application setup including:
+    - Creating config.ini with default values
+    - Showing configuration instructions to user
+    - Creating required directories
+    - Copying default icons
+    
+    Returns:
+        bool: True if first-time setup completed successfully, False otherwise
+    """
     if not is_first_run():
         if not os.path.exists(CONFIG_PATH):
             create_initial_config()
@@ -58,7 +75,24 @@ def initialize():
     return False
 
 def ensure_directories_exist():
-    """Create required directories and copy default icons."""
+    """Create required directories and copy default icons.
+    
+    Creates the following directories if they don't exist:
+    - Products directory for product files
+    - Icons directory for application icons
+    
+    Copies default icons from default_icons/ to Icons/:
+    - Password visibility icons
+    - User/admin profile icons
+    - Placeholder image
+    
+    Returns:
+        bool: True if directories created successfully
+        
+    Note:
+        Will not overwrite existing icon files
+        Prints warnings if source icons are missing
+    """
     paths = get_paths()
     
     os.makedirs(paths['products_dir'], exist_ok=True)

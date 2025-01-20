@@ -10,7 +10,23 @@ from src.utils import (
 )
 
 def show_product_page(product_id, global_state):
-    """Display the product page for the given product ID."""
+    """Display the product page for the given product ID.
+    
+    Shows detailed product view with:
+    - Product image
+    - Title and price
+    - Description
+    - Stock level
+    - Add to cart functionality
+    - Responsive layout
+    
+    Args:
+        product_id: ID of product to display
+        global_state: Application state containing:
+            - window: Main window instance
+            - content_inner_frame: Content frame
+            - current_user_id: Current user's ID
+    """
     global_state['current_screen'] = show_product_page
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -115,20 +131,37 @@ def show_product_page(product_id, global_state):
         wraplength_timer = None
 
         def debounced_resize(event=None):
-            """Debounced version of resize_content"""
+            """Debounce window resize events.
+            
+            Prevents excessive updates during continuous resize
+            by delaying resize_content call by 150ms.
+            """
             nonlocal resize_timer
             if resize_timer is not None:
                 window.after_cancel(resize_timer)
             resize_timer = window.after(150, lambda: resize_content(event))
 
         def debounced_wraplength(event=None):
-            """Debounced version of update_wraplength"""
+            """Debounce text wrapping updates.
+            
+            Prevents excessive updates during continuous resize
+            by delaying update_wraplength call by 150ms.
+            """
             nonlocal wraplength_timer
             if wraplength_timer is not None:
                 window.after_cancel(wraplength_timer)
             wraplength_timer = window.after(150, lambda: update_wraplength(event))
 
         def resize_content(event=None):
+            """Handle responsive resizing of product images.
+            
+            Calculates appropriate dimensions based on:
+            - Window width/height
+            - Minimum/maximum size constraints
+            - Screen resolution breakpoints
+            
+            Updates both product image and QR code maintaining aspect ratios
+            """
             if not product[7] or not left_frame.winfo_exists():
                 return
 
@@ -178,11 +211,24 @@ def show_product_page(product_id, global_state):
                         inner_right_frame.qr_label.pack(pady=10)
 
         def update_wraplength(event=None):
+            """Update description text wrapping based on container width.
+            
+            Adjusts description text wrapping to fit container
+            while maintaining readability.
+            """
             # Update description wraplength based on frame width
             new_width = right_frame.winfo_width() - 40
             description_label.configure(wraplength=new_width)
 
         def add_to_cart_handler():
+            """Handle adding product to cart.
+            
+            Validates user is logged in
+            Adds product to cart
+            Shows success/error message
+            Logs action result
+            Shows dropdown notification
+            """
             if not global_state['current_user_id']:
                 display_error(message_label, "Please log in to add items to cart")
                 return
@@ -206,11 +252,15 @@ def show_product_page(product_id, global_state):
                         status='failed')
 
         def safe_hide_dropdown():
+            """Safely hide dropdown menu handling widget destruction.
+            
+            Attempts to hide dropdown, catches and handles any
+            widget destruction errors.
+            """
             try:
                 hide_dropdown(None, user_info_frame, dropdown_frame)
             except tk.TclError:
                 pass
-
 
         # Initial image loading
         resize_content()

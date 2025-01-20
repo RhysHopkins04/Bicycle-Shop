@@ -16,7 +16,31 @@ from src.gui.auth.profile import show_manage_user_screen
 from src.gui.store.listing import switch_to_store_listing
 
 def switch_to_admin_panel(global_state):
-    """Navigate to the admin panel."""
+    """Navigate to the admin panel.
+    
+    Creates and displays the admin dashboard interface with:
+    - Top bar with user info and dropdown
+    - Left navigation sidebar with admin functions
+    - Main content area with:
+        - System statistics (products, users, etc.)
+        - System alerts
+        - Recent admin action logs
+        
+    Args:
+        global_state: Application state dictionary containing:
+            - window: Main window instance
+            - main_frame: Main application frame
+            - window_state: Window state tracking
+            - icons: Application icons
+            - current_username: Current user's username
+            - current_first_name: User's first name
+            - current_last_name: User's last name
+            - current_user_id: User's ID
+            - current_admin_id: Admin's ID
+            
+    Note:
+        Updates global_state with new frame references
+    """
     # Extract needed values from global_state
     global_state['current_screen'] = switch_to_admin_panel
     window = global_state['window']
@@ -97,10 +121,19 @@ def switch_to_admin_panel(global_state):
 
     # Update dropdown position handler
     def update_dropdown_position_handler(event=None):
+        """Update dropdown menu position when window changes.
+        
+        Ensures dropdown stays aligned with user info display
+        when window is resized or moved.
+        """
         update_dropdown_position(window, user_info_frame, dropdown_frame)
 
     def show_dropdown_handler(event):
-        """Show dropdown and update its position"""
+        """Show dropdown menu and update its position.
+        
+        Shows the dropdown menu when hovering over user info
+        elements and ensures correct positioning.
+        """
         show_dropdown(event, user_info_frame, dropdown_frame)
         window.after(1, update_dropdown_position_handler)
 

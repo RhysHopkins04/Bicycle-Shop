@@ -6,7 +6,16 @@ import sys
 # Deals with MSMF warnings using context manager
 @contextlib.contextmanager
 def suppress_stdout_stderr():
-    """Context manager to suppress stdout/stderr"""
+    """Context manager to suppress stdout/stderr.
+    
+    Suppresses stdout/stderr during QR scanning to prevent 
+    MSMF warnings from being displayed in console.
+    
+    Note:
+        Temporarily redirects stdout/stderr to devnull
+        Restores original stdout/stderr after context exits
+        Used primarily for OpenCV webcam operations
+    """
     fd_out = sys.stdout.fileno()
     fd_err = sys.stderr.fileno()
     
@@ -27,7 +36,22 @@ def suppress_stdout_stderr():
 
 
 def scan_qr_code():
-    """Scan a QR code using the webcam."""
+    """Scan a QR code using the webcam.
+    
+    Creates window with webcam feed and scans for QR codes.
+    Continues scanning until either:
+    - Valid QR code is detected
+    - User closes window
+    - User presses 'q' key
+    
+    Returns:
+        str | None: Decoded QR code data if found, None otherwise
+        
+    Note:
+        Uses context manager to suppress MSMF warnings
+        Ensures proper cleanup of OpenCV resources
+        Window title is "QR Code Scanner"
+    """
     window_name = "QR Code Scanner"
     scanned_data = None
     running = True
@@ -62,7 +86,19 @@ def scan_qr_code():
     return scanned_data
 
 def scan_qr_code_from_file(file_path):
-    """Scan QR code from an image file"""
+    """Scan QR code from an image file.
+    
+    Args:
+        file_path: Path to image file containing QR code
+        
+    Returns:
+        str | None: Decoded QR code data if found, None if no QR code 
+                   detected or error occurs
+        
+    Note:
+        Supports common image formats (PNG, JPG)
+        Prints error message if scanning fails
+    """
     try:
         image = cv2.imread(file_path)
         detector = cv2.QRCodeDetector()
