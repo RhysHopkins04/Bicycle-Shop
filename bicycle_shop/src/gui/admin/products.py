@@ -83,7 +83,7 @@ def show_add_product_screen(global_state):
     name_inner_container.pack(expand=True)
 
     tk.Label(name_inner_container, text="Product Name:", **styles['labels']).pack(side="left", pady=(0, 5))
-    name_entry = tk.Entry(name_inner_container, width=30, **styles['entries'])  # Fixed width of 50 characters
+    name_entry = tk.Entry(name_inner_container, width=30, **styles['entries'])
     name_entry.pack(side="left")
 
     # Details container frame
@@ -94,9 +94,9 @@ def show_add_product_screen(global_state):
     left_frame = tk.Frame(details_frame, **styles['frame'])
     left_frame.pack(side="left", fill="both", expand=True, padx=(5, 15))
 
-    # Right side with fixed width
+    # Right side
     right_frame = tk.Frame(details_frame, width=300, **styles['frame'])
-    right_frame.pack(side="right", fill="y", padx=(0, 5))  # Changed to fill="y"
+    right_frame.pack(side="right", fill="y", padx=(0, 5))
     right_frame.pack_propagate(False)
 
     # Inner right frame with padding
@@ -110,11 +110,11 @@ def show_add_product_screen(global_state):
     price_entry = tk.Entry(price_frame, width=12, **styles['entries'])
     price_entry.pack(side="left")
 
-    # Description section with fixed height
+    # Description section
     desc_frame = tk.Frame(inner_right_frame, **styles['frame'])
-    desc_frame.pack(fill="x", pady=5)  # Changed to fill="x"
+    desc_frame.pack(fill="x", pady=5)
     tk.Label(desc_frame, text="Description:", **styles['labels']).pack(anchor="w")
-    description_text = tk.Text(desc_frame, height=4, width=30, wrap="word", **styles['entries'])  # Added fixed width
+    description_text = tk.Text(desc_frame, height=4, width=30, wrap="word", **styles['entries'])
     description_text.pack(pady=5)
 
     # Stock entry with label
@@ -126,6 +126,7 @@ def show_add_product_screen(global_state):
 
     def select_image():
         """Handle image selection dialog and update preview."""
+        # Open file dialog to select an image file, only allow .jpg, .jpeg, .png extensions to be seen
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg *.jpeg *.png")])
         if file_path:
             image_path.set(file_path)
@@ -141,7 +142,7 @@ def show_add_product_screen(global_state):
     image_frame = tk.Frame(left_frame, **styles['frame'])
     image_frame.pack(fill="both", expand=True, pady=(0, 5))
 
-    # Placeholder text
+    # Placeholder text for image replacement when no image is set
     placeholder_text = "No Image Selected\n\nClick 'Select Image'\nto add a product image"
     placeholder_label = tk.Label(image_frame, text=placeholder_text, **styles['placeholder'])
     placeholder_label.pack(expand=True, fill="both", pady=10)
@@ -170,8 +171,12 @@ def show_add_product_screen(global_state):
     # Category selection
     category_container = tk.Frame(controls_container, **styles['frame'])
     category_container.pack(side="left", padx=20)
+    
+    # Label for category selection
     tk.Label(category_container, text="Category:", **styles['labels']).pack()
     categories = get_categories()
+    
+    # Create combobox for category selection with "No Category" as default
     category_combobox = ttk.Combobox(
         category_container, 
         values=add_no_category_option(categories), 
@@ -189,7 +194,7 @@ def show_add_product_screen(global_state):
     listed_combobox = ttk.Combobox(
         listed_container, 
         textvariable=listed_var, 
-        values=["Yes", "No"], 
+        values=["Yes", "No"], # Allows only yes or no selections for listing since checkbox is broken
         style='Add.TCombobox',
         width=25
     )
@@ -199,10 +204,10 @@ def show_add_product_screen(global_state):
 
     def debounced_resize(event=None):
         """Debounced version of resize_content to prevent excessive updates."""
-        nonlocal resize_timer
+        nonlocal resize_timer  # Use nonlocal to modify the outer scope variable
         if resize_timer is not None:
-            window.after_cancel(resize_timer)
-        resize_timer = window.after(150, lambda: resize_content(event))
+            window.after_cancel(resize_timer)  # Cancel any existing timer
+        resize_timer = window.after(150, lambda: resize_content(event))  # Set a new timer to call resize_content after 150ms
 
     def resize_content(event=None):
         """Handle responsive resizing of images based on window size.
@@ -250,7 +255,7 @@ def show_add_product_screen(global_state):
         else:
             bottom_padding = MIN_QR_PADDING
         
-        # Calculate responsive dimensions based on window size
+        # Calculate responsive dimensions based on window size (very janky, need to build better solution but works in a pinch, mostly for testing)
         if window_width <= 1280:
             width_factor = 0.3
             height_factor = 0.3
@@ -641,6 +646,7 @@ def show_manage_products_screen(global_state):
     # Initial display
     display_products(get_products(listed_only=False))
 
+# Lots of copy paste between add product and show edit product screens for time saving
 def show_edit_product_screen(global_state, product_id):
     """Display the edit product screen with preview layout.
     
@@ -1016,7 +1022,7 @@ def show_edit_product_screen(global_state, product_id):
                     missing_requirements.append("stock")
 
                 if missing_requirements:
-                    # Force product to unlisted and show warning
+                    # Force product to unlisted and show warning if requirements are not met
                     new_values['listed'] = 0
                     listed_var.set("No")
                     requirements_list = ", ".join(missing_requirements)

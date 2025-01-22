@@ -35,6 +35,7 @@ def show_manage_categories_screen(global_state):
         Only accessible by admin users
         Non-admin users are redirected to store listing
     """
+    # Pull/push from/to global state manager
     global_state['current_screen'] = show_manage_categories_screen
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
@@ -56,6 +57,7 @@ def show_manage_categories_screen(global_state):
     clear_frame(content_inner_frame)
     styles = get_style_config()['manage_categories']
 
+    # Configure the content_inner_frame to expand with window resizing
     content_inner_frame.grid_columnconfigure(0, weight=1)
     content_inner_frame.grid_rowconfigure(0, weight=1)
 
@@ -104,34 +106,47 @@ def show_manage_categories_screen(global_state):
         """
         name = category_entry.get().strip()
         if not name:
+            # Display error if category name is empty
             display_error(message_label, "Category name is required")
+            # Log the failed creation attempt
             log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id, 
-                      target_type='category', target_id=None, 
-                      details="Failed to create category: Name required", status='failed')
+                  target_type='category', target_id=None, 
+                  details="Failed to create category: Name required", status='failed')
             return
 
+        # Validate the category name
         is_valid, message = validate_category_name(name)
         if not is_valid:
+            # Display validation error message
             display_error(message_label, message)
+            # Log the failed validation attempt
             log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id,
-                      target_type='category', target_id=None,
-                      details=f"Failed to create category: {message}", status='failed')
+                  target_type='category', target_id=None,
+                  details=f"Failed to create category: {message}", status='failed')
             return
 
+        # Attempt to add the new category
         success, message = add_category(name)
         if success:
+            # Get the new category ID
             category_id = get_category_id(name)
+            # Clear the category entry field
             category_entry.delete(0, tk.END)
+            # Display success message
             display_success(message_label, message)
+            # Log the successful creation
             log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id,
-                      target_type='category', target_id=category_id,
-                      details=f"Created category: {name}")
+                  target_type='category', target_id=category_id,
+                  details=f"Created category: {name}")
+            # Refresh the category list
             display_categories()
         else:
+            # Display error message if creation failed
             display_error(message_label, message)
+            # Log the failed creation attempt
             log_action('CREATE_CATEGORY', is_admin=True, admin_id=current_admin_id,
-                      target_type='category', target_id=None,
-                      details=f"Failed to create category: {message}", status='failed')
+                  target_type='category', target_id=None,
+                  details=f"Failed to create category: {message}", status='failed')
 
     # Add category button
     tk.Button(
@@ -176,11 +191,13 @@ def show_manage_categories_screen(global_state):
 
     header_labels = []
     for i, (header, weight) in enumerate(zip(headers, weights)):
+        # Create a frame for each header cell
         header_frame = tk.Frame(headers_frame, **styles['frame'], height=30)
         header_frame.grid(row=0, column=i, padx=5, sticky="nsew")
         header_frame.grid_propagate(False)
         header_frame.grid_columnconfigure(0, weight=1)
         
+        # Create and configure the header label
         label = tk.Label(
             header_frame, 
             text=header,
@@ -192,7 +209,9 @@ def show_manage_categories_screen(global_state):
 
     # Create scrollable frame using grid
     wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_grid_frame(category_list_frame)
+    # Place the scrollable frame in the grid layout
     wrapper.grid(row=3, column=0, sticky="nsew", pady=(0, 10))
+    # Configure the scrollable frame to expand with window resizing
     wrapper.grid_columnconfigure(0, weight=1)
     wrapper.grid_rowconfigure(0, weight=1)
 
@@ -214,8 +233,12 @@ def show_manage_categories_screen(global_state):
         for col, weight in enumerate(weights):
             scrollable_frame.grid_columnconfigure(col, weight=weight)
 
+        # Fetch all categories from the database
         categories = get_categories()
+        
+        # Iterate over each category and display in the grid
         for row, category in enumerate(categories):
+            # Get the category ID for the current category
             category_id = get_category_id(category)
 
             # ID cell
@@ -251,6 +274,7 @@ def show_manage_categories_screen(global_state):
             buttons_frame = tk.Frame(actions_frame, **styles['frame'])
             buttons_frame.place(relx=0.5, rely=0.5, anchor="center")
 
+            # Edit button
             edit_btn = tk.Button(
                 buttons_frame,
                 text="Edit",
@@ -259,6 +283,7 @@ def show_manage_categories_screen(global_state):
             )
             edit_btn.pack(side="left", padx=2)
 
+            # Delete button
             delete_btn = tk.Button(
                 buttons_frame,
                 text="Delete",
@@ -290,14 +315,16 @@ def show_manage_categories_screen(global_state):
         dialog_width = 400
         dialog_height = 300
         dialog.minsize(dialog_width, dialog_height)
+        # Calculate x and y coordinates to center the dialog on the screen
         x = (dialog.winfo_screenwidth() - dialog_width) // 2
         y = (dialog.winfo_screenheight() - dialog_height) // 2
+        # Set the geometry of the dialog to the calculated size and position
         dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
 
         # Make dialog modal
-        dialog.transient(window)
-        dialog.grab_set()
-        dialog.focus_set()
+        dialog.transient(window)  # Set the dialog to be always on top of the main window
+        dialog.grab_set()  # Ensure all events are directed to this dialog until it is closed
+        dialog.focus_set()  # Set focus on the dialog to make it active
 
         # Create form frame
         form_frame = tk.Frame(dialog, **styles['frame'])
@@ -336,28 +363,39 @@ def show_manage_categories_screen(global_state):
             new_name = name_entry.get().strip()
             
             if not new_name:
+                # Display error if category name is empty
                 display_error(edit_message_label, "Category name is required")
                 return
 
             if new_name == old_name:
+                # Display error if no changes were made
                 display_error(edit_message_label, "No changes made")
                 return
 
+            # Validate the new category name
             is_valid, validation_message = validate_category_name(new_name)
             if not is_valid:
+                # Display validation error message
                 display_error(edit_message_label, validation_message)
                 return
 
+            # Attempt to update the category
             success, message = update_category(category_id, new_name)
             if success:
+                # Display success message
                 display_success(edit_message_label, message)
+                # Log the successful update
                 log_action('UPDATE_CATEGORY', is_admin=True, admin_id=current_admin_id,
                         target_type='category', target_id=category_id,
                         details=f"Updated category name from {old_name} to {new_name}")
+                # Close the dialog after a short delay
                 dialog.after(1500, dialog.destroy)
+                # Refresh the category list
                 display_categories()
             else:
+                # Display error message if update failed
                 display_error(edit_message_label, message)
+                # Log the failed update attempt
                 log_action('UPDATE_CATEGORY', is_admin=True, admin_id=current_admin_id,
                         target_type='category', target_id=category_id,
                         details=f"Failed to update category: {message}", status='failed')
@@ -391,21 +429,28 @@ def show_manage_categories_screen(global_state):
         Displays success/error messages and logs action.
         Refreshes category list on success.
         """
+        # Get the category name for confirmation dialog
         category_name = get_category_name(category_id)
+        
+        # Show confirmation dialog before deleting the category
         if messagebox.askyesno("Confirm Delete",
-                            f"Are you sure you want to delete the category '{category_name}'?\n\nNote: All products in this category will be unlisted."):
+                    f"Are you sure you want to delete the category '{category_name}'?\n\nNote: All products in this category will be unlisted."):
+            # Attempt to delete the category
             success, message = delete_category(category_id)
             if success:
                 display_success(message_label, message)
+                # Log the successful deletion
                 log_action('DELETE_CATEGORY', is_admin=True, admin_id=current_admin_id,
-                        target_type='category', target_id=category_id,
-                        details=f"Deleted category: {category_name}")
+                    target_type='category', target_id=category_id,
+                    details=f"Deleted category: {category_name}")
+                # Refresh the category list
                 display_categories()
             else:
                 display_error(message_label, message)
+                # Log the failed deletion attempt
                 log_action('DELETE_CATEGORY', is_admin=True, admin_id=current_admin_id,
-                        target_type='category', target_id=category_id,
-                        details=f"Failed to delete category: {message}", status='failed')
+                    target_type='category', target_id=category_id,
+                    details=f"Failed to delete category: {message}", status='failed')
 
     # Initial display
     display_categories()

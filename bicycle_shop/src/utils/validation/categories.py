@@ -17,10 +17,13 @@ def validate_category_name(name):
     """
     conn = get_connection()
     cursor = conn.cursor()
+
+    # Execute a query to check if the category name exists
     cursor.execute("SELECT 1 FROM Categories WHERE name = ?", (name,))
-    exists = cursor.fetchone() is not None
+    exists = cursor.fetchone() is not None # If not None, category name exists
     conn.close()
     
+    # Return False and a message if the category name exists, else True and "Valid" hence allow creation
     if exists:
         return False, "Category name already exists."
     return True, "Valid"

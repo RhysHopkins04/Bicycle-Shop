@@ -1,7 +1,5 @@
 from src.utils.logging import log_action
 
-from src.utils.logging import log_action
-
 def logout(global_state):
     """Handle user logout process.
     

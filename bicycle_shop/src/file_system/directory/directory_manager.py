@@ -43,6 +43,7 @@ def initialize():
         bool: True if first-time setup completed successfully, False otherwise
     """
     if not is_first_run():
+        # If not the first run, ensure config exists and directories are set up
         if not os.path.exists(CONFIG_PATH):
             create_initial_config()
         ensure_directories_exist()
@@ -51,9 +52,11 @@ def initialize():
     # First run setup
     success = create_initial_config()
     if success:
+        # Hide the main Tkinter window
         root = tk.Tk()
         root.withdraw()
         
+        # Show a message box with setup instructions
         abs_config_path = os.path.abspath(CONFIG_PATH)
         messagebox.showinfo(
             "First Time Setup",
@@ -68,6 +71,7 @@ def initialize():
             "\nNote: If you do not change the information, default values will be used."
         )
         
+        # Ensure required directories exist and mark initialization complete
         if ensure_directories_exist():
             mark_initialized()
             return True
@@ -93,17 +97,22 @@ def ensure_directories_exist():
         Will not overwrite existing icon files
         Prints warnings if source icons are missing
     """
+    # Get the paths from the configuration
     paths = get_paths()
     
+    # Create the required directories if they don't exist
     os.makedirs(paths['products_dir'], exist_ok=True)
     os.makedirs(paths['icons_dir'], exist_ok=True)
     
+    # Define the path to the default icons directory
     default_icons_dir = os.path.join(
-        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), 
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
         'default_icons'
     )
     
+    # Check if the default icons directory exists
     if os.path.exists(default_icons_dir):
+        # Define the icon files to be copied
         icon_files = {
             'password_show': 'visible.png',
             'password_hide': 'hidden.png',
@@ -112,21 +121,27 @@ def ensure_directories_exist():
             'placeholder': 'placeholder.png'
         }
         
+        # Copy each icon file to the icons directory
         for icon_name, icon_file in icon_files.items():
             source = os.path.join(default_icons_dir, icon_file)
             destination = os.path.join(paths['icons_dir'], icon_file)
             
+            # Check if the source icon file exists
             if os.path.exists(source):
                 try:
+                    # Copy the icon file to the destination
                     shutil.copy2(source, destination)
                     print(f"Copied {icon_file} to Icons directory")
                 except shutil.SameFileError:
+                    # Skip if the source and destination are the same file
                     pass
                 except Exception as e:
                     print(f"Error copying {icon_file}: {e}")
             else:
+                # Print a warning if the source icon file is not found
                 print(f"Warning: Source icon {icon_file} not found in default_icons")
     else:
+        # Print a warning if the default icons directory is not found
         print(f"Warning: default_icons directory not found at {default_icons_dir}")
     
     return True

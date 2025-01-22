@@ -40,16 +40,19 @@ def hide_dropdown(event, user_info_frame, dropdown_frame):
     mouse_x = event.x_root
     mouse_y = event.y_root
     
+    # Check if the mouse is over the user info frame
     over_user_info = (
         user_info_frame.winfo_rootx() <= mouse_x <= user_info_frame.winfo_rootx() + user_info_frame.winfo_width() and
         user_info_frame.winfo_rooty() <= mouse_y <= user_info_frame.winfo_rooty() + user_info_frame.winfo_height()
     )
     
+    # Check if the mouse is over the dropdown frame
     over_dropdown = (
         dropdown_frame.winfo_rootx() <= mouse_x <= dropdown_frame.winfo_rootx() + dropdown_frame.winfo_width() and
         dropdown_frame.winfo_rooty() <= mouse_y <= dropdown_frame.winfo_rooty() + dropdown_frame.winfo_height()
     )
     
+    # If the mouse is not over either the user info frame or the dropdown frame, then hide the dropdown
     if not (over_user_info or over_dropdown):
         dropdown_frame.place_forget()
 
@@ -69,16 +72,19 @@ def hide_dropdown_on_click(event, user_info_frame, dropdown_frame):
     mouse_x = event.x_root
     mouse_y = event.y_root
     
+    # Check if the mouse is over the user_info_frame
     over_user_info = (
         user_info_frame.winfo_rootx() <= mouse_x <= user_info_frame.winfo_rootx() + user_info_frame.winfo_width() and
         user_info_frame.winfo_rooty() <= mouse_y <= user_info_frame.winfo_rooty() + user_info_frame.winfo_height()
     )
     
+    # Check if the mouse is over the dropdown_frame
     over_dropdown = (
         dropdown_frame.winfo_rootx() <= mouse_x <= dropdown_frame.winfo_rootx() + dropdown_frame.winfo_width() and
         dropdown_frame.winfo_rooty() <= mouse_y <= dropdown_frame.winfo_rooty() + dropdown_frame.winfo_height()
     )
     
+    # If the mouse is not over either the user_info_frame or the dropdown_frame, then hide the dropdown
     if not (over_user_info or over_dropdown):
         dropdown_frame.place_forget()
 
@@ -97,18 +103,21 @@ def update_dropdown_position(window, user_info_frame, dropdown_frame):
         Ensures dropdown stays above other widgets
     """
     try:
+        # Check if the dropdown_frame is currently mapped (visible)
         if dropdown_frame.winfo_ismapped():
             # Get window-relative coordinates for proper positioning
             x = user_info_frame.winfo_rootx() - window.winfo_rootx()
+            # Get the y-coordinate relative to the main window, placing it below the user_info_frame with an offset of 20 pixels
             y = (user_info_frame.winfo_rooty() + user_info_frame.winfo_height() + 20) - window.winfo_rooty()
             
-            # Update position relative to main window
+            # Place the dropdown_frame at the calculated position with the same width as user_info_frame
             dropdown_frame.place(
                 x=x,
                 y=y,
                 width=user_info_frame.winfo_width()
             )
-            # Ensure dropdown stays on top
+            # Ensure the dropdown_frame stays on top of other widgets
             dropdown_frame.lift()
     except tk.TclError:
+        # If there is a TclError (e.g., widget not found), ignore it
         pass

@@ -59,12 +59,16 @@ def switch_to_admin_panel(global_state):
     
     window.minsize(1280, 720)
     
+    # Check if the window is not in fullscreen mode
     if not window_state['is_fullscreen']:
+        # If the window is maximized, set its state to 'zoomed'
         if window_state['is_maximized']:
             window.state('zoomed')
         else:
+            # Otherwise, set the window state to 'normal' and resize it to 1920x1080
             window.state('normal')
             window.geometry("1920x1080")
+            # Center the window on the screen
             center_window(window, 1920, 1080)
     
     styles = get_style_config()['admin_panel']
@@ -99,7 +103,7 @@ def switch_to_admin_panel(global_state):
     button_frame = tk.Frame(top_bar, bg=styles['top_bar']['bg'])
     button_frame.pack(side="right", padx=20, pady=10)
 
-    # User info display
+    # User info display creation though util function
     user_info_frame, icon_label, name_label, username_label, dropdown_indicator = create_user_info_display(
         button_frame, current_username, current_first_name, current_last_name,
         True, user_icn, admin_icn
@@ -190,7 +194,10 @@ def switch_to_admin_panel(global_state):
     stats_container.pack(fill="both", expand=True, padx=10, pady=10)
     stats_container.grid_columnconfigure(0, weight=1)
 
+    # Fetch dashboard statistics from the database
     stats = get_dashboard_stats()
+    
+    # Define the items to display in the stats section
     stats_items = [
         ("Total Products", stats['total_products']),
         ("Listed Products", stats['listed_products']),
@@ -198,6 +205,7 @@ def switch_to_admin_panel(global_state):
         ("Active Discounts", stats['active_discounts'])
     ]
 
+    # Iterate over the stats items and create labels for each stat item
     for row, (label, value) in enumerate(stats_items):
         tk.Label(stats_container, text=f"{label}:", anchor="w", 
                 **styles['dashboard']['stats_label']).grid(row=row, column=0, sticky="w", padx=10, pady=5)
@@ -242,13 +250,20 @@ def switch_to_admin_panel(global_state):
     admin_log_text = scrolledtext.ScrolledText(log_frame, height=10, width=50, **styles['dashboard']['log_text'])
     admin_log_text.pack(fill="both", expand=True)
 
+    # Export the admin logs to a temporary file
     log_file = export_logs_to_temp_file(admin_only=True)
+    
+    # Open the temporary log file and read its contents
     with open(log_file, 'r') as f:
+        # Clear the current content of the scrolled text widget
         admin_log_text.delete('1.0', tk.END)
+        # Insert the log file content into the scrolled text widget
         admin_log_text.insert(tk.END, f.read())
+    
+    # Remove the temporary log file after reading its content
     os.remove(log_file)
 
-    # Update global state
+    # Update global state held values
     global_state.update({
         'content_frame': content_frame,
         'content_inner_frame': content_inner_frame,

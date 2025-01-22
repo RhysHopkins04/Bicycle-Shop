@@ -64,6 +64,7 @@ def show_login_screen(global_state):
     username_entry.pack()
     username_entry.focus_set()
 
+    # Uses utils password function to create it with the visbility toggles
     password_entry, _, _ = create_password_field(
         main_frame, "Password", 
         eye_open_image=icons['eye_open'],
@@ -120,7 +121,16 @@ def show_login_screen(global_state):
                             details=f"Admin login: {username}")
                             
                     if not password_changed:
-                        switch_to_change_password(global_state)
+                        switch_to_change_password(
+                        username=username,
+                        from_source="login",
+                        window=global_state['window'],
+                        main_frame=global_state['main_frame'],
+                        eye_open_image=global_state['icons']['eye_open'],
+                        eye_closed_image=global_state['icons']['eye_closed'],
+                        current_admin_id=global_state['current_admin_id'],
+                        global_state=global_state
+                    ) # Forces the password change if the user hasnt changed it yet from first run.
                     else:
                         switch_to_admin_panel(global_state)
                 else:

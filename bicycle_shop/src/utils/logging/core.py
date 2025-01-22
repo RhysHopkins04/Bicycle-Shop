@@ -79,6 +79,7 @@ def log_action(action_type, is_admin=False, **kwargs):
         Admin actions are always logged
         Uses consistent action types from ACTION_TYPES dict
     """
+    # Determine the type group based on whether the user is an admin
     type_group = 'admin' if is_admin else 'user'
     action_string = get_action_type(type_group, action_type)
     

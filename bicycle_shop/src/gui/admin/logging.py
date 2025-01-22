@@ -138,7 +138,6 @@ def show_logging_screen(global_state):
     # Make text widget read-only
     log_text.configure(state="disabled")
 
-
     def cleanup_temp_files():
         """Clean up temporary log files.
         
@@ -146,12 +145,17 @@ def show_logging_screen(global_state):
         Called on window destroy and before refreshing logs.
         """
         temp_dir = os.path.join(os.path.dirname(__file__), 'temp')
+        # Check if the temporary directory exists
         if os.path.exists(temp_dir):
+            # Iterate over all files in the temporary directory
             for file in os.listdir(temp_dir):
+            # Check if the file is a log file
                 if file.endswith('.log'):
                     try:
+                    # Attempt to remove the log file
                         os.remove(os.path.join(temp_dir, file))
                     except:
+                    # Ignore any errors during file removal
                         pass
 
     def refresh_logs():
@@ -163,26 +167,31 @@ def show_logging_screen(global_state):
         """
         try:
             cleanup_temp_files()  # Clean old files first
-            admin_only = log_type_var.get() == "Admin Actions"
-            log_file = export_logs_to_temp_file(admin_only=admin_only)
+            admin_only = log_type_var.get() == "Admin Actions"  # Determine if admin logs are selected
+            # Export logs to a temporary file
+            log_file = export_logs_to_temp_file(admin_only=admin_only)  
             
-            log_text.configure(state="normal")
+            # Make text widget editable
+            log_text.configure(state="normal")  
+            # Clear current content
             log_text.delete(1.0, tk.END)
             
+            # Open the log file for reading & Insert log content into text widget
             with open(log_file, 'r') as f:
                 log_text.insert(tk.END, f.read())
-                
+            
+            # Bring text widget back to read-only
             log_text.configure(state="disabled")
             
             # Clean up after reading
             try:
                 os.remove(log_file)
             except:
-                pass
-                
-            display_success(message_label, "Logs refreshed successfully")
+                pass  # Ignore any errors during file removal
+            
+            display_success(message_label, "Logs refreshed successfully")  # Display success message
         except Exception as e:
-            display_error(message_label, f"Failed to load logs: {str(e)}")
+            display_error(message_label, f"Failed to load logs: {str(e)}")  # Display error message if an exception occurs
 
     # Add cleanup to window destroy binding
     window.bind("<Destroy>", lambda e: cleanup_temp_files())

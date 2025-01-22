@@ -39,6 +39,7 @@ def show_manage_discounts_screen(global_state):
     current_admin_id = global_state['current_admin_id']
 
     if not get_current_user_admin_status(current_username):
+        # If not an admin, redirect to the store listing
         from ..store.listing import switch_to_store_listing
         switch_to_store_listing(is_admin=False)
         return
@@ -109,15 +110,18 @@ def show_manage_discounts_screen(global_state):
         - Name must not be empty
         - Percentage must be integer between 1-100
         """
+        # Get and strip input values
         name = name_entry.get().strip()
         percentage = percentage_entry.get().strip()
 
+        # Validate input fields are not empty
         if not name or not percentage:
             display_error(message_label, "Please fill in all fields")
             log_action('CREATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=None, details="Failed to create discount: Empty fields", status='failed')
             return
 
         try:
+            # Convert percentage to integer and validate range
             percentage = int(percentage)
             if not 0 < percentage <= 100:
                 raise ValueError
@@ -131,6 +135,7 @@ def show_manage_discounts_screen(global_state):
             # Clear entries
             name_entry.delete(0, tk.END)
             percentage_entry.delete(0, tk.END)
+            
             display_success(message_label, msg)
             log_action('CREATE_DISCOUNT', is_admin=True, admin_id=current_admin_id, target_type='discount', target_id=new_id, details=f"Created discount: {name} ({percentage}%)")
             display_discounts()
@@ -159,8 +164,11 @@ def show_manage_discounts_screen(global_state):
         Prevents excessive refreshes during continuous resize
         by delaying the refresh for 150ms after last resize event.
         """
+        # Check if resize_timer attribute exists and is not None
         if hasattr(content_inner_frame, 'resize_timer') and content_inner_frame.resize_timer is not None:
+            # Cancel the previous scheduled call to display_discounts
             window.after_cancel(content_inner_frame.resize_timer)
+        # Schedule a new call to display_discounts after 150ms
         content_inner_frame.resize_timer = window.after(150, display_discounts)
 
     # Bind the resize event with debouncing
@@ -181,11 +189,13 @@ def show_manage_discounts_screen(global_state):
 
     header_labels = []
     for i, (header, weight) in enumerate(zip(headers, weights)):
+        # Create a frame for each header cell
         header_frame = tk.Frame(headers_frame, **styles['frame'], height=30)
         header_frame.grid(row=0, column=i, padx=5, sticky="nsew")
         header_frame.grid_propagate(False)
         header_frame.grid_columnconfigure(0, weight=1)
         
+        # Create and configure the header label
         label = tk.Label(
             header_frame, 
             text=header,
@@ -193,6 +203,8 @@ def show_manage_discounts_screen(global_state):
         )
         label.grid(row=0, column=0, sticky="nsew")
         label.configure(anchor="center")
+        
+        # Append the label to the header_labels list
         header_labels.append(label)
 
     # Create scrollable frame using grid
@@ -232,14 +244,16 @@ def show_manage_discounts_screen(global_state):
         discounts = get_all_discounts() 
         
         for row, discount in enumerate(discounts):
+            # Unpack discount details
             discount_id, name, percentage, qr_code_path, uses, active = discount[:6]
             
+            # Prepare display values for each column
             display_values = [
-                str(discount_id),
-                name,
-                f"{percentage}%",
-                str(uses if uses is not None else "0"),
-                "Yes" if active else "No"
+            str(discount_id),
+            name,
+            f"{percentage}%",
+            str(uses if uses is not None else "0"),  # Uses column, default to "0" if None
+            "Yes" if active else "No"
             ]
             
             # Add data cells
@@ -255,7 +269,7 @@ def show_manage_discounts_screen(global_state):
                     **styles['cell']
                 ).grid(row=0, column=0, sticky="nsew")
                 
-                # # Add alternating colors to cells
+                # Debugging Add alternating colors to cells
                 # cell_frame.configure(bg='pink' if row % 2 == 0 else 'lightblue')
             
             # Actions column
@@ -296,7 +310,7 @@ def show_manage_discounts_screen(global_state):
             )
             delete_btn.pack(side="left", padx=2)
             
-            # # Color action frames
+            # Debug Color action frames
             # actions_frame.configure(bg='lightgreen')
             # buttons_frame.configure(bg='cyan')
         
@@ -384,13 +398,16 @@ def show_manage_discounts_screen(global_state):
                 Shows error messages in dialog for validation failures
             """
             try:
+                # Get and strip new values from entries
                 new_name = entries['name'].get().strip()
                 new_percentage = int(entries['percentage'].get().strip())
                 
+                # Validate new name is not empty
                 if not new_name:
                     display_error(edit_message_label, "Name is required")
                     return
                     
+                # Validate new percentage is within the range 1-100
                 if not 0 < new_percentage <= 100:
                     display_error(edit_message_label, "Percentage must be between 1-100")
                     return
@@ -463,8 +480,7 @@ def show_manage_discounts_screen(global_state):
         Removes QR code file on successful deletion.
         Logs action success/failure.
         """
-        if messagebox.askyesno("Confirm Delete", 
-                                f"Are you sure you want to delete the discount '{discount[1]}'?"):
+        if messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete the discount '{discount[1]}'?"):
             success, msg = delete_discount(discount[0])
             if success:
                 display_success(message_label, msg)

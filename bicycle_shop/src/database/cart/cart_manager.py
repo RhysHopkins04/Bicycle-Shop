@@ -20,28 +20,31 @@ def add_to_cart(user_id, product_id, quantity=1):
     conn = get_connection()
     cursor = conn.cursor()
     
-    # Check if product already in cart
+    # Check if product already exists in user's cart for update vs insert decision
     cursor.execute("""
         SELECT quantity FROM ShoppingCart 
         WHERE user_id = ? AND product_id = ?
     """, (user_id, product_id))
     result = cursor.fetchone()
     
-    # Get current stock
+    # Verify sufficient stock is available before adding/updating
     cursor.execute("SELECT stock FROM Products WHERE id = ?", (product_id,))
     stock = cursor.fetchone()[0]
     
+    # Update existing cart item quantity
     if result:
         new_quantity = result[0] + quantity
         if new_quantity > stock:
             conn.close()
             return False, "Cannot add more than available stock"
-            
+        
+        # Using parameterized query to prevent SQL injection
         cursor.execute("""
             UPDATE ShoppingCart 
             SET quantity = ?
             WHERE user_id = ? AND product_id = ?
         """, (new_quantity, user_id, product_id))
+    # Insert new cart item
     else:
         if quantity > stock:
             conn.close() 
@@ -68,7 +71,9 @@ def get_cart_items(user_id):
     """
     conn = get_connection()
     cursor = conn.cursor()
-    
+
+    # Join with Products table to get full product details with cart quantities
+    # Using parameterized query for security
     cursor.execute("""
         SELECT p.*, c.quantity 
         FROM ShoppingCart c
@@ -100,20 +105,22 @@ def update_cart_quantity(user_id, product_id, quantity):
     conn = get_connection()
     cursor = conn.cursor()
     
+    # Remove item if quantity is 0 or less
     if quantity <= 0:
         cursor.execute("""
             DELETE FROM ShoppingCart 
             WHERE user_id = ? AND product_id = ?
         """, (user_id, product_id))
     else:
-        # Check stock
+        # Verify stock availability before updating
         cursor.execute("SELECT stock FROM Products WHERE id = ?", (product_id,))
         stock = cursor.fetchone()[0]
         
         if quantity > stock:
             conn.close()
             return False, "Quantity exceeds available stock"
-            
+        
+        # Update quantity using parameterized query for security
         cursor.execute("""
             UPDATE ShoppingCart 
             SET quantity = ?

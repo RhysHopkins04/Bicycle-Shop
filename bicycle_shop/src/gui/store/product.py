@@ -27,12 +27,12 @@ def show_product_page(product_id, global_state):
             - content_inner_frame: Content frame
             - current_user_id: Current user's ID
     """
-    global_state['current_screen'] = show_product_page
+    # Extract needed values from global_state
     window = global_state['window']
     content_inner_frame = global_state['content_inner_frame']
     current_user_id = global_state['current_user_id']
-    user_info_frame = global_state.get('user_info_frame')
-    dropdown_frame = global_state.get('dropdown_frame')
+
+    from .listing import switch_to_store_listing  # Local import to avoid circular dependency
 
     clear_frame(content_inner_frame)
     styles = get_style_config()['product_page']
@@ -42,19 +42,17 @@ def show_product_page(product_id, global_state):
 
     product = get_product_by_id(product_id)
     if product:
-        log_action('VIEW_PRODUCT', user_id=current_user_id, 
-                  details=f"Viewed product: {product[1]}")
+        log_action('VIEW_PRODUCT', user_id=current_user_id, details=f"Viewed product: {product[1]}")
 
         # Create title container frame to hold both title and back button
         title_container = tk.Frame(content_inner_frame, **styles['frame'])
         title_container.pack(fill="x", pady=(0, 8))
 
         # Back button on the left
-        from .listing import switch_to_store_listing  # Local import to avoid circular dependency
         back_button = tk.Button(
             title_container, 
             text="← Back", 
-            command=lambda: switch_to_store_listing(global_state),
+            command=lambda: switch_to_store_listing(global_state), 
             **styles['buttons']
         )
         back_button.pack(side="left", padx=10)
@@ -62,7 +60,7 @@ def show_product_page(product_id, global_state):
         # Title in center
         tk.Label(title_container, text=product[1], **styles['title']).pack(side="left", expand=True)
 
-        # Create outer container
+        # Create outer container with reduced padding
         container_frame = tk.Frame(content_inner_frame, **styles['frame'])
         container_frame.pack(fill="both", expand=True)
 
@@ -70,25 +68,18 @@ def show_product_page(product_id, global_state):
         wrapper, canvas, scrollbar, scrollable_frame, bind_wheel, unbind_wheel = create_scrollable_frame(container_frame)
         wrapper.pack(fill="both", expand=True)
 
-        # Create main content frame
+        # Create main content frame that will be centered
         content_frame = tk.Frame(scrollable_frame, **styles['frame'])
         content_frame.pack(fill="both", expand=True, padx=40, pady=28)
-
-        global_state.update({
-            'content_frame': content_frame,
-            'content_inner_frame': content_inner_frame,
-            'user_info_frame': global_state.get('user_info_frame'),
-            'dropdown_frame': global_state.get('dropdown_frame')
-        })
 
         # Details container frame
         details_frame = tk.Frame(content_frame, **styles['frame'])
         details_frame.pack(fill="both", expand=True, pady=10)
 
-        # Left side - Product image 
+        # Left side - Product image
         left_frame = tk.Frame(details_frame, **styles['frame'])
         left_frame.pack(side="left", fill="both", expand=True, padx=(5, 5))
-
+        
         # Right side setup with fixed width
         right_frame = tk.Frame(details_frame, width=300, **styles['frame'])
         right_frame.pack(side="right", fill="y", padx=(10, 0))
@@ -109,20 +100,46 @@ def show_product_page(product_id, global_state):
         description_label = tk.Label(desc_frame, text=product[5], wraplength=280, **styles['description'])
         description_label.pack(pady=5)
 
-        # Create message label just above the cart button
+        # Message label for success/error messages above cart button
         message_label = tk.Label(inner_right_frame, text="", **styles['message'])
         message_label.pack(pady=(5, 0))
 
-        # Create cart button with proper user_info and dropdown frame references
+        def add_to_cart_handler():
+            """Handle adding product to cart.
+            
+            Validates user is logged in
+            Adds product to cart
+            Shows success/error message
+            Logs action result
+            Shows dropdown notification
+            """
+            if not global_state['current_user_id']:
+                display_error(message_label, "Please log in to add items to cart")
+                return
+            
+            success, message = add_to_cart(global_state['current_user_id'], product_id)
+            if success:
+                display_success(message_label, message)
+                log_action('CART_ADD', user_id=global_state['current_user_id'], details=f"Added product {product[1]} to cart")
+                try:
+                    show_dropdown(None, global_state['user_info_frame'], global_state['dropdown_frame']) # Should show the dropdown to show user where the view cart button is, but doesnt seem to work?
+                    window.after(5000, lambda: safe_hide_dropdown())
+                except tk.TclError:
+                    pass
+            else:
+                display_error(message_label, message)
+                log_action('CART_ADD', user_id=global_state['current_user_id'], details=f"Failed to add product {product[1]} to cart: {message}", status='failed')
+
+         # Then create the cart button:
         cart_button = tk.Button(
             inner_right_frame, 
             text="Add to Cart",
-            command=lambda: add_to_cart_handler(user_info_frame, dropdown_frame),
+            command=add_to_cart_handler,
             **styles['buttons']
         )
         cart_button.pack(pady=(5, 10))
 
-        # Stock display below cart button
+        # Stock display label
         stock_label = tk.Label(inner_right_frame, text=f"Stock: {product[8]}", **styles['labels'])
         stock_label.pack(pady=(0, 5))
 
@@ -131,10 +148,10 @@ def show_product_page(product_id, global_state):
         wraplength_timer = None
 
         def debounced_resize(event=None):
-            """Debounce window resize events.
+            """Debounced version of resize_content.
             
             Prevents excessive updates during continuous resize
-            by delaying resize_content call by 150ms.
+            by delaying resize_content call.
             """
             nonlocal resize_timer
             if resize_timer is not None:
@@ -142,10 +159,10 @@ def show_product_page(product_id, global_state):
             resize_timer = window.after(150, lambda: resize_content(event))
 
         def debounced_wraplength(event=None):
-            """Debounce text wrapping updates.
+            """Debounced version of update_wraplength.
             
             Prevents excessive updates during continuous resize
-            by delaying update_wraplength call by 150ms.
+            by delaying update_wraplength call.
             """
             nonlocal wraplength_timer
             if wraplength_timer is not None:
@@ -153,18 +170,19 @@ def show_product_page(product_id, global_state):
             wraplength_timer = window.after(150, lambda: update_wraplength(event))
 
         def resize_content(event=None):
-            """Handle responsive resizing of product images.
+            """Handle responsive resizing of product image and QR code.
             
-            Calculates appropriate dimensions based on:
+            Calculates appropriate image dimensions based on:
             - Window width/height
             - Minimum/maximum size constraints
             - Screen resolution breakpoints
             
-            Updates both product image and QR code maintaining aspect ratios
+            Updates image maintaining aspect ratio
             """
+
             if not product[7] or not left_frame.winfo_exists():
                 return
-
+                
             # Calculate responsive dimensions based on window size
             window_width = window.winfo_width()
             window_height = window.winfo_height()
@@ -174,7 +192,7 @@ def show_product_page(product_id, global_state):
             max_img_height = min(int(window_height * 0.6), 1600)
             min_img_width = max(int(window_width * 0.3), 600)
             min_img_height = max(int(window_height * 0.3), 400)
-            
+
             qr_max_size = min(int(window_width * 0.15), 300)  # 15% of width up to 300px
             qr_min_size = 150  # Minimum 150px
 
@@ -186,16 +204,14 @@ def show_product_page(product_id, global_state):
                 min_width=min_img_width,
                 min_height=min_img_height
             )
-
+            
             # Update product image
             if resized_image:
-                if hasattr(left_frame, 'image_label'):
-                    left_frame.image_label.configure(image=resized_image)
-                    left_frame.image_label.image = resized_image
-                else:
-                    left_frame.image_label = tk.Label(left_frame, image=resized_image, **styles['image_frame'])
-                    left_frame.image_label.image = resized_image
-                    left_frame.image_label.pack(pady=(0, 5))
+                for widget in left_frame.winfo_children():
+                    widget.destroy()
+                image_label = tk.Label(left_frame, image=resized_image)
+                image_label.image = resized_image
+                image_label.pack()
 
             # Resize and update QR code
             if product[3]:
@@ -220,36 +236,8 @@ def show_product_page(product_id, global_state):
             new_width = right_frame.winfo_width() - 40
             description_label.configure(wraplength=new_width)
 
-        def add_to_cart_handler():
-            """Handle adding product to cart.
-            
-            Validates user is logged in
-            Adds product to cart
-            Shows success/error message
-            Logs action result
-            Shows dropdown notification
-            """
-            if not global_state['current_user_id']:
-                display_error(message_label, "Please log in to add items to cart")
-                return
-            
-            success, message = add_to_cart(global_state['current_user_id'], product_id)
-            if success:
-                display_success(message_label, message)
-                log_action('CART_ADD', user_id=global_state['current_user_id'], 
-                        details=f"Added product {product[1]} to cart")
-                
-                # Show dropdown to indicate where cart button is
-                try:
-                    show_dropdown(None, global_state['user_info_frame'], global_state['dropdown_frame'])
-                    window.after(5000, lambda: safe_hide_dropdown())
-                except tk.TclError:
-                    pass  # Ignore if widgets are destroyed
-            else:
-                display_error(message_label, message)
-                log_action('CART_ADD', user_id=global_state['current_user_id'],
-                        details=f"Failed to add product {product[1]} to cart: {message}",
-                        status='failed')
+        # Initial image loading
+        resize_content()
 
         def safe_hide_dropdown():
             """Safely hide dropdown menu handling widget destruction.
@@ -258,12 +246,9 @@ def show_product_page(product_id, global_state):
             widget destruction errors.
             """
             try:
-                hide_dropdown(None, user_info_frame, dropdown_frame)
+                hide_dropdown(None, global_state['user_info_frame'], global_state['dropdown_frame'])
             except tk.TclError:
                 pass
-
-        # Initial image loading
-        resize_content()
 
         # Bind resize events with debouncing
         window.bind("<Configure>", debounced_resize)

@@ -79,7 +79,7 @@ def show_manage_user_screen(global_state):
     message_label = tk.Label(form_frame, text="", **styles['message'])
     message_label.pack(pady=(0, 10))
 
-    # Get current user details from database
+    # Get current user details from database, bad practice will clean up later
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -200,7 +200,7 @@ def show_manage_user_screen(global_state):
 def switch_to_change_password(username, from_source="login", parent_dialog=None,
                             window=None, eye_open_image=None, eye_closed_image=None,
                             main_frame=None, current_admin_id=None, current_user_id=None,
-                            switch_to_admin_panel=None):
+                            switch_to_admin_panel=None, global_state=None):
     """Show password change screen based on context.
     
     Handles password changes for:
@@ -222,11 +222,23 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
         
     Note:
         Different layouts/fields based on context:
-        - Login: Simple two field form
-        - Self: Requires current password verification
-        - Admin: No current password needed
+        - Login: Simple two field form (first time admin password change)
+        - Self: Requires current password verification (self user change)
+        - Admin: No current password needed (Admin change of another user)
     """
+    # Get the values from global_state if not passed
+    if window is None and global_state is not None:
+        window = global_state.get('window')
+    if main_frame is None and global_state is not None:
+        main_frame = global_state.get('main_frame')
+    if eye_open_image is None and global_state is not None:
+        eye_open_image = global_state.get('icons', {}).get('eye_open')
+    if eye_closed_image is None and global_state is not None:
+        eye_closed_image = global_state.get('icons', {}).get('eye_closed')
+
     if from_source == "login":
+        if window is None:
+            raise ValueError("Window object is required for login password change")
         window.geometry("400x300")
         clear_frame(main_frame)
         styles = get_style_config()['change_password']['light']
@@ -390,7 +402,8 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                     log_action('PASSWORD_CHANGE', user_id=current_user_id,
                              details="Failed to change password",
                              status='failed')
-            
+        
+        # Action when x on window is clicked (built into tkinter)
         dialog.protocol("WM_DELETE_WINDOW", on_close)
 
         button_frame = tk.Frame(form_frame, **styles['frame'])

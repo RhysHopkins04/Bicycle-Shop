@@ -10,10 +10,13 @@ def center_window(window, width, height):
         Updates window geometry using screen dimensions
         Forces geometry update with update_idletasks()
     """
+    # Get width and height of screen
     screen_width = window.winfo_screenwidth()
     screen_height = window.winfo_screenheight()
+    # Calculate the x and y coorinates for the window to be centered
     x = (screen_width - width) // 2
     y = (screen_height - height) // 2
+    # Set the geometry of the window and position it at x,y (centered)
     window.geometry(f"{width}x{height}+{x}+{y}")
     window.update_idletasks()
 
@@ -44,6 +47,7 @@ def create_fullscreen_handler(window, window_state):
         window_state['is_fullscreen'] = not window_state['is_fullscreen']
         window.attributes("-fullscreen", window_state['is_fullscreen'])
         return "break"
+    
     window.bind("<F11>", toggle_fullscreen)
     return toggle_fullscreen
 

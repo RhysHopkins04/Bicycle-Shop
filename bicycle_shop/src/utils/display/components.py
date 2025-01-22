@@ -64,23 +64,15 @@ def create_password_field(parent, label_text, entry_width=16, show_label=True, e
     current_style = style_config.get(style, style_config["dark"])
 
     if show_label:
-        tk.Label(parent, text=label_text, 
-                bg=current_style["bg"], 
-                fg=current_style["fg"]).pack()
+        tk.Label(parent, text=label_text, bg=current_style["bg"], fg=current_style["fg"]).pack()
     
     frame = tk.Frame(parent, bg=current_style["frame_bg"]) 
     frame.pack(pady=5)
     
-    entry = tk.Entry(frame, show="*", width=entry_width,
-                    bg=current_style["entry_bg"],
-                    fg=current_style["entry_fg"])
+    entry = tk.Entry(frame, show="*", width=entry_width, bg=current_style["entry_bg"], fg=current_style["entry_fg"])
     entry.pack(side="left", padx=5)
     
-    button = tk.Button(frame, image=eye_closed_image, 
-                      command=lambda: toggle_password_visibility(entry, button, '*', eye_open_image, eye_closed_image),
-                      takefocus=False,
-                      bg=current_style["button_bg"],
-                      activebackground=current_style["button_bg"])
+    button = tk.Button(frame, image=eye_closed_image, command=lambda: toggle_password_visibility(entry, button, '*', eye_open_image, eye_closed_image), takefocus=False, bg=current_style["button_bg"], activebackground=current_style["button_bg"])
     button.pack()
     
     return entry, frame, button
@@ -102,12 +94,7 @@ def setup_search_widget(parent, placeholder="Search for products", font_size=20)
     """
     style = get_style_config()['search']
     search_frame = tk.Frame(parent, bg=style['frame_bg'])
-    search_entry = tk.Entry(
-        search_frame, 
-        width=style['entry']['width'],
-        fg=style['entry']['placeholder_fg'],
-        font=("Arial", font_size)
-    )
+    search_entry = tk.Entry(search_frame, width=style['entry']['width'], fg=style['entry']['placeholder_fg'], font=("Arial", font_size))
     search_entry.insert(0, placeholder)
     search_entry.pack(pady=10)
     
@@ -117,9 +104,8 @@ def setup_search_widget(parent, placeholder="Search for products", font_size=20)
         Args:
             event: Focus event
         """
-        if search_entry.get() == placeholder:
-            search_entry.delete(0, tk.END)
-            search_entry.config(fg=style['entry']['active_fg'])
+        if search_entry.get() == placeholder:search_entry.delete(0, tk.END)
+        search_entry.config(fg=style['entry']['active_fg'])
             
     def on_focus_out(event):
         """Restore placeholder if empty on focus lost.
@@ -171,32 +157,16 @@ def create_user_info_display(parent, username, first_name, last_name, is_admin, 
     style = get_style_config()['user_info']
     user_info_frame = tk.Frame(parent, bg=style['frame_bg'])
     
-    icon_label = tk.Label(
-        user_info_frame, 
-        image=admin_icon if is_admin else user_icon, 
-        bg=style['icon_bg']
-    )
+    icon_label = tk.Label(user_info_frame, image=admin_icon if is_admin else user_icon, bg=style['icon_bg'])
     icon_label.grid(row=0, column=0, rowspan=2, padx=(0, 5))
     
-    name_label = tk.Label(
-        user_info_frame, 
-        text=f"{first_name} {last_name}", 
-        **style['name']
-    )
+    name_label = tk.Label(user_info_frame, text=f"{first_name} {last_name}", **style['name'])
     name_label.grid(row=0, column=1, sticky="w")
     
-    username_label = tk.Label(
-        user_info_frame, 
-        text=f"@{username}", 
-        **style['username']
-    )
+    username_label = tk.Label(user_info_frame, text=f"@{username}", **style['username'])
     username_label.grid(row=1, column=1, sticky="w")
     
-    dropdown_indicator = tk.Label(
-        user_info_frame, 
-        text="▼", 
-        **style['dropdown']
-    )
+    dropdown_indicator = tk.Label(user_info_frame, text="▼", **style['dropdown'])
     dropdown_indicator.grid(row=0, column=2, rowspan=2, padx=(5, 0))
     
     return user_info_frame, icon_label, name_label, username_label, dropdown_indicator

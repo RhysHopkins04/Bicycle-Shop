@@ -16,6 +16,8 @@ def validate_empty_fields(*fields):
         - It contains only whitespace
     """
     for field in fields:
+        # Check if the field is None or an empty string after stripping whitespace
         if not field or str(field).strip() == "":
+            # If any field is empty, return False with an error message
             return False, "All required fields must be filled."
     return True, "Valid"

@@ -30,7 +30,7 @@ def show_register_screen(global_state):
         Configures tab order through fields
         Binds enter key for registration
     """
-    from .login import show_login_screen
+    from .login import show_login_screen # Internal import to avoid circular
 
     # Extract needed values from global_state
     global_state['current_screen'] = show_register_screen
@@ -38,7 +38,7 @@ def show_register_screen(global_state):
     main_frame = global_state['main_frame']
     icons = global_state['icons']
 
-    window.minsize(400, 450)  # Set minimum size, dont set the max size to the same as min since it causes errors.
+    window.minsize(400, 450)  # Set minimum size, dont set the max size to the same as min since it causes errors, cant lock size that way
 
     window.attributes("-fullscreen", False)
     window.state('normal')
@@ -69,6 +69,7 @@ def show_register_screen(global_state):
     last_name_entry = tk.Entry(main_frame, **styles['entries'])
     last_name_entry.pack()
 
+    # Creates the entry for passwords with visbility functionality.
     password_entry, _, _ = create_password_field(main_frame, "Password", eye_open_image=icons['eye_open'], eye_closed_image=icons['eye_closed'], style="light")
 
     confirm_password_entry, _, _ = create_password_field(main_frame, "Confirm Password", eye_open_image=icons['eye_open'], eye_closed_image=icons['eye_closed'], style="light")
@@ -104,9 +105,7 @@ def show_register_screen(global_state):
         password = password_entry.get()
         confirm_password = confirm_password_entry.get()
         age = age_entry.get()
-        is_valid, validation_message = validate_user_fields(username, first_name, last_name,
-                                                          password, confirm_password, age, 
-                                                          check_type="register")
+        is_valid, validation_message = validate_user_fields(username, first_name, last_name, password, confirm_password, age, check_type="register")
         if not is_valid:
             display_error(message_label, validation_message)
             return

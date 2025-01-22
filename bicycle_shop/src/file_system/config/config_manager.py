@@ -11,13 +11,15 @@ def get_absolute_path(relative_path):
         Absolute path based on project root directory
     """
     if os.path.isabs(relative_path):
+        # If the path is already absolute, return it as is
         return relative_path
     
-    # Get the project root directory (bicycle_shop folder)
-    current_dir = os.path.dirname(os.path.abspath(__file__))  # config folder
-    src_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))  # up to bicycle_shop root
+    # Get the current directory of this file (config folder)
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # Navigate up to the project root directory (bicycle_shop folder)
+    src_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
     
-    # Join with the relative path
+    # Join the project root directory with the relative path to form an absolute path
     absolute_path = os.path.abspath(os.path.join(src_dir, relative_path))
     return absolute_path
 
@@ -99,8 +101,11 @@ def get_paths():
             - icons_dir: Path to icons directory
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Return the absolute paths for products and icons directories
     return {
         'products_dir': get_absolute_path(config['Paths']['products_dir']),
         'icons_dir': get_absolute_path(config['Paths']['icons_dir'])
@@ -118,9 +123,13 @@ def get_icon_paths():
             - placeholder: Path to placeholder image
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Get the directory paths from the config
     paths = get_paths()
+    # Return the full paths to the icon files
     return {
         'password_show': os.path.join(paths['icons_dir'], config['Icons']['password_show']),
         'password_hide': os.path.join(paths['icons_dir'], config['Icons']['password_hide']),
@@ -141,12 +150,15 @@ def create_initial_config():
     """
     try:
         if os.path.exists(CONFIG_PATH):
+            # If the config file already exists, do not create a new one
             return False
             
         with open(CONFIG_PATH, 'w') as configfile:
+            # Write the general comments at the top of the config file
             configfile.write(CONFIG_COMMENTS)
             
             for section, values in DEFAULT_CONFIG.items():
+                # Write section-specific comments
                 comments = SECTION_COMMENTS[section]
                 if isinstance(comments, list):
                     for comment in comments:
@@ -154,21 +166,27 @@ def create_initial_config():
                 else:
                     configfile.write(f"\n{comments}")
                 
+                # Write the section header
                 configfile.write(f"\n[{section}]\n")
+                # Write each key-value pair in the section
                 for key, value in values.items():
                     configfile.write(f"{key} = {value}\n")
                 configfile.write("\n")
         
+        # Read the newly created config file
         config.read(CONFIG_PATH)
         
+        # Verify the config file has all required sections
         if not verify_config():
             raise ValueError("Config file is missing required sections")
             
         return True
         
     except (IOError, ValueError) as e:
+        # Handle any errors that occur during file creation
         print(f"Error creating config file: {e}")
         if os.path.exists(CONFIG_PATH):
+            # Remove the config file if an error occurred
             os.remove(CONFIG_PATH)
         return False
 
@@ -187,9 +205,15 @@ def verify_config():
         - Icons
     """
     required_sections = ['Application', 'Theme', 'DefaultAdmin', 'Paths', 'Icons']
+    
     if not os.path.exists(CONFIG_PATH):
+        # If the config file does not exist, return False
         return False
+    
+    # Read the config file
     config.read(CONFIG_PATH)
+    
+    # Check if all required sections are present in the config file
     return all(section in config.sections() for section in required_sections)
 
 def get_application_settings():
@@ -204,8 +228,11 @@ def get_application_settings():
             - window_state: Initial window state
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Return application settings from the config file
     return {
         'window_title': config['Application']['window_title'],
         'store_title': config['Application']['store_title'],
@@ -222,8 +249,11 @@ def get_logging_settings():
             - user_logging_enabled: Whether user logging is enabled
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Return logging settings from the config file
     return {
         'user_logging_enabled': config['Logging'].getboolean('user_logging_enabled', fallback=True)
     }
@@ -235,8 +265,11 @@ def get_user_logging_status():
         bool: True if user logging enabled, False otherwise
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Return the user logging status from the config file
     return config['Logging'].getboolean('user_logging_enabled', fallback=True)
 
 def set_user_logging_status(enabled):
@@ -246,9 +279,13 @@ def set_user_logging_status(enabled):
         enabled: True to enable logging, False to disable
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Update the user logging status in the config
     config['Logging']['user_logging_enabled'] = str(enabled).lower()
+    # Write the updated config back to the file
     with open(CONFIG_PATH, 'w') as configfile:
         config.write(configfile)
 
@@ -267,8 +304,11 @@ def get_theme():
             - dark_text: Dark text color
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Return theme color settings from the config file
     return {
         'dark_primary': config['Theme']['color_primary'],
         'dark_secondary': config['Theme']['color_secondary'],
@@ -292,12 +332,15 @@ def get_default_admin():
             - age: Admin age
     """
     if not os.path.exists(CONFIG_PATH):
+        # Create initial config file if it doesn't exist
         create_initial_config()
+    # Read the config file
     config.read(CONFIG_PATH)
+    # Return default admin settings from the config file
     return {
         'username': config['DefaultAdmin']['username'],
         'password': config['DefaultAdmin']['password'],
         'first_name': config['DefaultAdmin']['first_name'],
         'last_name': config['DefaultAdmin']['last_name'],
-        'age': int(config['DefaultAdmin']['age'])
+        'age': int(config['DefaultAdmin']['age'])  # Convert age to integer
     }

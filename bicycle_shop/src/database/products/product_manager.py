@@ -26,12 +26,16 @@ def add_product(name, price, qr_code, listed, description, category_id, image, s
             - message: Success/error message
     """
     try:
+        # Create directory structure and assets before database insertion
+        # This ensures filesystem consistency in case of DB failure
         product_dir = handle_product_directory(name)
         qr_code_path = handle_qr_code(name, price, product_dir)
         image_path = handle_product_image(image, product_dir) if image else None
 
         conn = get_connection()
         cursor = conn.cursor()
+        
+        # Use parameterized query for SQL injection prevention
         cursor.execute("""
             INSERT INTO Products (name, price, qr_code, listed, description, category_id, image, stock) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -70,38 +74,41 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
     cursor = conn.cursor()
     
     try:
+        # Get current state for smart file management decisions
         cursor.execute("SELECT * FROM Products WHERE id = ?", (product_id,))
         current_product = cursor.fetchone()
         
         if not current_product:
             raise ValueError("Product not found")
 
+        # Track what needs updating to minimize filesystem operations
         needs_name_update = name != current_product[1]
         needs_price_update = abs(float(price) - float(current_product[2])) > 0.001
         needs_new_qr = (needs_name_update or needs_price_update) and not keep_qr
 
+        # Handle directory structure updates
         product_dir = os.path.join(get_paths()['products_dir'], name if needs_name_update else current_product[1])
         if needs_name_update:
             os.makedirs(product_dir, exist_ok=True)
 
-        # Handle QR code update
+        # Smart QR code management - only remove and regenerate when needed
         new_qr_path = current_product[3]
         if needs_new_qr:
-            # Remove old QR code first
             if current_product[3] and os.path.exists(current_product[3]):
                 try:
                     os.remove(current_product[3])
                 except OSError as e:
                     print(f"Error removing old QR code: {e}")
-            # Generate new QR code
             new_qr_path = handle_qr_code(name, price, product_dir)
         elif not os.path.exists(current_product[3]):
             new_qr_path = handle_qr_code(name, price, product_dir)
 
+        # Smart image management with cleanup
         needs_image_update = image and image != current_product[7] and not keep_image
-
         new_image_path = current_product[7]
+
         if needs_image_update:
+            # Handle new image upload
             new_image_path = handle_product_image(image, product_dir)
             if current_product[7] and os.path.exists(current_product[7]):
                 try:
@@ -109,6 +116,7 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
                 except OSError as e:
                     print(f"Error removing old image: {e}")
         elif needs_name_update and current_product[7] and not needs_image_update:
+            # Handle image migration for product rename
             old_image_name = os.path.basename(current_product[7])
             new_image_path = os.path.join(product_dir, old_image_name)
             if os.path.exists(current_product[7]):
@@ -118,7 +126,7 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
         if needs_new_qr or not os.path.exists(current_product[3]):
             new_qr_path = handle_qr_code(name, price, product_dir)
 
-        # If image is None/empty and we have an old image, we need to clean it up
+        # Handle image removal case
         if not image and current_product[7]:
             try:
                 if os.path.exists(current_product[7]):
@@ -129,7 +137,7 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
         else:
             new_image_path = handle_product_image(image, product_dir) if image else None
 
-        # Update database with possibly NULL image path
+        # Update database with all changes
         cursor.execute("""
             UPDATE Products 
             SET name = ?, price = ?, qr_code = ?, description = ?, 
@@ -138,6 +146,7 @@ def update_product(product_id, name, price, qr_code, description, category_id, i
         """, (name, price, new_qr_path, description, 
               category_id, new_image_path, stock, listed, product_id))
         
+        # Clean up old directory after successful database update
         if needs_name_update:
             old_dir = os.path.join(get_paths()['products_dir'], current_product[1])
             if os.path.exists(old_dir):
@@ -167,15 +176,18 @@ def delete_product(product_id):
     conn = get_connection()
     cursor = conn.cursor()
     
+    # Get product info for filesystem cleanup
     cursor.execute("SELECT name FROM Products WHERE id = ?", (product_id,))
     product_name = cursor.fetchone()[0]
     paths = get_paths()
     product_dir = os.path.join(paths['products_dir'], product_name)
     
+    # Delete from database first
     cursor.execute("DELETE FROM Products WHERE id = ?", (product_id,))
     conn.commit()
     conn.close()
     
+    # Then clean up filesystem
     if os.path.exists(product_dir):
         shutil.rmtree(product_dir)
 

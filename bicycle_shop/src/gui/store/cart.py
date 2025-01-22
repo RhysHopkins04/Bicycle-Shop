@@ -51,7 +51,7 @@ def show_cart(global_state):
     disable_search()
     
     clear_frame(content_frame)
-    styles = get_style_config()['cart']
+    styles = get_style_config()['cart'] # Uses a lot of other pages styles since im lazy
     image_styles = get_style_config()['product_page']['image_frame']
     
     content_inner_frame = tk.Frame(content_frame, bg=get_style_config()['store_listing']['content']['inner_frame']['bg'], padx=50, pady=10)
@@ -133,7 +133,7 @@ def show_cart(global_state):
         info_frame = tk.Frame(item_frame, **styles['frame'])
         info_frame.pack(side="left", fill="x", expand=True)
         
-        if item[7]:  # If image exists
+        if item[7]:  # If image exists make it small icon size that is static
             image = resize_product_image(
                 item[7],
                 max_width=100,
@@ -158,6 +158,7 @@ def show_cart(global_state):
         qty_frame = tk.Frame(item_frame, **styles['frame'])
         qty_frame.pack(side="left", padx=10)
         
+        # Allows adding or reducing quantity of an item with + - button while showing quantity in the middle
         tk.Button(qty_frame, text="-", 
             command=lambda pid=item[0], qty=item[-1]: update_quantity(pid, qty, -1), 
             width=2, **button_styles).pack(side="left", padx=2)
@@ -178,6 +179,7 @@ def show_cart(global_state):
             **label_styles
         ).pack(side="left", padx=(50, 10))
         
+        # Allows removal of all of an item no matter quantity
         remove_button = tk.Button(
             item_frame,
             text="×",
@@ -270,26 +272,23 @@ def show_cart(global_state):
         """
         new_qty = current_qty + delta
         if new_qty <= 0:
+            # Remove item from cart if new quantity is 0 or less
             success, message = update_cart_quantity(current_user_id, pid, 0)
             if success:
-                log_action('CART_UPDATE', user_id=current_user_id, 
-                        details=f"Removed product {pid} from cart")
+                log_action('CART_UPDATE', user_id=current_user_id, details=f"Removed product {pid} from cart")
                 show_cart(global_state)  # Refresh cart view
             else:
-                log_action('CART_UPDATE', user_id=current_user_id,
-                        details=f"Failed to remove product {pid}: {message}",
-                        status='failed')
+                log_action('CART_UPDATE', user_id=current_user_id, details=f"Failed to remove product {pid}: {message}", status='failed')
         else:
+            # Update item quantity in cart
             success, message = update_cart_quantity(current_user_id, pid, new_qty)
             if success:
-                log_action('CART_UPDATE', user_id=current_user_id,
-                        details=f"Updated product {pid} quantity to {new_qty}")
+                log_action('CART_UPDATE', user_id=current_user_id, details=f"Updated product {pid} quantity to {new_qty}")
                 show_cart(global_state)  # Refresh cart view
             else:
-                log_action('CART_UPDATE', user_id=current_user_id,
-                        details=f"Failed to update product {pid} quantity: {message}",
-                        status='failed')
-        show_cart(global_state)
+            # Log failure to update quantity
+                log_action('CART_UPDATE', user_id=current_user_id, details=f"Failed to update product {pid} quantity: {message}", status='failed')
+        show_cart(global_state)  # Refresh cart view after any update too
 
     def handle_webcam_scan():
         """Handle QR code scanning via webcam.
@@ -299,27 +298,32 @@ def show_cart(global_state):
         Shows error if no code found or webcam fails
         Cleans up webcam resources after scan
         """
+        # Seems to work since it opens and closes and uses the camera correctly, however havent tested scanning a proper qr code with it.
         try:
             qr_found = False
             cap = cv2.VideoCapture(0)
             cv2.namedWindow("QR Code Scanner")
                 
             while True:
-                ret, frame = cap.read()
+                ret, frame = cap.read()  # Read frame from webcam
                 if not ret:
-                    break
+                    break  # Break loop if frame not read correctly
                         
-                # Call scan_qr_code without passing frame - it will handle capture internally
-                qr_data = scan_qr_code()  # Remove frame parameter
+                qr_data = scan_qr_code()  # Scan for QR code in the frame
                 if qr_data:
                     qr_found = True
-                    process_discount(qr_data)
-                    break
-                        
+                    process_discount(qr_data)  # Process the scanned QR code
+                    break 
+                
+                # cv2.waitKey(1) waits for 1 millisecond for a key event and returns the ASCII value of the key pressed.
+                # The bitwise AND operation (& 0xFF) ensures that we only consider the lower 8 bits of the result.
+                # ord('q') returns the ASCII value of the character 'q'.
+                # If the 'q' key is pressed, the condition becomes True, allowing break out of loop or close window.
                 cv2.imshow("QR Code Scanner", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-                    
+            
+            # Stops video capture then destroys the windows created for it
             cap.release()
             cv2.destroyAllWindows()
                 
@@ -337,6 +341,7 @@ def show_cart(global_state):
         Validates and processes uploaded QR code
         Shows success/error messages
         """
+        # Open file dialog to select QR code image file
         file_path = filedialog.askopenfilename(
             filetypes=[("Image files", "*.png *.jpg *.jpeg")]
         )
@@ -368,27 +373,25 @@ def show_cart(global_state):
         """
         discount = verify_discount_qr(qr_data)
         if discount:
+            # Extract discount ID and percentage from the verified discount
             discount_id, percentage = discount
+            # Increment the usage count of the discount
             success, message = increment_discount_uses(discount_id)
             if success:
-                # Show discount info
+                # Calculate the discount amount and the new total price after applying the discount
                 discount_amount = total_price * (percentage / 100)
                 discounted_total = total_price - discount_amount
                 
-                discount_label.configure(
-                    text=f"Discount applied: {percentage}% (-£{discount_amount:.2f})"
-                )
+                # Update the discount label to show the discount applied
+                discount_label.configure(text=f"Discount applied: {percentage}% (-£{discount_amount:.2f})")
                 discount_label.pack()
                 
-                total_label.configure(
-                    text=f"Total: £{discounted_total:.2f}"
-                )
+                # Update the total label to show the new total price after discount
+                total_label.configure(text=f"Total: £{discounted_total:.2f}")
                 
                 display_success(message_label, "Discount applied successfully!")
-                log_action('APPLY_DISCOUNT', user_id=current_user_id, 
-                          details=f"Applied {percentage}% discount to cart")
+                log_action('APPLY_DISCOUNT', user_id=current_user_id, details=f"Applied {percentage}% discount to cart")
         else:
-            # Add error message when discount is invalid or inactive
             display_error(message_label, "Invalid or inactive discount code")
 
     def show_coupon_options():
@@ -418,6 +421,7 @@ def show_cart(global_state):
         y = (screen_height - window_height) // 2
         choice_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
         
+        # Shows the 2 buttons of 2 different options for qr code discount addition.
         tk.Button(
             choice_window,
             text="Scan QR Code (Webcam)",
@@ -438,17 +442,26 @@ def show_cart(global_state):
         Shows scrollbar only when content exceeds visible area
         Enables/disables mouse wheel scrolling
         """
+        # Update the canvas to ensure it has the latest dimensions
         canvas.update_idletasks()
+        
+        # Get the bounding box of all items in the canvas
         bbox = canvas.bbox("all")
+        
         if bbox:
+            # Calculate the total scrollable height
             scroll_height = bbox[3] - bbox[1]
+            # Get the visible height of the canvas
             visible_height = canvas.winfo_height()
             
             if scroll_height > visible_height:
+                # If the content is taller than the visible area, enable scrolling
                 bind_wheel()
                 scrollbar.pack(side="right", fill="y")
             else:
+                # If the content fits within the visible area, disable scrolling
                 unbind_wheel()
                 scrollbar.pack_forget()
 
+    # Bind the canvas configuration event to check if scrollbar is needed
     canvas.bind('<Configure>', check_scroll_needed)

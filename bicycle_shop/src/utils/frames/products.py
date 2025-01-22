@@ -23,16 +23,21 @@ def setup_product_grid(scrollable_frame, canvas, products, product_width=290, pa
     """
     style = get_style_config()['product_grid']
 
-    if not products:
+    # Check if the products list is empty
+    if not products: 
+        # Create the label, pack it correctly and add the error message.
         message_label = tk.Label(scrollable_frame, text="", bg=style['frame_bg'])
         message_label.pack(pady=10)
         display_error(message_label, "No products available.")
-        return None
-        
+        # Exit the function early since there are no products
+        return None 
+    
+    # Update canvas, get the latest width
     canvas.update_idletasks()
     content_width = canvas.winfo_width()
+    # Calculate the number of columns based on the canvas width, product width, and padding
     num_columns = max(1, content_width // (product_width + padding))
-    return num_columns
+    return num_columns # Calculated number of columns
 
 def create_basic_product_frame(row_frame, product, product_width, buttons=None):
     """Creates standard product frame with common elements.
@@ -54,16 +59,19 @@ def create_basic_product_frame(row_frame, product, product_width, buttons=None):
     """
     style = get_style_config()['product_grid']
     
+    # Create a frame for the product within the row frame
     product_frame = tk.Frame(row_frame, width=product_width, padx=1, pady=1, bg=style['frame_bg'])
     product_frame.pack(side="left", padx=1, pady=1)
 
     tk.Label(product_frame, text=f"Name: {product[1]}", **style['text']).pack()
     tk.Label(product_frame, text=f"Price: £{product[2]:.2f}", **style['text']).pack()
 
+    # If buttons are provided, create a frame for them
     if buttons:
         button_frame = tk.Frame(product_frame, bg=style['frame_bg'])
         button_frame.pack(pady=5)
 
+        # Iterate over the buttons to create them
         for btn_text, btn_callback in buttons:
             def create_command(callback=btn_callback, prod_id=product[0]):
                 """Create callback function for button.
@@ -85,10 +93,13 @@ def create_basic_product_frame(row_frame, product, product_width, buttons=None):
                 width=14
             ).pack(side="left", padx=2)
 
+    # If a QR code path is provided for the product
     if product[3]:
+         # Resize the QR code image to fit the frame of size 290x290
         qr_resized = resize_qr_code(product[3], size=(290, 290))
         if qr_resized:
             qr_label = tk.Label(product_frame, image=qr_resized, **style['qr_label'])
+            # Keep a reference to the image to prevent it from being garbage collected
             qr_label.image = qr_resized
             qr_label.pack()
 

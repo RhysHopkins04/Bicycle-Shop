@@ -13,6 +13,7 @@ def log_user_action(user_id, action_type, details, status="success"):
     """
     conn = get_connection()
     cursor = conn.cursor()
+    # Use parameterized query to prevent SQL injection
     cursor.execute("""
         INSERT INTO UserActions (user_id, action_type, details, status)
         VALUES (?, ?, ?, ?)
@@ -33,6 +34,7 @@ def log_admin_action(admin_id, action_type, target_type, target_id, details, sta
     """
     conn = get_connection()
     cursor = conn.cursor()
+    # Use parameterized query to prevent SQL injection
     cursor.execute("""
         INSERT INTO AdminActions (admin_id, action_type, target_type, target_id, details, status)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -55,10 +57,11 @@ def export_logs_to_temp_file(admin_only=False):
     """
     from src.file_system.config.config_manager import get_absolute_path
 
-    # Create temp directory in our application directory
+   # Create temp directory in application directory for log files
     temp_dir = get_absolute_path('temp')
     os.makedirs(temp_dir, exist_ok=True)
     
+    # Create temporary file that will be cleaned up after use
     temp_file = tempfile.NamedTemporaryFile(
         mode='w',
         delete=False,
@@ -71,6 +74,7 @@ def export_logs_to_temp_file(admin_only=False):
     
     try:
         if admin_only:
+            # Admin logs include additional target information
             cursor.execute("""
                 SELECT timestamp, 
                        COALESCE(Users.username, 'Unknown User') as username,
@@ -83,6 +87,7 @@ def export_logs_to_temp_file(admin_only=False):
                 ORDER BY timestamp DESC
             """)
         else:
+            # User logs have simpler structure
             cursor.execute("""
                 SELECT timestamp,
                        COALESCE(Users.username, 'Unknown User') as username,
@@ -93,7 +98,8 @@ def export_logs_to_temp_file(admin_only=False):
                 LEFT JOIN Users ON UserActions.user_id = Users.id
                 ORDER BY timestamp DESC
             """)
-            
+        
+        # Write logs to temp file in pipe-delimited format
         for row in cursor:
             temp_file.write(" | ".join(map(str, row)) + "\n")
             
@@ -116,9 +122,11 @@ def get_dashboard_stats():
     """
     conn = get_connection()
     cursor = conn.cursor()
+
     try:
         stats = {}
-        
+
+        # Gather system-wide statistics in single database connection
         # Total users
         cursor.execute("SELECT COUNT(*) FROM Users")
         stats['total_users'] = cursor.fetchone()[0]
@@ -166,7 +174,7 @@ def get_dashboard_alerts():
     cursor = conn.cursor()
     alerts = []
     
-    # Check for failed admin logins in last hour
+    # Check recent failed admin login attempts (last hour)
     cursor.execute("""
         SELECT COUNT(*) FROM AdminActions 
         WHERE action_type = 'admin_login' 
@@ -177,7 +185,7 @@ def get_dashboard_alerts():
     if admin_failed_logins >= 2:
         alerts.append(("Warning", f"{admin_failed_logins} failed admin login attempts in last hour"))
 
-    # Check for failed user logins in last 30 minutes
+    # Check recent failed user login attempts (last 30 minutes)
     cursor.execute("""
         SELECT COUNT(*) FROM UserActions 
         WHERE action_type = 'login' 
@@ -188,7 +196,7 @@ def get_dashboard_alerts():
     if user_failed_logins >= 3:
         alerts.append(("Warning", f"{user_failed_logins} failed user login attempts in last 30 minutes"))
 
-    # Check for low stock products (less than 5)
+    # Check for products with low stock
     cursor.execute("""
         SELECT COUNT(*) FROM Products 
         WHERE stock < 5 AND listed = 1
@@ -197,7 +205,7 @@ def get_dashboard_alerts():
     if low_stock > 0:
         alerts.append(("Warning", f"{low_stock} products low on stock"))
 
-    # Check for inactive discounts
+    # Check for unusual discount usage patterns
     cursor.execute("""
         SELECT SUM(uses) FROM Discounts 
         WHERE last_used >= datetime('now', '-1 hour')

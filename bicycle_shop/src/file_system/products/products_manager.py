@@ -17,20 +17,20 @@ def handle_product_directory(name, old_name=None):
         Creates new directory if it doesn't exist
         Removes old directory if renaming
     """
-    paths = get_paths()
-    product_dir = os.path.join(paths['products_dir'], name)
-    old_dir = os.path.join(paths['products_dir'], old_name) if old_name else None
+    paths = get_paths()  # Get the paths configuration
+    product_dir = os.path.join(paths['products_dir'], name)  # Construct the new product directory path
+    old_dir = os.path.join(paths['products_dir'], old_name) if old_name else None  # Construct the old directory path if old_name is provided
     
-    os.makedirs(product_dir, exist_ok=True)
+    os.makedirs(product_dir, exist_ok=True)  # Create the new product directory if it doesn't exist
     
-    if old_dir and os.path.exists(old_dir) and old_dir != product_dir:
+    if old_dir and os.path.exists(old_dir) and old_dir != product_dir:  # Check if the old directory exists and is different from the new directory
         try:
-            shutil.rmtree(old_dir)
+            shutil.rmtree(old_dir)  # Remove the old directory
         except OSError as e:
-            print(f"Error removing old directory: {e}")
+            print(f"Error removing old directory: {e}")  # Print error message if an OSError occurs during directory removal
             
     # print(f"Handling product directory for: {name}, old name: {old_name}")
-    return product_dir
+    return product_dir  # Return the new product directory path
 
 def handle_qr_code(name, price, product_dir):
     """Handle QR code file operations.
@@ -68,12 +68,15 @@ def handle_product_image(image_path, product_dir):
         Preserves original filename
     """
     if image_path and os.path.exists(image_path):
+        # Construct the destination path for the image in the product directory
         image_dest = os.path.join(product_dir, os.path.basename(image_path))
+        # Check if the source and destination paths are different
         if os.path.abspath(image_path) != os.path.abspath(image_dest):
+            # Copy the image to the destination path
             shutil.copy(image_path, image_dest)
         # print(f"Handling product image: {image_path}, directory: {product_dir}")
-        return image_dest
-    return None
+        return image_dest  # Return the destination path of the copied image
+    return None  # Return None if no image path is provided or the image does not exist
 
 def rename_product_directory(old_name, new_name):
     """Rename product directory when product name changes.
@@ -88,12 +91,12 @@ def rename_product_directory(old_name, new_name):
     Note:
         Only renames if old directory exists and names differ
     """
-    paths = get_paths()
-    old_dir = os.path.join(paths['products_dir'], old_name)
-    new_dir = os.path.join(paths['products_dir'], new_name)
-    if os.path.exists(old_dir) and old_name != new_name:
-        os.rename(old_dir, new_dir)
-    return new_dir
+    paths = get_paths()  # Get the paths configuration
+    old_dir = os.path.join(paths['products_dir'], old_name)  # Construct the old directory path
+    new_dir = os.path.join(paths['products_dir'], new_name)  # Construct the new directory path
+    if os.path.exists(old_dir) and old_name != new_name:  # Check if the old directory exists and names differ
+        os.rename(old_dir, new_dir)  # Rename the old directory to the new name
+    return new_dir  # Return the new directory path
 
 def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None, keep_files=False, clean_qr_only=False):
     """Clean up old product files when updating/deleting.
@@ -115,27 +118,28 @@ def cleanup_old_product_files(old_name, old_qr_code, old_image, new_name=None, k
     # print(f"New name: {new_name}, Keep files: {keep_files}, Clean QR only: {clean_qr_only}")
 
     if keep_files:
-        return
+        return  # Skip cleanup if keep_files is True
         
     paths = get_paths()
     old_product_dir = os.path.join(paths['products_dir'], old_name)
     
     try:
         if old_qr_code and os.path.exists(old_qr_code):
-            # print(f"Removing old QR code: {old_qr_code}")
+            # Remove old QR code file if it exists
             os.remove(old_qr_code)
             
         if not clean_qr_only and old_image and os.path.exists(old_image):
-            # print(f"Removing old image: {old_image}")
+            # Remove old image file if it exists and clean_qr_only is False
             os.remove(old_image)
             
         if new_name and old_name != new_name:
             new_product_dir = os.path.join(paths['products_dir'], new_name)
             if os.path.exists(old_product_dir):
-                # print(f"Renaming directory from {old_product_dir} to {new_name}")
+                # Rename old product directory to new name if it exists
                 os.rename(old_product_dir, new_product_dir)
             else:
                 print(f"Old directory {old_product_dir} does not exist")
                 
     except OSError as e:
+        # Print error message if an OSError occurs during file cleanup
         print(f"Error during file cleanup: {e}")

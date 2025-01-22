@@ -21,6 +21,8 @@ def validate_password(username, password):
         - At least one number
         - At least one special character (!@#$%^&*(),.?":{}|<>)
     """
+
+    # Checks if each requirement is met for the password, return the error message for each if not met
     if len(password) < 8:
         return False, "Password must be at least 8 characters long."
     if username.lower() in password.lower():
@@ -47,6 +49,7 @@ def validate_password_match(password, confirm_password):
             - is_valid: True if passwords match
             - message: Error message if mismatch, "Valid" if match
     """
+    # Ensure that password and the confirm password match
     if password != confirm_password:
         return False, "Passwords do not match."
     return True, "Valid"

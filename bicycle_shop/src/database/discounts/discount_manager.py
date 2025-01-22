@@ -21,7 +21,10 @@ def add_discount(name, percentage):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # Generate QR code for new discount before database insertion
         qr_path = handle_discount_qr_code(name, percentage)
+        
+        # Use parameterized query to prevent SQL injection
         cursor.execute("""
             INSERT INTO Discounts (name, percentage, qr_code_path)
             VALUES (?, ?, ?)
@@ -30,6 +33,7 @@ def add_discount(name, percentage):
         conn.commit()
         return True, new_discount_id, "Discount added successfully"
     except sqlite3.IntegrityError:
+        # Handle duplicate discount names
         return False, None, "A discount with this name already exists"
     except Exception as e:
         return False, None, f"Error adding discount: {str(e)}"
@@ -45,6 +49,7 @@ def get_all_discounts():
     """
     conn = get_connection()
     cursor = conn.cursor()
+    # Fetch all relevant discount fields for display and management
     cursor.execute("""
         SELECT id, name, percentage, qr_code_path, uses, active
         FROM Discounts
@@ -73,23 +78,23 @@ def update_discount(discount_id, name, percentage):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        # Get old QR path
+        # Get old QR path for cleanup
         cursor.execute("SELECT qr_code_path FROM Discounts WHERE id = ?", (discount_id,))
         old_qr = cursor.fetchone()
         if old_qr:
             try:
-                # Try update first
+                # Update discount details first
                 cursor.execute("""
                     UPDATE Discounts 
                     SET name = ?, percentage = ?
                     WHERE id = ?
                 """, (name, percentage, discount_id))
                 
-                # If successful, handle QR code changes
+                # Generate new QR code and clean up old one
                 new_qr_path = handle_discount_qr_code(name, percentage)
                 cleanup_old_discount_qr(old_qr[0])
                 
-                # Update QR path
+                # Update QR path in database
                 cursor.execute("UPDATE Discounts SET qr_code_path = ? WHERE id = ?", 
                              (new_qr_path, discount_id))
                              
@@ -118,6 +123,7 @@ def delete_discount(discount_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # Get QR path for cleanup before deletion
         cursor.execute("SELECT qr_code_path FROM Discounts WHERE id = ?", (discount_id,))
         result = cursor.fetchone()
         if result:
@@ -146,6 +152,7 @@ def toggle_discount_status(discount_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # Use NOT operator to flip boolean active status
         cursor.execute("UPDATE Discounts SET active = NOT active WHERE id = ?", (discount_id,))
         conn.commit()
         return True, "Discount status toggled successfully"
@@ -168,6 +175,7 @@ def increment_discount_uses(discount_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # Update usage count and last used timestamp
         cursor.execute("""
             UPDATE Discounts 
             SET uses = uses + 1, last_used = CURRENT_TIMESTAMP
@@ -192,15 +200,19 @@ def verify_discount_qr(qr_data):
             - discount_id: ID of valid discount, None if invalid
             - message: Success/error message
     """
+    # Validate QR code format (DISCOUNT:name:percentage)
     if not qr_data.startswith("DISCOUNT:"):
         return False, None, "Invalid QR code format"
     
     try:
+        # Parse QR code data
         _, name, percentage = qr_data.split(":")
         percentage = int(percentage)
         
         conn = get_connection()
         cursor = conn.cursor()
+
+        # Check discount exists and is active
         cursor.execute("""
             SELECT id, active, uses 
             FROM Discounts 

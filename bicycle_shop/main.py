@@ -1,3 +1,26 @@
+import sys
+
+# # Check Python version is correct, commented out till tested
+# if sys.version_info < (3, 6):
+#     sys.exit("This script requires Python 3.6 or higher!")
+
+import subprocess
+
+# Auto install all requirements if not satisfied on first run
+def install_requirements():
+    """Check and install required packages from requirements.txt."""
+    try:
+        import PIL
+        import colorama
+        import qrcode
+        import numpy
+        import cv2
+    except ImportError:
+        print("Required packages not found. Installing...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+
+install_requirements()
+
 from src.file_system.directory.directory_manager import initialize
 from src.database.core.schema import create_tables
 from src.database.users.user_manager import initialize_admin

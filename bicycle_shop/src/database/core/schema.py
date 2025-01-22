@@ -19,6 +19,8 @@ def create_tables():
     conn = get_connection()
     cursor = conn.cursor()
 
+    # User table with authentication and role management
+    # Password and salt stored as BLOB for binary storage
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,6 +35,7 @@ def create_tables():
         )
     ''')
 
+    # Simple categories table with unique names
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,6 +43,8 @@ def create_tables():
         )
     ''')
 
+    # Products table with category relationship
+    # QR code and image paths stored as TEXT
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,6 +60,8 @@ def create_tables():
         )
     ''')
     
+    # Shopping cart with user and product relationships
+    # Quantity must be positive
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS ShoppingCart (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,6 +73,8 @@ def create_tables():
         )
     """)
 
+    # Discounts table for promotional features
+    # Tracks usage and active status
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS Discounts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +87,8 @@ def create_tables():
         )
     """)
 
+    # Audit logging tables for user and admin actions
+    # Separate tables for different detail requirements
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS UserActions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

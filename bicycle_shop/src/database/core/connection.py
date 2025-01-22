@@ -3,6 +3,7 @@ import os
 
 from src.file_system.config.config_manager import get_absolute_path
 
+# Define database path relative to application root
 DB_PATH = get_absolute_path('bicycle_shop.db')
 
 def get_connection():
@@ -15,4 +16,6 @@ def get_connection():
         Uses the DB_PATH configured in the application settings.
         Remember to close the connection after use.
     """
+    # Create a new database connection for thread safety
+    # Each operation should manage its own connection lifecycle
     return sqlite3.connect(DB_PATH)

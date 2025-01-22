@@ -10,9 +10,16 @@ def get_discounts_dir():
     Returns:
         Absolute path to the discounts directory
     """
+    # Get the root directory of the application by navigating up four levels from the current file
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    
+    # Define the path to the Discounts directory within the root directory
     discounts_dir = os.path.join(root_dir, 'Discounts')
+    
+    # Create the Discounts directory if it doesn't exist
     os.makedirs(discounts_dir, exist_ok=True)
+    
+    # Return the absolute path to the Discounts directory
     return discounts_dir
 
 def handle_discount_qr_code(name, percentage):
@@ -29,9 +36,16 @@ def handle_discount_qr_code(name, percentage):
         Creates QR code with format "DISCOUNT:name:percentage"
         Saves file as "discount_name_percentage.png"
     """
+    # Define the QR code file name based on discount name and percentage
     qr_code = f"discount_{name}_{percentage}.png"
+    
+    # Get the full path to the QR code file in the discounts directory
     qr_code_path = os.path.join(get_discounts_dir(), qr_code)
+    
+    # Generate the QR code with the format "DISCOUNT:name:percentage" and save it to the specified path
     generate_qr_code(f"DISCOUNT:{name}:{percentage}", qr_code_path)
+    
+    # Return the path to the generated QR code file
     return qr_code_path
 
 def cleanup_old_discount_qr(qr_code_path):

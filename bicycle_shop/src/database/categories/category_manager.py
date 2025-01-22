@@ -19,10 +19,12 @@ def add_category(name):
     try:
         conn = get_connection()
         cursor = conn.cursor()
+        # Use parameterized query to prevent SQL injection
         cursor.execute("INSERT INTO Categories (name) VALUES (?)", (name,))
         conn.commit()
         return True, "Category added successfully!"
     except sqlite3.IntegrityError:
+        # Return specific error for duplicate category names
         return False, "Category name already exists."
     except sqlite3.Error as e:
         return False, f"Failed to add category: {str(e)}"
@@ -37,6 +39,7 @@ def get_categories():
     """
     conn = get_connection()
     cursor = conn.cursor()
+    # Return just category names for UI display purposes
     cursor.execute("SELECT name FROM Categories")
     categories = [row[0] for row in cursor.fetchall()]
     conn.close()
@@ -53,6 +56,7 @@ def get_category_id(name):
     """
     conn = get_connection()
     cursor = conn.cursor()
+    # Use parameterized query for safe lookup
     cursor.execute("SELECT id FROM Categories WHERE name = ?", (name,))
     category = cursor.fetchone()
     conn.close()
@@ -69,6 +73,7 @@ def get_category_name(category_id):
     """
     conn = get_connection()
     cursor = conn.cursor()
+    # Use parameterized query for safe lookup
     cursor.execute("SELECT name FROM Categories WHERE id = ?", (category_id,))
     category = cursor.fetchone()
     conn.close()
@@ -92,6 +97,7 @@ def update_category(category_id, new_name):
     conn = get_connection()
     cursor = conn.cursor()
     try:
+        # Use parameterized query to prevent SQL injection
         cursor.execute("UPDATE Categories SET name = ? WHERE id = ?", (new_name, category_id))
         conn.commit()
         return True, "Category updated successfully!"
@@ -121,14 +127,15 @@ def delete_category(category_id):
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        # First update all products in this category
+        # First update all products in this category to maintain data consistency
+        # Products are unlisted and category reference removed
         cursor.execute("""
             UPDATE Products 
             SET listed = 0, category_id = NULL 
             WHERE category_id = ?
         """, (category_id,))
         
-        # Then delete the category
+        # Then delete the category after products are updated
         cursor.execute("DELETE FROM Categories WHERE id = ?", (category_id,))
         conn.commit()
         return True, "Category deleted successfully and associated products unlisted!"

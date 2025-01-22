@@ -148,8 +148,9 @@ def show_manage_users_screen(global_state):
             Updates user list display
             Destroys dialog window
             """
+            # Return focus to the main window, refresh the user display and destroy the dialog popup
             dialog.grab_release()
-            display_users()
+            display_users()  
             dialog.destroy()
 
         # Bind dialog close button (X)
@@ -194,7 +195,7 @@ def show_manage_users_screen(global_state):
             values=["Yes", "No"],
             width=22,
             state='readonly' if username != current_username else 'disabled'
-        )
+        ) # Only allows admin to change admin status of others (always maintains a user account no MATTER what)
         admin_combobox.pack(pady=(0, 10), padx=5)
 
         def save_changes():
@@ -367,8 +368,9 @@ def show_manage_users_screen(global_state):
             actions_frame.grid_columnconfigure(0, weight=1)
             
             buttons_frame = tk.Frame(actions_frame, **styles['frame'])
-            buttons_frame.place(relx=0.5, rely=0.5, anchor="center")
+            buttons_frame.place(relx=0.5, rely=0.5, anchor="center") # Relative placemment
             
+            # Create Edit button for each user row
             edit_btn = tk.Button(
                 buttons_frame,
                 text="Edit",
@@ -377,6 +379,7 @@ def show_manage_users_screen(global_state):
             )
             edit_btn.pack(side="left", padx=2)
             
+            # Creates delete buttons for each user but stops current user from deleting themselves (avoid no admin situation)
             delete_btn = tk.Button(
                 buttons_frame,
                 text="Delete",

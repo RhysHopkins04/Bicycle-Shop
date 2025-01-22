@@ -1,13 +1,10 @@
 # **TODO:**
 ## **Incomplete:**
-- Improve my documentation as a whole, comments and docustrings.
-    - gui.py up to date as of 27/11/24.
-    - docstrings throughout should be up to date always across all files.
-
-- Ensure that I do not have any reduntant functions.
-
 - Complete all tests and log in excel document for the assignment writeup. (also learn about proper automated pipeline testing CI/CD ETC)
     - Test all logging both user and admin(success and failure), to ensure there are no broken parts.
+
+- Test minimum python version that works then re-impliment the python version checker with the correct version.
+- Test that the admin reset now works without the error
 
 ## **Potential:**
 ### **Features Additions:**
@@ -21,6 +18,8 @@
 - ? Allow discounts to be specific to just certain items or certain basket sizes (spend more than etc, or only % off this product) ?
 
 ### **Changes:**
+- ? Update the other view product page sections to use the better resizing function... after i simplify it and keep its usefulness. ?
+- ? Check the files again and remove any further redundant functions as should be repetitively done. ? 
 - ? Clean up __init__.py files since explicit imports are being used to avoid issues with circular importing, and they add bloat to the src files, check all references for imports through the init.py files are cleaned before deletion. ?
 - ? Issue with stock not being checked to ensure it is an integer when editing a product ?
 - ? Can add product to a category without ability to remove it without changing it to a new category (cannot go back to unlisted category)
@@ -46,6 +45,13 @@
 
 # **Completion:**
 ## **Done:**
+- Udated the change password function to get the values from global_state if not passed, but also updated login to pass them. (still test)
+- Implimented auto descriptor for if python version is recent enough, otherwise tell user to intall a working minimum version (currently commented out till tested on different python versions).
+- Added a prerequisites.md file to display with the readme.md on the github page to allow a user to know what is required pre-run
+- Added auto installation of requirements if they are missing, including a requirements.txt
+- Added comments throughout all my code to augment what already existed to provide enough detail for marking and understand how i did things as i went.
+- Cleared a duplicate of the view product on the store page, and brought back qr code functionality for it.
+- Added consistent docstrings across all functions even main.py to give information required when revisiting the project, format follows: Main purpose desc, Arguments doc, return value doc, notable behaviours/exceptions, additional context. This should be more than enough information to review the program again and still figure out what is going on.
 - Resolved issue with the old qr code not being removed even though a new one had been added to the directory.
 - Adjusted the validation logic on a product update so that if it does not meet the requirements for listing it will be removed from listed and the admin informed of the errors as to why it has been removed from listed.
 - Adjusted the way products are handled to accept a product being set to having no image again
