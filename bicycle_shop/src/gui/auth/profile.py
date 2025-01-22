@@ -317,10 +317,16 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                     log_action('PASSWORD_CHANGE', user_id=current_user_id,
                              details="Password changed successfully")
                     
+                def on_success():
+                    if from_source == "login":
+                        switch_to_admin_panel()
+                    else:
+                        on_close()
+
                 if from_source == "login":
-                    dialog.after(1500, lambda: switch_to_admin_panel())
+                    main_frame.after(1500, on_success)
                 else:
-                    dialog.after(1500, on_close)
+                    dialog.after(1500, on_success)
             else:
                 display_error(message_label, message)
                 if from_source == "login":
