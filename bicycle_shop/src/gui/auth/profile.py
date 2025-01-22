@@ -261,74 +261,6 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
             eye_closed_image=eye_closed_image,
             style="light"
         )
-    else:
-        styles = get_style_config()['manage_user']
-        dialog = tk.Toplevel(window)
-        dialog.title("Change Password")
-        dialog.configure(**styles['frame'])
-        
-        if parent_dialog:
-            dialog.transient(parent_dialog)
-            parent_dialog.attributes('-disabled', True)
-        else:
-            dialog.transient(window)
-            
-        dialog.grab_set()
-        dialog.focus_set()
-
-        dialog_width = 400
-        dialog_height = 350 if from_source == "self" else 300
-        dialog.minsize(dialog_width, dialog_height)
-        x = (dialog.winfo_screenwidth() - dialog_width) // 2
-        y = (dialog.winfo_screenheight() - dialog_height) // 2
-        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
-        
-        dialog.transient(window)
-        dialog.grab_set()
-        dialog.focus_set()
-        dialog.attributes('-topmost', True)
-
-        def on_close():
-            """Handle dialog closure cleanup.
-            
-            Re-enables parent dialog if exists
-            Destroys current dialog
-            """
-            if parent_dialog:
-                parent_dialog.attributes('-disabled', False)
-                parent_dialog.focus_set()
-            dialog.destroy()
-
-        form_frame = tk.Frame(dialog, **styles['frame'])
-        form_frame.pack(fill='both', expand=True, padx=20, pady=20)
-        
-        tk.Label(form_frame, text="Change Password", **styles['title']).pack(pady=(0, 20))
-        
-        message_label = tk.Label(form_frame, text="", **styles['message'])
-        message_label.pack(pady=(0, 10))
-
-        current_password_entry = None
-        if from_source == "self":
-            current_password_entry, _, _ = create_password_field(
-                form_frame, "Current Password",
-                eye_open_image=eye_open_image,
-                eye_closed_image=eye_closed_image,
-                style="dark"
-            )
-
-        new_password_entry, _, _ = create_password_field(
-            form_frame, "New Password",
-            eye_open_image=eye_open_image,
-            eye_closed_image=eye_closed_image,
-            style="dark"
-        )
-        
-        confirm_password_entry, _, _ = create_password_field(
-            form_frame, "Confirm Password",
-            eye_open_image=eye_open_image,
-            eye_closed_image=eye_closed_image,
-            style="dark"
-        )
 
         def change_password():
             """Handle password change validation and update.
@@ -402,6 +334,85 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                     log_action('PASSWORD_CHANGE', user_id=current_user_id,
                              details="Failed to change password",
                              status='failed')
+        
+        change_button = tk.Button(
+            main_frame,
+            text="Change Password",
+            command=change_password,
+            **styles['buttons']
+        )
+        change_button.pack(pady=20)
+        
+        main_frame.bind('<Return>', lambda event: change_password())
+        change_button.bind('<Return>', lambda event: change_password())
+    else:
+        styles = get_style_config()['manage_user']
+        dialog = tk.Toplevel(window)
+        dialog.title("Change Password")
+        dialog.configure(**styles['frame'])
+        
+        if parent_dialog:
+            dialog.transient(parent_dialog)
+            parent_dialog.attributes('-disabled', True)
+        else:
+            dialog.transient(window)
+            
+        dialog.grab_set()
+        dialog.focus_set()
+
+        dialog_width = 400
+        dialog_height = 350 if from_source == "self" else 300
+        dialog.minsize(dialog_width, dialog_height)
+        x = (dialog.winfo_screenwidth() - dialog_width) // 2
+        y = (dialog.winfo_screenheight() - dialog_height) // 2
+        dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
+        
+        dialog.transient(window)
+        dialog.grab_set()
+        dialog.focus_set()
+        dialog.attributes('-topmost', True)
+
+        def on_close():
+            """Handle dialog closure cleanup.
+            
+            Re-enables parent dialog if exists
+            Destroys current dialog
+            """
+            if parent_dialog:
+                parent_dialog.attributes('-disabled', False)
+                parent_dialog.focus_set()
+            dialog.destroy()
+
+        form_frame = tk.Frame(dialog, **styles['frame'])
+        form_frame.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        tk.Label(form_frame, text="Change Password", **styles['title']).pack(pady=(0, 20))
+        
+        message_label = tk.Label(form_frame, text="", **styles['message'])
+        message_label.pack(pady=(0, 10))
+
+        current_password_entry = None
+        if from_source == "self":
+            current_password_entry, _, _ = create_password_field(
+                form_frame, "Current Password",
+                eye_open_image=eye_open_image,
+                eye_closed_image=eye_closed_image,
+                style="dark"
+            )
+
+        new_password_entry, _, _ = create_password_field(
+            form_frame, "New Password",
+            eye_open_image=eye_open_image,
+            eye_closed_image=eye_closed_image,
+            style="dark"
+        )
+        
+        confirm_password_entry, _, _ = create_password_field(
+            form_frame, "Confirm Password",
+            eye_open_image=eye_open_image,
+            eye_closed_image=eye_closed_image,
+            style="dark"
+        )
         
         # Action when x on window is clicked (built into tkinter)
         dialog.protocol("WM_DELETE_WINDOW", on_close)
