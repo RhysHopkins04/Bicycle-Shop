@@ -236,36 +236,7 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
     if eye_closed_image is None and global_state is not None:
         eye_closed_image = global_state.get('icons', {}).get('eye_closed')
 
-    if from_source == "login":
-        if window is None:
-            raise ValueError("Window object is required for login password change")
-        window.geometry("400x300")
-        clear_frame(main_frame)
-        styles = get_style_config()['change_password']['light']
-        window.unbind("<Configure>")
-        window.unbind("<Button-1>")
-        
-        main_frame.configure(bg=styles['title']['bg'])
-        tk.Label(main_frame, text="Change Password", **styles['title']).pack(pady=10)
-        
-        new_password_entry, _, _ = create_password_field(
-            main_frame, "New Password", 
-            eye_open_image=eye_open_image, 
-            eye_closed_image=eye_closed_image, 
-            style="light"
-        )
-        
-        confirm_password_entry, _, _ = create_password_field(
-            main_frame, "Confirm Password",
-            eye_open_image=eye_open_image, 
-            eye_closed_image=eye_closed_image,
-            style="light"
-        )
-
-        message_label = tk.Label(main_frame, text="", **styles['message'])
-        message_label.pack(pady=(0, 10))
-
-        def change_password():
+    def change_password():
             """Handle password change validation and update.
             
             Validates:
@@ -343,6 +314,35 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                     log_action('PASSWORD_CHANGE', user_id=current_user_id,
                              details="Failed to change password",
                              status='failed')
+
+    if from_source == "login":
+        if window is None:
+            raise ValueError("Window object is required for login password change")
+        window.geometry("400x300")
+        clear_frame(main_frame)
+        styles = get_style_config()['change_password']['light']
+        window.unbind("<Configure>")
+        window.unbind("<Button-1>")
+        
+        main_frame.configure(bg=styles['title']['bg'])
+        tk.Label(main_frame, text="Change Password", **styles['title']).pack(pady=10)
+        
+        new_password_entry, _, _ = create_password_field(
+            main_frame, "New Password", 
+            eye_open_image=eye_open_image, 
+            eye_closed_image=eye_closed_image, 
+            style="light"
+        )
+        
+        confirm_password_entry, _, _ = create_password_field(
+            main_frame, "Confirm Password",
+            eye_open_image=eye_open_image, 
+            eye_closed_image=eye_closed_image,
+            style="light"
+        )
+
+        message_label = tk.Label(main_frame, text="", **styles['message'])
+        message_label.pack(pady=(0, 10))
         
         change_button = tk.Button(
             main_frame,
@@ -396,9 +396,6 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
         form_frame.pack(fill='both', expand=True, padx=20, pady=20)
         
         tk.Label(form_frame, text="Change Password", **styles['title']).pack(pady=(0, 20))
-        
-        message_label = tk.Label(form_frame, text="", **styles['message'])
-        message_label.pack(pady=(0, 10))
 
         current_password_entry = None
         if from_source == "self":
@@ -423,8 +420,8 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
             style="dark"
         )
         
-        # Action when x on window is clicked (built into tkinter)
-        dialog.protocol("WM_DELETE_WINDOW", on_close)
+        message_label = tk.Label(form_frame, text="", **styles['message'])
+        message_label.pack(pady=(0, 10))
 
         button_frame = tk.Frame(form_frame, **styles['frame'])
         button_frame.pack(pady=20)
@@ -444,6 +441,9 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                 command=on_close,
                 **styles['buttons']
             ).pack(side='left', padx=5)
+
+        # Action when x on window is clicked (built into tkinter)
+        dialog.protocol("WM_DELETE_WINDOW", on_close)
 
         if from_source == "login":
             main_frame.bind('<Return>', lambda event: change_password())
