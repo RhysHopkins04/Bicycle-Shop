@@ -319,7 +319,7 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
                     
                 def on_success():
                     if from_source == "login":
-                        switch_to_admin_panel()
+                        switch_to_admin_panel(global_state)
                     else:
                         on_close()
 

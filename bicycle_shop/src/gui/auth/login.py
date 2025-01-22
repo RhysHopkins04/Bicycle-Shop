@@ -122,15 +122,16 @@ def show_login_screen(global_state):
                             
                     if not password_changed:
                         switch_to_change_password(
-                        username=username,
-                        from_source="login",
-                        window=global_state['window'],
-                        main_frame=global_state['main_frame'],
-                        eye_open_image=global_state['icons']['eye_open'],
-                        eye_closed_image=global_state['icons']['eye_closed'],
-                        current_admin_id=global_state['current_admin_id'],
-                        global_state=global_state
-                    ) # Forces the password change if the user hasnt changed it yet from first run.
+                            username=username,
+                            from_source="login",
+                            window=global_state['window'],
+                            main_frame=global_state['main_frame'],
+                            eye_open_image=global_state['icons']['eye_open'],
+                            eye_closed_image=global_state['icons']['eye_closed'],
+                            current_admin_id=global_state['current_admin_id'],
+                            switch_to_admin_panel=switch_to_admin_panel,
+                            global_state=global_state
+                        ) # Forces the password change if the user hasnt changed it yet from first run.
                     else:
                         switch_to_admin_panel(global_state)
                 else:
