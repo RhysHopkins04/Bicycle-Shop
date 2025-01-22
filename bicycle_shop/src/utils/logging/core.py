@@ -11,7 +11,8 @@ ACTION_TYPES = {
         'CART_ADD': 'add_to_cart',
         'CART_UPDATE': 'update_cart',
         'PROFILE_UPDATE': 'update_profile',
-        'PASSWORD_CHANGE': 'change_password'
+        'PASSWORD_CHANGE': 'change_password',
+        'APPLY_DISCOUNT': 'apply_discount'
     },
     'admin': {
         'ADMIN_LOGIN': 'admin_login',

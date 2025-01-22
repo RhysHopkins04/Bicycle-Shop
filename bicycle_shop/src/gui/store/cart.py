@@ -334,6 +334,8 @@ def show_cart(global_state):
             cv2.destroyAllWindows()
             display_error(message_label, f"Error accessing webcam: {str(e)}")
 
+    import logging
+
     def handle_file_upload():
         """Handle QR code image upload.
         
@@ -357,42 +359,66 @@ def show_cart(global_state):
                 else:
                     display_error(message_label, "No valid QR code found in image")
             except Exception as e:
+                logging.error(f"Error processing QR code: {e}")
                 display_error(message_label, "Error processing QR code")
 
-    def process_discount(qr_data):
-        """Process scanned discount QR code.
+    def process_discount(discount_id):
+        """Process verified discount ID.
         
         Args:
-            qr_data: Data from scanned QR code
+            discount_id: ID of the verified discount
             
         Note:
-            Validates discount code
             Updates total price display
             Shows discount amount
             Logs discount application
+            Increments discount usage
         """
-        discount = verify_discount_qr(qr_data)
-        if discount:
-            # Extract discount ID and percentage from the verified discount
-            discount_id, percentage = discount
-            # Increment the usage count of the discount
-            success, message = increment_discount_uses(discount_id)
-            if success:
+        from src.database.core.connection import get_connection
+        from src.database.discounts.discount_manager import increment_discount_uses
+
+        # Fetch discount details using discount_id
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("""
+                SELECT name, percentage 
+                FROM Discounts 
+                WHERE id = ?
+            """, (discount_id,))
+            
+            result = cursor.fetchone()
+            if result:
+                name, percentage = result
                 # Calculate the discount amount and the new total price after applying the discount
                 discount_amount = total_price * (percentage / 100)
                 discounted_total = total_price - discount_amount
                 
                 # Update the discount label to show the discount applied
                 discount_label.configure(text=f"Discount applied: {percentage}% (-£{discount_amount:.2f})")
-                discount_label.pack()
+                discount_label.pack(pady=(0, 5), before=coupon_button)
                 
-                # Update the total label to show the new total price after discount
+                # Update the total price label
                 total_label.configure(text=f"Total: £{discounted_total:.2f}")
+                
+                # Change the coupon button text
+                coupon_button.configure(text="Change Coupon")
                 
                 display_success(message_label, "Discount applied successfully!")
                 log_action('APPLY_DISCOUNT', user_id=current_user_id, details=f"Applied {percentage}% discount to cart")
-        else:
-            display_error(message_label, "Invalid or inactive discount code")
+                
+                # Increment discount usage
+                success, message = increment_discount_uses(discount_id)
+                if not success:
+                    logging.error(f"Error incrementing discount usage: {message}")
+            else:
+                display_error(message_label, "Invalid discount ID")
+        except Exception as e:
+            logging.error(f"Error processing discount: {e}")
+            display_error(message_label, "Error processing discount")
+        finally:
+            conn.close()
 
     def show_coupon_options():
         """Show dialog for selecting discount input method.
