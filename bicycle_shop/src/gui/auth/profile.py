@@ -262,6 +262,9 @@ def switch_to_change_password(username, from_source="login", parent_dialog=None,
             style="light"
         )
 
+        message_label = tk.Label(main_frame, text="", **styles['message'])
+        message_label.pack(pady=(0, 10))
+
         def change_password():
             """Handle password change validation and update.
             
