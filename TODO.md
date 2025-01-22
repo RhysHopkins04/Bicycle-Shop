@@ -1,10 +1,8 @@
 # **TODO:**
 ## **Incomplete:**
-- Complete all tests and log in excel document for the assignment writeup. (also learn about proper automated pipeline testing CI/CD ETC)
-    - Test all logging both user and admin(success and failure), to ensure there are no broken parts.
 
-- Test minimum python version that works then re-impliment the python version checker with the correct version.
-- Test that the admin reset now works without the error
+- Issue with scrolling on manage products page...
+
 
 ## **Potential:**
 ### **Features Additions:**
@@ -45,6 +43,7 @@
 
 # **Completion:**
 ## **Done:**
+- Complete all tests and log in excel document for the assignment writeup. (also learn about proper automated pipeline testing CI/CD ETC)
 - Udated the change password function to get the values from global_state if not passed, but also updated login to pass them. (still test)
 - Implimented auto descriptor for if python version is recent enough, otherwise tell user to intall a working minimum version (currently commented out till tested on different python versions).
 - Added a prerequisites.md file to display with the readme.md on the github page to allow a user to know what is required pre-run

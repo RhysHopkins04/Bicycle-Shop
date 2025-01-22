@@ -640,6 +640,9 @@ def show_manage_products_screen(global_state):
         else:
             scrollbar.pack_forget()
 
+        # Update scroll region
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
     # Bind the resize event to update product display
     content_inner_frame.bind("<Configure>", lambda event: display_products(get_products(listed_only=False)))
 
