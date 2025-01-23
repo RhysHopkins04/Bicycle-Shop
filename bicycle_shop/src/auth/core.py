@@ -17,7 +17,7 @@ def hash_password(password):
     salt = os.urandom(16)
     # Use PBKDF2 with SHA256 and 100k iterations for strong password hashing
     # This provides good security against brute force and rainbow table attacks,
-    # 100k itterations meets the python recommended minimal for 16 bit, however 600k itterations would be better for security.
+    # 100k itterations meets the python recommended minimal for 16 byte, however 600k itterations would be better for security.
     hashed_password = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
     return salt, hashed_password
 

@@ -2,11 +2,12 @@
 ## **Incomplete:**
 
 - Issue with scrolling on manage products page...
-
+- On first start, if you dont click ok gets stuck and doesnt generate the rest of the file folders or move icons across, hence gets stuck if ok isnt clicked.
+- Add extra validation step on password changes, that the new password != old password
+- Webcam scanning of qr codes tends to fail, possibly due to inverted camera?
 
 ## **Potential:**
 ### **Features Additions:**
-- ? Switch to using loging instead of show_login_screen for all functions. ?
 - ? add max password length of 16 to fit password box length. (technically can be ignored but should be restricted to around 24 since it seems to be a common practice) ?
 - ? Reduce password requirements for a standard users password, keep complexity requirements for accounts with admin access, on account update to admin have them meet the requirements if password does not already ?
 
@@ -20,17 +21,18 @@
 - ? Check the files again and remove any further redundant functions as should be repetitively done. ? 
 - ? Clean up __init__.py files since explicit imports are being used to avoid issues with circular importing, and they add bloat to the src files, check all references for imports through the init.py files are cleaned before deletion. ?
 - ? Issue with stock not being checked to ensure it is an integer when editing a product ?
-- ? Can add product to a category without ability to remove it without changing it to a new category (cannot go back to unlisted category)
 - ? Swap age from signup for email and require unique ?
 
 - ? **!MAJOR CHANGE!** Update the adding of categories and management of categories screen since it is primitive and not user friendly for first time useage. ?
 - ? **!MAJOR CHANGE!** Swap all scrollable frames over to scrollable grid and update the product boxes to match (much neater code, however means changing over entire screens to use a different geometry method)
 
-- ? Could do with updating the color scheme default ?
+- ? Could do with updating the color scheme default, color ideas: white(#ffffff), offwhite(#dfe0e2), light gray(#575d64), mid gray(#3a4049), dark gray(#2a313a) ?
 - ? Make it so that on the store listing the images are the image of the product not the qr code. ?
 - ? Product page fits 1280x720 and alright but still a little bit empty on all other screen sizes. ? 
 
-- ? **!MAJOR CHANGE!** Impliment state management for transfers bvetween screens of the gui since it is more elegant and robust and avoids passing the parameters every transfer. ?
+- ? **!MAJOR CHANGE!** Impliment class based state management since it is more elegant and robust and avoids passing the parameters every transfer. ?
+
+- ? **!MAJOR CHANGE!** Setup pipelines for auto compiliation into a real program (exe with setup wizard:https://www.youtube.com/watch?v=p3tSLatmGvU). ?
 
 
 ## **Known Issues, unsure how to fix:**
@@ -39,10 +41,15 @@
 - ! Have had issues trying to use grid layounds inside of a packed scrollable doesnt work obviously, used long workarounds until grid version was created and works, switch to it... !
 - ! start_fullscreen does not function as expected, starts in normal window mode, Removed for now since there could be an incompat with it and start_max_windowed. May be reimplimented later on if it makes sense. !
 - ! Sometimes a slight ghosting can be seen of the dropdown box when the screen has been moved since it updates in 1ms, it also stays up if the mouse is moved off the entire window (not really an issue but noted) !
+- ! Dropdown box doesnt always respond properly (hides when you dont want it to) !
 
 
 # **Completion:**
 ## **Done:**
+- Screens are using "state management" but through "global_state" dictionary from /src/gui/core.py.
+- Products will force off listed if they lose any requirement.
+- Products on edit can now be set to "No Category" which will make them unlisted while in the editing page.
+- Now using the logout function for all logging out instead of just setting screen to be the login screen and not reseting the variables.
 - Complete all tests and log in excel document for the assignment writeup. (also learn about proper automated pipeline testing CI/CD ETC)
 - Udated the change password function to get the values from global_state if not passed, but also updated login to pass them. (still test)
 - Implimented auto descriptor for if python version is recent enough, otherwise tell user to intall a working minimum version (currently commented out till tested on different python versions).
