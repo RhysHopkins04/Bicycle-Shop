@@ -1,5 +1,6 @@
 import configparser
 import os
+import sys
 
 def get_absolute_path(relative_path):
     """Convert relative path to absolute path.
@@ -65,9 +66,9 @@ DEFAULT_CONFIG = {
         'color_background': 'black',
         'color_text': 'white',
         'color_text_secondary': 'darkgrey',
-        'color_login_register': 'SystemButtonFace',
+        'color_login_register': '#f0f0f0',
         'color_login_register_secondary': 'white',
-        'color_text_login_register': 'SystemButtonText'
+        'color_text_login_register': 'black'
     },
     'DefaultAdmin': {
         'username': 'admin',
@@ -91,6 +92,20 @@ DEFAULT_CONFIG = {
 
 # Initialize config parser
 config = configparser.ConfigParser()
+
+MACOS_TK_COLOR_FALLBACKS = {
+    "systembuttonface": "#f0f0f0",
+    "systembuttontext": "black",
+}
+
+
+def _normalize_theme_color(value):
+    """Map unsupported Tk system color names to safe values on macOS."""
+    if not value:
+        return value
+    if sys.platform == "darwin":
+        return MACOS_TK_COLOR_FALLBACKS.get(value.strip().lower(), value)
+    return value
 
 def get_paths():
     """Get directory paths from config.
@@ -310,14 +325,14 @@ def get_theme():
     config.read(CONFIG_PATH)
     # Return theme color settings from the config file
     return {
-        'dark_primary': config['Theme']['color_primary'],
-        'dark_secondary': config['Theme']['color_secondary'],
-        'dark_surface': config['Theme']['color_background'],
-        'light_text': config['Theme']['color_text'],
-        'med_text': config['Theme']['color_text_secondary'],
-        'med_primary': config['Theme']['color_login_register'],
-        'light_primary': config['Theme']['color_login_register_secondary'],
-        'dark_text': config['Theme']['color_text_login_register']
+        'dark_primary': _normalize_theme_color(config['Theme']['color_primary']),
+        'dark_secondary': _normalize_theme_color(config['Theme']['color_secondary']),
+        'dark_surface': _normalize_theme_color(config['Theme']['color_background']),
+        'light_text': _normalize_theme_color(config['Theme']['color_text']),
+        'med_text': _normalize_theme_color(config['Theme']['color_text_secondary']),
+        'med_primary': _normalize_theme_color(config['Theme']['color_login_register']),
+        'light_primary': _normalize_theme_color(config['Theme']['color_login_register_secondary']),
+        'dark_text': _normalize_theme_color(config['Theme']['color_text_login_register'])
     }
 
 def get_default_admin():
